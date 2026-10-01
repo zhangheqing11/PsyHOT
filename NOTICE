@@ -1,16 +1,21 @@
-AIHOT
-Copyright (c) 2026 数字生命卡兹克. The code is licensed under the MIT License (LICENSE).
+PsyHOT
+Copyright (c) 2026 PsyHOT contributors. Licensed under the MIT License (LICENSE).
 
-The name "AIHOT" and the AIHOT logo are not licensed under the MIT License. Please use your own name
-and logo for your site.
+PsyHOT is based on AIHOT (https://github.com/KKKKhazix/AIHOT),
+Copyright (c) 2026 数字生命卡兹克, also under the MIT License.
+The name "AIHOT" and the AIHOT logo are not licensed under the MIT License; PsyHOT does not use them as its name or logo.
+The PsyHOT name, the Ψ icon and the inkblot artwork in this repository are the project's own.
 
 This repository also contains third-party material under its own terms:
 
 - assets/og-fonts/: Noto Sans SC, SIL Open Font License 1.1 (assets/og-fonts/LICENSE).
+- assets/model-providers/ and assets/leaderboard-sources/ belong to the AI model leaderboard inherited
+  from AIHOT, which PsyHOT switches off (industry/features.ts).
 - assets/model-providers/: model and provider marks, mostly from Lobe Icons (MIT). The marks remain
   trademarks of their respective owners and are used only to identify them (assets/model-providers/NOTICE.md).
 - assets/leaderboard-sources/: the published marks of each evaluation operator, used only to identify
   them (assets/leaderboard-sources/NOTICE.md).
 
-The demo sources in industry/sources.json are public feeds of their publishers. Their content belongs
+The sources in industry/sources.json are public feeds and pages of their publishers (journals,
+preprint servers, societies and media). Their content belongs
 to them; by default the site shows only a summary and a link to the original.

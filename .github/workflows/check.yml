@@ -96,7 +96,9 @@ jobs:
           for i in $(seq 1 90); do curl -fsS -o /dev/null http://127.0.0.1:3000/api/health 2>/dev/null && break; sleep 2; done
           docker compose ps
           docker compose run --rm --no-deps --entrypoint node setup scripts/smoke.ts --base http://web:3000
-          docker compose exec -T db psql -U aihot -d aihot -Atc "select count(*) from sources" | grep -q '^18$'
+          # Every source in the industry pack was imported.
+          expected=$(node -e 'console.log(JSON.parse(require("fs").readFileSync("industry/sources.json","utf8")).sources.length)')
+          docker compose exec -T db psql -U aihot -d aihot -Atc "select count(*) from sources" | grep -qx "$expected"
       - name: Logs
         if: failure()
         run: docker compose logs --tail 80

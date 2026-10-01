@@ -51,7 +51,7 @@ function Masthead({ report, index }: { report: ReportDetail; index: ReportNaviga
           <div className="flex w-[112px] flex-col items-center justify-center px-2 py-3 text-center @[880px]:w-[150px] @[880px]:py-4">
             {issue && <span className="text-[11px] tracking-[0.2em] text-ink-4">第 {issue} 期</span>}
             <span className="relative mt-2 grid place-items-center">
-              <Inkblot seed={`${report.kind}-${report.key}`} className="ink-soak absolute h-[150%] w-auto max-w-none text-accent opacity-30" />
+              <Inkblot seed={`${report.kind}-${report.key}`} className="ink-soak absolute h-[130%] w-auto max-w-none text-accent opacity-[0.42]" />
               <span className="num relative whitespace-nowrap font-display text-[44px] font-bold leading-[0.95] tracking-[-0.02em] text-ink @[880px]:text-[64px]">
                 {mark.figure}
               </span>

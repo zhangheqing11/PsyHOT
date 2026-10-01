@@ -1,186 +1,139 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.png">
-    <img src="docs/assets/banner-light.png" alt="AIHOT：每个行业，都可以有自己的 AIHOT。很多条信源流进中间的精选，再分给法律、人力资源、金融等各个行业" width="100%">
-  </picture>
+  <img src="industry/brand/icon.png" width="88" alt="PsyHOT 图标：深色底上的薰衣草色 Ψ">
+</p>
+
+<h1 align="center">PsyHOT</h1>
+
+<p align="center">
+  <b>每天读完心理学和精神医学的新研究，挑出值得看的几条。</b><br>
+  期刊、预印本、学会和媒体，61 个公开信源；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-176b75?style=flat-square" alt="MIT License"></a>
-  <img src="https://img.shields.io/badge/Node.js-24-176b75?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24">
-  <img src="https://img.shields.io/badge/PostgreSQL-17-176b75?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 17">
-  <img src="https://img.shields.io/badge/Docker-Compose-176b75?style=flat-square&logo=docker&logoColor=white" alt="Docker Compose">
-  <a href="https://aihot.news"><img src="https://img.shields.io/badge/demo-aihot.news-202a30?style=flat-square" alt="aihot.news"></a>
-</p>
-
-<p align="center">
-  <b>一个自己找热点、自己写日报的网站框架。</b><br>
-  把信源换成你的，把精选标准换成你的 KnowHow，它就是你的行业热点站。
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-5e4a8e?style=flat-square" alt="MIT License"></a>
+  <img src="https://img.shields.io/badge/Node.js-24-5e4a8e?style=flat-square&logo=nodedotjs&logoColor=white" alt="Node.js 24">
+  <img src="https://img.shields.io/badge/PostgreSQL-16%20%7C%2017-5e4a8e?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL 16 或 17">
+  <a href="https://github.com/KKKKhazix/AIHOT"><img src="https://img.shields.io/badge/based%20on-AIHOT-241f35?style=flat-square" alt="基于 AIHOT"></a>
 </p>
 
 <p align="center">
   <a href="#跑起来">跑起来</a> ·
-  <a href="docs/customize.md">改成你的行业</a> ·
-  <a href="#它是怎么工作的">它是怎么工作的</a> ·
-  <a href="#文档">文档</a> ·
-  <a href="https://github.com/KKKKhazix/AIHOT/discussions">社区交流</a>
+  <a href="#它怎么挑">它怎么挑</a> ·
+  <a href="#信源">信源</a> ·
+  <a href="#调整口味">调整口味</a> ·
+  <a href="#免责声明">免责声明</a>
 </p>
 
-<br>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/psyhot-home-dark.png">
+  <img src="docs/assets/psyhot-home-light.png" alt="PsyHOT 的“儿童青少年”主题页：按时间排列的精选卡片，每张有中文标题、保留了统计量的摘要、推荐理由和评分" width="100%">
+</picture>
 
 ## 这是什么
 
-[AIHOT](https://aihot.news) 是我做的一个 AI 热点网站。它每天从一批信源里收资料，用大模型先筛一遍、再独立打两次分，挑出真正值得看的，写成中文标题和摘要；把不同来源说的同一件事聚成一个事件，按有多少人在说排出热点；每天早上出一份日报。
+心理学的新研究每天散落在几十本期刊、预印本服务器、学会官网和科普媒体里，其中大部分是窄范式的小改进、横断面的小样本相关，或者夸大了结论的新闻稿。PsyHOT 替你把这些都读一遍，只把真正值得知道的几条写成中文标题和摘要，放到首页和每天的日报里。
 
-这个仓库是它的完整框架：网站、后台、精选流程、聚簇和热度算法，**所有提示词的原文和入选门槛**，都在这里。
+它面向有专业基础、时间有限的读者：心理咨询师与治疗师、精神科与临床工作者、心理学研究者和学生。
 
-## 为什么开源
+PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。框架负责采集、精选、聚簇、热度和日报；本仓库把信源、分类、提示词和视觉都换成了心理学方向。
 
-这半年，很多做法律、做 HR、做金融、做贵金属的朋友问我，能不能也给他们的行业做一个。
+## 它怎么挑
 
-我做不了。我不懂你们的行业，不知道哪些信源有用，也不知道什么样的消息，对你们来说才叫热点。
+一条资料从信源进来，依次经过：
 
-但你们懂。
+1. **采集与判重**：RSS、网页列表和接口，同一篇只留一份。新信源第一次只导入最近几条，旧文按原文时间归档，不刷屏。
+2. **预筛**：是不是心理学、精神医学或心理健康的事。星座、塔罗、伪心理测试、借“心理学”包装的情感营销直接拦下；神经科学和遗传研究要落到情绪、认知、行为或心理障碍上才放行。
+3. **两次独立评分**：同一份评分标准独立打两次分，两次之和过门槛才进精选。标准把每条内容归到 7 种类型（研究发现、元分析与综述、重复验证、临床与治疗、政策与行业、方法与工具、观点与解读），按 5 个维度加权：
+   - **证据强度**按研究设计判断：随机对照、预注册、大样本、纵向、成功的重复验证和高质量元分析证据强；横断面相关、小样本、只有自评问卷、只在动物上的结果、只有新闻稿转述的结论证据弱。
+   - **要压住的噪声**：心灵鸡汤、贩卖焦虑的流行概念、机构和课程营销、把相关写成因果的“研究发现”、细分范式里的小幅改进。
+   - **要正常评价的价值**：改写认识的大研究、高质量元分析、经典效应的重复验证（包括“没能重复”）、DSM 与 ICD 的修订、临床指南、精神科新药与神经调控的关键试验、心理健康政策和科研诚信事件。
+4. **写作**：中文标题、答案先行的摘要、推荐理由和标签，外文全文翻译。写作规则要求保留原文的结论强度，相关不写成因果；涉及自杀和自伤的内容按世界卫生组织的报道指南来写，也不写成个人诊疗建议。
+5. **聚簇**：同一项研究的期刊原文、新闻稿和媒体报道归成一个事件；预印本和正式发表、论文和针对它的评论挂在同一条故事线上。
+6. **热点与成刊**：按独立来源数算热度；每天 08:00 出日报，每周一出周报，每月 1 日出月报。
 
-既然我没办法满足所有人，那就把火种交到大家自己手上。
+每一步的提示词原文都在 [`industry/prompts/`](industry/prompts/)，入选门槛在 [`industry/selection.ts`](industry/selection.ts)，改标准不用改代码。
 
-## 说在前面
+<p align="center">
+  <img src="docs/assets/psyhot-daily.png" alt="心理学日报的报头：宋体日期叠在一张由这一期生成的罗夏墨迹上" width="100%">
+</p>
 
-- **我不是专业的开发者。** 我是设计师出身，半年前还看不太懂代码。这套代码是我和 AI 一起重写的，比以前干净了很多，但一定还有写得不好的地方。发现问题欢迎提 Issue，我不一定能很快回复，先说声抱歉。
-- **这是一份快照。** 它来自 AIHOT 正在线上跑的代码，不是精心打磨的通用框架。以后 AIHOT 的更新，我会尽量同步过来，但没法保证每一次都同步。
-- **里面没有 AIHOT 的信源名单和运营数据。** 仓库带了 18 个公开的海外 AI 资讯源做示范，够你跑起来看效果；真正的信源，要换成你自己行业的。
-- **请不要用 AIHOT 的名字和 Logo。** 换上你自己的名字，它就是你的站。
+每一期日报的报眼里都有一张由这一期的日期生成的罗夏墨迹，每期都不一样。
 
-## 它是怎么工作的
+## 信源
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/how-dark.png">
-  <img src="docs/assets/how-light.png" alt="六步：采集、预筛、两次评分、写作、聚簇、热点与成刊" width="100%">
-</picture>
+61 个公开信源，全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊和机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
 
-一条资料从信源进来，先判重，再预筛；可能重要的独立打两次分，过了门槛才进精选；然后写中文标题和摘要，和别的报道聚成事件，算进热度，最后进日报。每一步的提示词都在 [`industry/prompts/`](industry/prompts/)，改标准不用改代码。详见 [精选与校准](docs/selection.md)。
-
-### 聚簇与热点
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/cluster-dark.png">
-  <img src="docs/assets/cluster-light.png" alt="五个来源的报道聚成一个事件，事件进入当前热点榜" width="100%">
-</picture>
-
-同一件事，官网发一篇、媒体转十篇、X 上吵一天，读者只需要看到一次。AIHOT 把它们聚成一个**事件**：先用标题摘要的向量在最近两周里找候选，再让模型判断是同一件事、后续进展，还是两件事；拿不准的合并，换一家模型再确认一遍。
-
-**热度**按事件算，不按文章算：48 小时内，每个独立来源只算一次，24 小时减半。重复抓取不会多算，一家媒体发十篇也只算一次，所以排在前面的，是真正有很多人在说的事。
-
-### 速度
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/perf-dark.png">
-  <img src="docs/assets/perf-light.png" alt="AIHOT 线上实测：页面中位数 10 毫秒，95% 在 50 毫秒内；接口中位数 6 毫秒，95% 在 12 毫秒内；文章页 95% 在 14 毫秒内" width="100%">
-</picture>
-
-## 你会得到什么
-
-| | |
+| 方向 | 信源 |
 |---|---|
-| **六种信源** | RSS、网页列表、JSON 接口、X 账号、微信公众号，以及你自己脚本推送进来的内容。信源分级（官方一手 / 媒体个人），抓取频率按产出自动调整 |
-| **精选** | 预筛，同一份评分标准独立打两次分，再按信源分级的门槛决定入选。提示词和门槛全部公开，全部可以改；用你自己标注的样本在 SelectBench 里校准 |
-| **写作** | 中文标题、答案先行的摘要、推荐理由、标签，外文全文翻译；防止模型把原文没提到的公司写进标题 |
-| **聚簇** | 不同来源报道的同一件事聚成一个事件，后续进展挂在同一个事件下，事件页有综述；人工改过的归属不会被覆盖 |
-| **热点** | 按事件算热度：独立来源越多越靠前，X 上的讨论也算进来；和 6 小时前比，涨得快的标上升，新出现的标“新” |
-| **日报、周报、月报** | 每天 08:00 出日报，每周一出周报，每月 1 日出月报，按分类分节，带导语 |
-| **主题与搜索** | 公司、方向、内容形态三类主题页；标题摘要搜索和全文相关搜索 |
-| **给 Agent 用** | RSS（精选、全部、全文、日报）、公开 API、MCP、`llms.txt`，同一份内容给人看也给 Agent 用 |
-| **后台** | 信源管理与试抓、内容诊断、精选评测、每一步单独换模型、付费服务的预算熔断、运行记录与告警 |
-| **AI 专属模块** | 模型榜（汇总多家公开评测，方法公开）和 Codex 重置监控。别的行业一个开关关掉 |
+| 综合与综述 | Nature Human Behaviour、Communications Psychology、Nature Reviews Psychology、Psychological Science、Perspectives on Psychological Science、Current Directions in Psychological Science、Psychological Science in the Public Interest |
+| 精神医学与心理健康 | The Lancet Psychiatry、JAMA Psychiatry、American Journal of Psychiatry、World Psychiatry、Nature Mental Health、Biological Psychiatry、Psychiatric News |
+| 临床、治疗与咨询 | Clinical Psychological Science、Clinical Psychology Review、Behaviour Research and Therapy、Psychotherapy Research、Counselling and Psychotherapy Research、Journal of Counseling & Development |
+| 认知 | Trends in Cognitive Sciences、Cognition、Cognitive Psychology、Cognitive Science |
+| 社会、人格与跨文化 | Personality and Social Psychology Review、Journal of Experimental Social Psychology、Journal of Cross-Cultural Psychology |
+| 发展与教育 | Developmental Science、Journal of Child Psychology and Psychiatry、Autism、British Journal of Educational Psychology、Learning and Instruction、Contemporary Educational Psychology、Educational Psychologist、npj Science of Learning |
+| 生理、神经与进化 | Psychoneuroendocrinology、Nature Neuroscience、Evolution and Human Behavior |
+| 组织、健康、积极与司法 | Journal of Organizational Behavior、Personnel Psychology、Health Psychology Review、The Journal of Positive Psychology、Legal and Criminological Psychology、Psychology, Crime & Law、Criminal Justice and Behavior |
+| 方法、元科学与科研诚信 | Advances in Methods and Practices in Psychological Science、Center for Open Science、Data Colada、Retraction Watch |
+| 预印本 | PsyArXiv、medRxiv 精神医学与临床心理 |
+| 学会、政策与媒体 | Association for Psychological Science、KFF Health News（心理健康）、PsyPost、ScienceDaily（心理学）、Psyche、Greater Good、The Transmitter |
+| 中文 | 《心理学报》、《心理科学进展》、中国心理卫生协会 |
 
-## 看一眼
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/shots-dark.png">
-  <img src="docs/assets/shots-light.png" alt="首页的当前热点与精选，关于页的信源河" width="100%">
-</picture>
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/board-dark.png">
-  <img src="docs/assets/board-light.png" alt="模型榜" width="100%">
-</picture>
-
-<p align="center"><sub>截图来自用示范信源跑起来的本地站，站名是默认的 MyHOT。</sub></p>
+完整配置见 [`industry/sources.json`](industry/sources.json)。还缺的：中文媒体和学会的动态多发在公众号上（需要付费的公众号接口），NIMH、SAMHSA 等美国政府站点在部分网络下无法访问。欢迎补充，见 [贡献说明](CONTRIBUTING.md)。
 
 ## 跑起来
 
-想创建自己的独立站点，可以先点 [Use this template](https://github.com/KKKKhazix/AIHOT/generate)，再克隆你生成的仓库。想持续合并上游更新或贡献代码，建议先 Fork。下面的命令适合直接试用。
-
-需要 [Docker](https://docs.docker.com/get-docker/)，和一个 OpenAI 兼容的模型 API Key（DeepSeek、千问、智谱都可以）。
+需要 [Docker](https://docs.docker.com/get-docker/) 和一个 OpenAI 兼容的模型 API Key（DeepSeek、千问、智谱都可以）。
 
 ```bash
-git clone https://github.com/KKKKhazix/AIHOT.git myhot
-cd myhot
+git clone https://github.com/zhangheqing11/PsyHOT.git psyhot
+cd psyhot
 node scripts/init-env.ts --llm-key <你的模型 API Key>
 docker compose up -d --build
 ```
 
-打开 <http://localhost:3000>。后台在 `/admin`，管理员密码在 `.env` 的 `ADMIN_PASSWORD` 里。一两分钟后开始有内容，第一次导入的资料大约半小时处理完。
+打开 <http://localhost:3000>，后台在 `/admin`，管理员密码在 `.env` 的 `ADMIN_PASSWORD` 里。第一次导入的资料大约要处理半小时到一小时。
 
-机器上没有 Node、服务器在中国大陆、要配域名和 HTTPS，见 [部署](docs/deploy.md)。
+几个注意事项：
 
-## 把它改成你的行业
+- **在中国大陆运行**：SAGE、OSF（PsyArXiv）等海外信源可能被 DNS 污染挡住，在 `.env` 里设置 `EGRESS_PROXY_URL` 指向你的代理（容器里用 `http://host.docker.internal:<端口>`）。
+- **思考模式**：默认关闭（`LLM_EXTRA_JSON={"thinking":{"type":"disabled"}}`）。全局打开会让评分等步骤的输出被思考占满而失败；想让评分用思考模式，设置 `SCORE_MODEL=deepseek-flash-think` 并填 `DEEPSEEK_BASE_URL`、`DEEPSEEK_API_KEY`。
+- 不用 Docker、配域名和 HTTPS、费用估算，见 [部署](docs/deploy.md)。
 
-最省事的办法：打开你的 Agent（Claude Code、Codex 都可以），把这个仓库交给它，然后说：
+## 调整口味
 
-```text
-请读 AGENTS.md 和 docs/customize.md，把这个站改成「法律」行业的热点站。
-我关心的是：……（你想盯哪些信源，你觉得什么消息重要、什么不重要，越具体越好）。
-```
+要改的东西几乎都在 [`industry/`](industry/)：
 
-要改的东西几乎都在 [`industry/`](industry/) 这一个文件夹里，代码基本不用动：
-
-| 文件 | 改什么 |
+| 文件 | 内容 |
 |---|---|
-| `site.ts` | 站名、行业词、首页文案、关于页 |
-| `taxonomy.ts`、`topics.json` | 分类、标签、主题 |
-| `sources.json` | 首次启动时导入的信源 |
-| `prompts/` | 精选标准和写作要求。**你的行业 KnowHow，就写在这里** |
+| `site.ts` | 站名、首页和关于页文案 |
+| `taxonomy.ts`、`topics.json` | 6 个分类（研究、综述、临床、行业、方法、观点）、标签词表、机构名录、58 个主题页 |
+| `sources.json` | 信源 |
+| `prompts/` | 预筛、评分、写作、聚簇、日报的提示词；`rules-mental-health-safety.md` 是心理健康内容的安全写作规则 |
 | `selection.ts` | 入选门槛 |
-| `features.ts` | 模型榜、Codex 重置监控的开关 |
-| `brand/`、`pages/` | 图标、使用规则和隐私说明 |
+| `brand/`、`pages/` | 图标、报头字、使用规则和隐私说明 |
 
-最值得花时间的是评分标准（`prompts/selection-score.md`）和门槛：拿一两百条你自己标注过的资料，用 `scripts/eval-selection.ts` 跑一遍，看它选得准不准，再回去改。怎么做写在 [精选与校准](docs/selection.md) 里。
+**入选门槛还需要校准**：现在的数字沿用框架在 AI 领域的默认值。跑几天之后，从自己的信源里挑 100–200 条资料标注“该选 / 不该选”，用 `scripts/eval-selection.ts` 评测，再调整评分标准和门槛，做法见 [精选与校准](docs/selection.md)。
+
+视觉方面，配色、字体和圆角都在 [`apps/web/app/app.css`](apps/web/app/app.css) 的设计变量里；罗夏墨迹由 [`apps/web/app/components/inkblot-shape.ts`](apps/web/app/components/inkblot-shape.ts) 按种子生成。
+
+## 免责声明
+
+PsyHOT 汇总的是研究和行业动态，只用于了解领域进展，不构成医疗、诊断、心理咨询或治疗建议，也不能替代专业人员的评估。标题和摘要由模型生成，可能有误，请以原文为准。
+
+如果你或身边的人正处于危机中，请立即拨打 120 或 110，或拨打全国统一心理援助热线 **12356**。
 
 ## 文档
 
-| 文档 | 内容 |
-|---|---|
-| [把它改成你的行业](docs/customize.md) | 站名、分类、信源、提示词、门槛、品牌，一步一步来 |
-| [信源](docs/sources.md) | 六种信源怎么配，分级和全文，外部推送接口 |
-| [精选与校准](docs/selection.md) | 一条资料怎么变成精选，怎么用自己的样本校准 |
-| [事件归组与关系评测](docs/grouping.md) | 事件关系怎么判断，怎么用自己的 pairwise gold set 评测 |
-| [部署](docs/deploy.md) | Docker、域名和 HTTPS、中国大陆、更新、备份、花多少钱 |
-| [架构](docs/architecture.md) | 三个进程、几条不变的规则、目录、对外出口 |
-| [模型榜与 Codex 重置监控](docs/leaderboard.md) | 两个 AI 专属模块 |
+`docs/` 下是 AIHOT 框架的文档，同样适用于本项目：[定制](docs/customize.md) · [信源](docs/sources.md) · [精选与校准](docs/selection.md) · [事件归组](docs/grouping.md) · [部署](docs/deploy.md) · [架构](docs/architecture.md)。改代码前先读 [AGENTS.md](AGENTS.md)。
 
-技术栈：Node.js 24 · TypeScript · React Router（服务端渲染）· Fastify · PostgreSQL · pg-boss · Tailwind CSS · Docker Compose。
+技术栈：Node.js 24 · TypeScript · React Router（服务端渲染）· Fastify · PostgreSQL · pg-boss · Tailwind CSS · Docker Compose。内部包名沿用 `@aihot/*`，方便合并上游更新。
 
-## 交流与贡献
+## 致谢与许可
 
-部署和使用问题到 [问答区](https://github.com/KKKKhazix/AIHOT/discussions/categories/q-a)，新想法到 [想法交流区](https://github.com/KKKKhazix/AIHOT/discussions/categories/ideas)，欢迎在 [作品展示区](https://github.com/KKKKhazix/AIHOT/discussions/categories/show-and-tell) 分享你做出的行业热点站。
+感谢 [数字生命卡兹克](https://github.com/KKKKhazix) 开源 [AIHOT](https://github.com/KKKKhazix/AIHOT)，PsyHOT 的整个处理流程都建立在它之上。
 
-发现 Bug 或有明确的功能建议，可以 [提交 Issue](https://github.com/KKKKhazix/AIHOT/issues/new/choose)。准备改代码前，先看 [贡献说明](CONTRIBUTING.md)；安全漏洞请走 [私密报告入口](SECURITY.md)。
-
-## 最后
-
-AIHOT 曾经只是我无数个深夜里，一个很小、很小的念头。
-
-我不知道它会被改成什么样子，会走到多远的地方。但这可能就是开源最浪漫的地方。
-
-剩下的路，就交给你们了。
-
-<p align="right">—— 数字生命卡兹克</p>
-
-## 许可
-
-代码使用 [MIT 许可证](LICENSE)。AIHOT 的名字和 Logo 不在许可范围内。字体、模型厂商和评测来源的标志各有自己的许可和商标归属，见 [NOTICE](NOTICE)。
+代码使用 [MIT 许可证](LICENSE)。AIHOT 的名字和 Logo 不在许可范围内，PsyHOT 没有使用它们；字体和第三方标志的许可见 [NOTICE](NOTICE)。信源内容的版权归各来源所有。
 
 ---
 
-<sub>**In English:** AIHOT ([aihot.news](https://aihot.news)) is an AI news site that collects from many sources, lets a language model filter and score every item twice, writes Chinese headlines and summaries, clusters reports of the same story into one event, ranks events by how many independent sources discuss them, and publishes a daily briefing. This repository is its complete framework, including every prompt and threshold. Hand it to your coding agent with `AGENTS.md` and `docs/customize.md` to turn it into a news site for your own field. The documentation is in Chinese.</sub>
+<sub>**In English:** PsyHOT is a daily digest of psychology and psychiatry research. It reads 61 public sources (journals, preprint servers, societies and media), filters and scores every item twice with a language model against an evidence-aware rubric, writes Chinese headlines and summaries under mental-health-safe writing rules, clusters coverage of the same study into one story, and publishes a daily briefing. It is built on the open-source [AIHOT](https://github.com/KKKKhazix/AIHOT) framework; everything specific to psychology lives in `industry/`. Not medical advice.</sub>

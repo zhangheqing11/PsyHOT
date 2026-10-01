@@ -5,8 +5,8 @@ body:
   - type: markdown
     attributes:
       value: |
-        部署与使用问题可以先到 [问答区](https://github.com/KKKKhazix/AIHOT/discussions/categories/q-a) 交流。
-        安全漏洞请通过 [私密漏洞报告](https://github.com/KKKKhazix/AIHOT/security/advisories/new) 提交。
+        部署与使用问题可以先到 [问答区](https://github.com/zhangheqing11/PsyHOT/discussions/categories/q-a) 交流。
+        安全漏洞请通过 [私密漏洞报告](https://github.com/zhangheqing11/PsyHOT/security/advisories/new) 提交。
         请勿上传完整 .env、API Key、管理员密码、Cookie 或生产数据库。
   - type: input
     id: revision

@@ -5,8 +5,8 @@
 需要一台装了 Docker（带 Compose）的机器。云服务器建议至少 2 核、4 GB 内存，构建镜像时要用到。
 
 ```bash
-git clone https://github.com/KKKKhazix/AIHOT.git myhot
-cd myhot
+git clone https://github.com/zhangheqing11/PsyHOT.git psyhot
+cd psyhot
 node scripts/init-env.ts --llm-key <你的模型 API Key>
 docker compose up -d --build
 ```

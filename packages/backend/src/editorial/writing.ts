@@ -1,13 +1,18 @@
 // The writing side of the analysis: the prefilter's and the content understanding's inputs, the
 // title/summary prompts for everything else, the output parsing and the deterministic guards. The
 // wording lives in the industry pack (industry/prompts/); a failed guard falls back without a repair call.
-import { IDENTITY_CONTEXT_ALIASES, IDENTITY_LEXICON, PUBLISHER_DOMAINS } from "@aihot/industry/taxonomy";
+import { CATEGORY_TAGS, ENTITY_TAGS, IDENTITY_CONTEXT_ALIASES, IDENTITY_LEXICON, PUBLISHER_DOMAINS, TOPIC_TAGS } from "@aihot/industry/taxonomy";
 import { onlyXArticleLink } from "../sources/x.ts";
 import type { AnalyzeInputArticle } from "./input.ts";
 import { promptText } from "./prompts.ts";
 
 export const PREFILTER_SYSTEM = promptText("prefilter");
-export const UNDERSTAND_SYSTEM = promptText("understand");
+// The tag whitelists come from the pack's vocabulary, as in the structure step, so the two never drift.
+export const UNDERSTAND_SYSTEM = promptText("understand", {
+  categoryTags: CATEGORY_TAGS.join("、"),
+  topicTags: TOPIC_TAGS.join("、"),
+  entityTags: ENTITY_TAGS.join("、"),
+});
 
 /** A body longer than this is cut (whole bodies are sent; a few run past the context). */
 export const MAX_BODY_CHARS = 60_000;

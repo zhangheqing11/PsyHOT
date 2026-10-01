@@ -1,388 +1,1374 @@
 {
-  "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里增删改。字段说明见 docs/customize.md。",
-  "sources": [
-    {
-      "id": "rss-openai-news",
-      "name": "OpenAI News",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://openai.com/news/rss.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": "openai",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-google-deepmind",
-      "name": "Google DeepMind",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://deepmind.google/blog/rss.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": "google",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-google-research",
-      "name": "Google Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://research.google/blog/rss/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": "google",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-hugging-face",
-      "name": "Hugging Face Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://huggingface.co/blog/feed.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": "hugging-face",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "开源"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-microsoft-research",
-      "name": "Microsoft Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.microsoft.com/en-us/research/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": "microsoft",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-nvidia-blog",
-      "name": "NVIDIA Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://blogs.nvidia.com/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": "nvidia",
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-aws-ml",
-      "name": "AWS Machine Learning Blog",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://aws.amazon.com/blogs/machine-learning/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方",
-        "教程"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-github-ai",
-      "name": "GitHub Blog · AI & ML",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://github.blog/ai-and-ml/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-mistral",
-      "name": "Mistral AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://mistral.ai/rss.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "官方"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-bair",
-      "name": "Berkeley AI Research",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://bair.berkeley.edu/blog/feed.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T1",
-      "first_party": true,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "研究"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-the-verge-ai",
-      "name": "The Verge · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-techcrunch-ai",
-      "name": "TechCrunch · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://techcrunch.com/category/artificial-intelligence/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-ars-technica-ai",
-      "name": "Ars Technica · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://arstechnica.com/ai/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-mit-tech-review-ai",
-      "name": "MIT Technology Review · AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.technologyreview.com/topic/artificial-intelligence/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-the-decoder",
-      "name": "The Decoder",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://the-decoder.com/feed/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 60,
-      "tags": [
-        "媒体"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-simon-willison",
-      "name": "Simon Willison",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://simonwillison.net/atom/everything/",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 120,
-      "tags": [
-        "个人"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-import-ai",
-      "name": "Import AI",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://importai.substack.com/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "个人",
-        "周刊"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
-    },
-    {
-      "id": "rss-latent-space",
-      "name": "Latent Space",
-      "kind": "rss",
-      "config": {
-        "feedUrl": "https://www.latent.space/feed",
-        "_aihot": {
-          "initialBackfillLimit": 8
-        }
-      },
-      "tier": "T2",
-      "first_party": false,
-      "owner_entity_id": null,
-      "participation_mode": "editorial",
-      "interval_minutes": 180,
-      "tags": [
-        "个人"
-      ],
-      "site_fulltext": false,
-      "syndicate_fulltext": false
+ "$comment": "示范信源：首次启动时导入（scripts/seed.ts），已存在的不会被覆盖。之后在后台“信源”里增删改。字段说明见 docs/customize.md。期刊与机构官网为 T1，预印本和媒体为 T2（预印本未经同行评审，门槛更高）。在中国大陆运行时，SAGE、OSF 等海外源需要在 .env 里设置 EGRESS_PROXY_URL。",
+ "sources": [
+  {
+   "id": "rss-nature-human-behaviour",
+   "name": "Nature Human Behaviour",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/nathumbehav.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
     }
-  ]
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综合"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-communications-psychology",
+   "name": "Communications Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/commspsychol.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综合"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-nature-reviews-psychology",
+   "name": "Nature Reviews Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/nrpsychol.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综述"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychological-science",
+   "name": "Psychological Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=pssa&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综合"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-perspectives-psych-science",
+   "name": "Perspectives on Psychological Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=ppsa&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综述"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-current-directions",
+   "name": "Current Directions in Psychological Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=cdpa&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综述"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psych-science-public-interest",
+   "name": "Psychological Science in the Public Interest",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=psia&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "综述",
+    "应用"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-lancet-psychiatry",
+   "name": "The Lancet Psychiatry",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.thelancet.com/rssfeed/lanpsy_current.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-jama-psychiatry",
+   "name": "JAMA Psychiatry",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://jamanetwork.com/rss/site_14/70.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-american-journal-psychiatry",
+   "name": "American Journal of Psychiatry",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://psychiatryonline.org/action/showFeed?type=etoc&feed=rss&jc=ajp",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-world-psychiatry",
+   "name": "World Psychiatry",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/20515545/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-nature-mental-health",
+   "name": "Nature Mental Health",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/natmentalhealth.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "心理健康"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-clinical-psych-science",
+   "name": "Clinical Psychological Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=cpxa&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "临床"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-clinical-psychology-review",
+   "name": "Clinical Psychology Review",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/02727358",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "临床",
+    "综述"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-behaviour-research-therapy",
+   "name": "Behaviour Research and Therapy",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/00057967",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "临床"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-trends-cognitive-sciences",
+   "name": "Trends in Cognitive Sciences",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.cell.com/trends/cognitive-sciences/inpress.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "认知"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-cognition",
+   "name": "Cognition",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/00100277",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "认知"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-cognitive-psychology",
+   "name": "Cognitive Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/00100285",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "认知"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-cognitive-science",
+   "name": "Cognitive Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/15516709/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "认知"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-pspr",
+   "name": "Personality and Social Psychology Review",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=psra&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "社会",
+    "人格"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-jesp",
+   "name": "Journal of Experimental Social Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/00221031",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "社会"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-jccp",
+   "name": "Journal of Cross-Cultural Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=jcca&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "跨文化"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-developmental-science",
+   "name": "Developmental Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/14677687/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "发展"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-jcpp",
+   "name": "Journal of Child Psychology and Psychiatry",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://acamh.onlinelibrary.wiley.com/feed/14697610/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "发展",
+    "儿童青少年"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-biological-psychiatry",
+   "name": "Biological Psychiatry",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/00063223",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "生物精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychoneuroendocrinology",
+   "name": "Psychoneuroendocrinology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/03064530",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "生理心理",
+    "健康"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-nature-neuroscience",
+   "name": "Nature Neuroscience",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/neuro.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "神经科学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-evolution-human-behavior",
+   "name": "Evolution and Human Behavior",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/10905138",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "进化"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-journal-organizational-behavior",
+   "name": "Journal of Organizational Behavior",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/10991379/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "组织"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-personnel-psychology",
+   "name": "Personnel Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/17446570/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "组织"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-health-psychology-review",
+   "name": "Health Psychology Review",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.tandfonline.com/feed/rss/rhpr20",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "健康"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-ampps",
+   "name": "Advances in Methods and Practices in Psych Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=ampa&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "方法"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "json-psyarxiv",
+   "name": "PsyArXiv 预印本",
+   "kind": "json_list",
+   "config": {
+    "url": "https://api.osf.io/v2/preprints/?filter%5Bprovider%5D=psyarxiv&filter%5Bis_published%5D=true&sort=-date_published&page%5Bsize%5D=25",
+    "itemsPath": "data",
+    "titlePaths": [
+     "attributes.title"
+    ],
+    "summaryPaths": [
+     "attributes.description"
+    ],
+    "publishedAtPath": "attributes.date_published",
+    "urlTemplate": "{raw:links.iri}",
+    "externalIdPath": "id",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "预印本"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-medrxiv-psychiatry",
+   "name": "medRxiv 精神医学与临床心理",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://connect.medrxiv.org/medrxiv_xml.php?subject=Psychiatry_and_Clinical_Psychology",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "预印本",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-center-open-science",
+   "name": "Center for Open Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.cos.io/blog/rss.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "cos",
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "机构",
+    "元科学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-data-colada",
+   "name": "Data Colada",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://datacolada.org/feed",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "博客",
+    "元科学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-retraction-watch",
+   "name": "Retraction Watch",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://retractionwatch.com/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "科研诚信"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-aps",
+   "name": "Association for Psychological Science",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.psychologicalscience.org/feed",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "学会"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychiatric-news",
+   "name": "Psychiatric News",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://psychnews.psychiatryonline.org/action/showFeed?type=etoc&feed=rss&jc=pn",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "学会",
+    "精神医学",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-kff-mental-health",
+   "name": "KFF Health News · 心理健康",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://kffhealthnews.org/topics/mental-health/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psypost",
+   "name": "PsyPost",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.psypost.org/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "科普"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-sciencedaily-psychology",
+   "name": "ScienceDaily · 心理学",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.sciencedaily.com/rss/mind_brain/psychology.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "新闻稿"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psyche",
+   "name": "Psyche",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://psyche.co/feed",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "长文"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-greater-good",
+   "name": "Greater Good（伯克利）",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://greatergood.berkeley.edu/rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "积极心理"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-the-transmitter",
+   "name": "The Transmitter",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.thetransmitter.org/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "神经科学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-xinlixuebao",
+   "name": "心理学报",
+   "kind": "web_list",
+   "config": {
+    "url": "https://journal.psych.ac.cn/xlxb/CN/home",
+    "itemSelector": "div.noselectrow",
+    "linkSelector": "a.txt_biaoti",
+    "titleSelector": "a.txt_biaoti",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "期刊",
+    "中文"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-xinlikexuejinzhan",
+   "name": "心理科学进展",
+   "kind": "web_list",
+   "config": {
+    "url": "https://journal.psych.ac.cn/xlkxjz/CN/home",
+    "itemSelector": "div.noselectrow",
+    "linkSelector": "a.txt_biaoti",
+    "titleSelector": "a.txt_biaoti",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "期刊",
+    "中文",
+    "综述"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-camh-news",
+   "name": "中国心理卫生协会",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.camh.org.cn/n-284/",
+    "itemSelector": "ul.news-list li",
+    "linkSelector": "h3 a",
+    "titleSelector": "h3 a",
+    "publishedAtSelector": "p span",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "camh",
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "中文",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-bjep",
+   "name": "British Journal of Educational Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://bpspsychub.onlinelibrary.wiley.com/feed/20448279/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "教育"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-learning-instruction",
+   "name": "Learning and Instruction",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/09594752",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "教育"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-contemporary-ed-psych",
+   "name": "Contemporary Educational Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.sciencedirect.com/publication/science/0361476X",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "教育"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-educational-psychologist",
+   "name": "Educational Psychologist",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.tandfonline.com/feed/rss/hedp20",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "教育"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-npj-science-learning",
+   "name": "npj Science of Learning",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/npjscilearn.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "教育",
+    "认知"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-legal-criminological-psych",
+   "name": "Legal and Criminological Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://bpspsychub.onlinelibrary.wiley.com/feed/20448333/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "司法"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychology-crime-law",
+   "name": "Psychology, Crime & Law",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.tandfonline.com/feed/rss/gpcl20",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "司法"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-criminal-justice-behavior",
+   "name": "Criminal Justice and Behavior",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=cjba&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "司法"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychotherapy-research",
+   "name": "Psychotherapy Research",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.tandfonline.com/feed/rss/tpsr20",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "心理治疗"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-counselling-psychotherapy-research",
+   "name": "Counselling and Psychotherapy Research",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/17461405/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "咨询"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-journal-counseling-development",
+   "name": "Journal of Counseling & Development",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://onlinelibrary.wiley.com/feed/15566676/most-recent",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "咨询"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-journal-positive-psychology",
+   "name": "The Journal of Positive Psychology",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.tandfonline.com/feed/rss/rpos20",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "积极心理"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-autism-journal",
+   "name": "Autism",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=auta&type=etoc&feed=rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "孤独症"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  }
+ ]
 }

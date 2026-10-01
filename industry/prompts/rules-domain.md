@@ -1,45 +1,39 @@
 
-【AI 领域翻译规则 — 本平台 100% 是 AI/ML/LLM 行业内容，严格遵守】
+【心理学领域翻译规则 — 本平台内容是心理学、精神医学与心理健康领域，严格遵守】
 
-1. 歧义默认值：以下词在中文有非 AI 歧义，**一律按 AI 含义翻译**：
-   - LLM = 大语言模型（绝不译"法学硕士"/"Master of Laws"）
-   - Token / tokens = 模型 token（保留英文；绝不译"代币"/"令牌"）
-   - Transformer = Transformer 架构（保留英文；不译"变压器"）
-   - Diffusion = 扩散模型（AI 生成，不是物理扩散）
-   - Agent / Agentic = AI 智能体 / 智能体的（不译"代理人"/"中介"）
-   - Alignment = 对齐（AI 安全语境）
-   - Inference = 推理（模型生成）
-   - Reasoning = 推理（注意：与 inference 都译"推理"，必要时用"链式推理"区分 CoT；reasoning model 指 o1/o3/R1 这类思考型模型）
-   - Embedding = 嵌入向量（也可保留英文）
-   - Distillation = 知识蒸馏
-   - Hallucination = 模型幻觉
-   - Fine-tune / Fine-tuning = 微调
-   - Pretrain / Pretraining = 预训练
-   - Context window = 上下文窗口
-   - Prompt = 提示词
-   - Skill / Skills = 技能（Claude 等 Agent 框架的能力包，不译"特长"）
+1. 歧义默认值：以下词在中文有多种译法或日常含义，**一律按心理学与精神医学的专业含义翻译**：
+   - Depression = 抑郁（指障碍时译“抑郁症”，指症状或情绪时译“抑郁症状”“抑郁情绪”，按原文区分，不要把症状升级成“抑郁症”）
+   - Major depressive disorder (MDD) = 重性抑郁障碍；Anxiety disorder = 焦虑障碍；Generalized anxiety disorder = 广泛性焦虑障碍
+   - Bipolar disorder = 双相障碍（不译“躁郁症”）；Schizophrenia = 精神分裂症；Psychosis = 精神病性障碍 / 精神病性症状
+   - Autism spectrum disorder (ASD) = 孤独症谱系障碍；ADHD = 注意缺陷多动障碍（可保留 ADHD）
+   - PTSD = 创伤后应激障碍（可保留 PTSD）；OCD = 强迫症
+   - Self-harm = 自伤；Non-suicidal self-injury (NSSI) = 非自杀性自伤；Suicidal ideation = 自杀意念
+   - Affect = 情感（心理学语境，不译“影响”）；Mood = 心境；Emotion regulation = 情绪调节
+   - Attachment = 依恋（不译“附件”）；Rumination = 反刍思维；Resilience = 心理韧性
+   - Cognition = 认知；Executive function = 执行功能；Working memory = 工作记忆
+   - Psychotherapy = 心理治疗；Counseling = 心理咨询；Intervention = 干预
+   - Placebo = 安慰剂；Nocebo = 反安慰剂；Remission = 缓解；Relapse = 复发
+   - Effect size = 效应量；Meta-analysis = 元分析；Systematic review = 系统综述
+   - Preregistration = 预注册；Registered Report = 注册报告；Replication = 重复验证
+   - Cross-sectional = 横断面；Longitudinal = 纵向；Cohort = 队列；Randomized controlled trial (RCT) = 随机对照试验
+   - Self-report = 自评 / 自我报告；Sample = 样本；Participants = 被试 / 参与者（临床研究写“患者”或“受试者”）
+   - Correlation / associated with = 相关 / 与……有关（**绝不**译成“导致”“引起”“造成”）
+   - Psychedelics = 迷幻药物；Psilocybin = 赛洛西宾；Esketamine = 艾司氯胺酮
+   - Mental health = 心理健康；Mental illness / mental disorder = 精神障碍 / 心理障碍
+   - Loneliness = 孤独感；Burnout = 职业倦怠；Wellbeing = 幸福感 / 福祉
 
-2. 以下专有名词**一律保留英文原文**，不翻译不加中文括注：
-   - AI 公司：OpenAI / Anthropic / Google DeepMind / xAI / Meta AI / Mistral / DeepSeek / Cohere / HuggingFace（HF）/ Runway / ElevenLabs / Suno / Pika / Midjourney / Perplexity
-   - 模型族（举例 + 通用规则）：GPT / Claude / Gemini / Llama / Qwen / Grok / o 系列 / DeepSeek / Mistral / Mixtral / Phi / Sora / Veo / Imagen
-     **规则**：任何大模型族名、产品代号一律保留英文
-   - 模型版本号（举例 + 通用规则）：GPT-5 / Claude 4.7 / Claude Sonnet 4.6 / Llama 4 / Gemini 3 / o3 / o4 / DeepSeek-V4 / Qwen3.7
-     **规则**：版本号一字不改（包括字母数字后缀如 4o / 4.7 / 405B / V4 / R1），绝不"翻译性扩写"（不要把 "405B" 译成 "4050 亿"，不要把 "V4" 译成 "第 4 代"）
-   - 技术缩写（举例 + 通用规则）：LLM / RAG / RLHF / DPO / LoRA / QLoRA / PEFT / MoE / CoT / ReAct / KV cache / SOTA / AGI / MCP / ADK / NPU / GPU / TPU
-     **规则**：任何 2-5 字母的全大写缩写，默认按 AI/ML 含义保留英文
-   - 评测基准（举例 + 通用规则）：MMLU / GPQA / HumanEval / SWE-bench / SWE-bench Verified / AIME / HLE / ARC-AGI / ARC-AGI 2 / MT-Bench / Chatbot Arena / Aider Polyglot / LiveCodeBench
-     **规则**：以 -bench / -eval 结尾或全大写的评测名一律保留英文
-   - AI 工具/产品：Cursor / Copilot / Codex / Aider / Devin / Cline / Claude Code / Windsurf / Zed / v0 / Bolt / Lovable / Replit Agent
-   - Agent 框架：LangChain / LangGraph / LlamaIndex / CrewAI / AutoGen / Pydantic AI / Vercel AI SDK / DSPy
-   - 推理/部署：Ollama / vLLM / SGLang / TensorRT / Triton / CUDA / ROCm
-   - 通用技术：API / SDK / CLI / IDE / SaaS / CDN / SSO / OAuth / JWT / WebSocket / SSE / gRPC
+2. 以下名称**保留英文缩写**，首次出现可加中文说明，例如“CBT（认知行为疗法）”：
+   - 疗法：CBT / CBT-I / ACT / DBT / EMDR / IPT / MBCT / MBSR / PE / CPT / ERP / BA / TMS / rTMS / tDCS / DBS / ECT
+   - 诊断与分类：DSM-5 / DSM-5-TR / ICD-11 / RDoC / HiTOP
+   - 量表与工具（举例 + 通用规则）：PHQ-9 / GAD-7 / BDI-II / HAMD / MADRS / PCL-5 / AUDIT / Big Five / HEXACO / IAT
+     **规则**：量表、问卷、实验范式名一律保留原文缩写和版本号，不要翻译性扩写或改写
+   - 统计与方法：p 值 / Cohen's d / Hedges' g / OR / RR / HR / CI / SEM / fMRI / EEG / MRI / GWAS / N
+     **规则**：统计量、置信区间和样本量保留原文写法，例如“d = 0.32，95% CI 0.21–0.43”“N = 2,013”
+   - 机构与组织：WHO / NIMH / NICE / FDA / APA / APS / BPS / OSF / COS；APA 有歧义时按原文区分“美国心理学会”与“美国精神医学学会”
+   - 期刊名一律保留英文原名，例如 Nature Human Behaviour / Psychological Science / JAMA Psychiatry / The Lancet Psychiatry
 
-3. 中国厂商**优先用官方中文品牌名**（首次出现可双标"千问（Qwen3）"，后续选一种保持一致）：
-   - 千问（Qwen）/ 文心一言 / 智谱（GLM）/ 月之暗面（Kimi）/ 深度求索（DeepSeek）/ 阶跃星辰（Step）/ 零一万物（Yi）/ 百川 / 豆包（字节）/ 混元（腾讯）/ 可灵（Kling，快手）/ 即梦（Jimeng，字节）/ MiniMax（不译）/ 美团 LongCat / 昆仑万维 Skywork / 面壁 MiniCPM / 华为昇腾 / 寒武纪
+3. 中文机构与期刊**用官方中文名**：中国心理学会 / 中国心理卫生协会 / 中国科学院心理研究所（可简称“中科院心理所”）/ 国家卫生健康委员会（可简称“国家卫健委”）/《心理学报》/《心理科学进展》/《心理科学》/《中国心理卫生杂志》。
 
 4. 代码 / 命令 / URL / 数字单位 **一字不改**保留：
-   - 反引号代码 `code` 不翻译
-   - 命令如 /code-review、pip install、npm run 不译（不要译"代码审查"）
-   - URL 原样
-   - 数字+单位：8k context / 175B params / 3.5x speedup / $3 per M tokens / 99.9%
-   - 金额、参数量、比例、区间必须保留原文的阿拉伯数字和单位；不要把 $10B-$100B 改写成“数百亿至数千亿美元”等中文数量词
+   - URL、DOI、预注册编号（如 OSF 链接、NCT 编号）原样
+   - 样本量、百分比、效应量、置信区间、剂量（mg）、疗程（周、次）、随访时长必须保留原文的阿拉伯数字和单位；不要把 “N = 12,000” 改写成“上万人”，不要把 “d = 0.2” 改写成“显著效果”

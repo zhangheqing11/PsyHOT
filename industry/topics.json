@@ -1,549 +1,774 @@
 {
-  "exportedAt": "2026-09-26",
+  "exportedAt": "2026-10-01",
   "groups": [
     {
       "key": "company",
-      "name": "公司与模型",
-      "blurb": "按厂商与模型系追踪：谁发了什么、又赢了哪一局"
+      "name": "机构与学会",
+      "blurb": "按机构追踪：国际组织、学会、监管部门与研究院所发布了什么"
     },
     {
       "key": "field",
-      "name": "技术方向",
-      "blurb": "按技术领域深挖：Agent、多模态、具身智能……"
+      "name": "领域与议题",
+      "blurb": "按分支领域和议题深挖：认知、临床、发展、抑郁、成瘾……"
     },
     {
       "key": "genre",
       "name": "内容形态",
-      "blurb": "按内容类型浏览：论文、教程、观点、政策……"
+      "blurb": "按内容类型浏览：研究、元分析、临床指南、政策、观点……"
     }
   ],
   "topics": [
     {
-      "slug": "openai",
-      "name": "OpenAI / ChatGPT",
+      "slug": "who",
+      "name": "世界卫生组织 WHO",
       "group": "company",
-      "entityId": "openai",
+      "entityId": "who",
       "tags": [
-        "OpenAI",
-        "entity:openai"
+        "WHO",
+        "entity:who"
       ],
-      "definition": "OpenAI 的全部动态：GPT 系列模型、ChatGPT 与 Sora 产品、公司战略与人事的持续追踪。",
+      "definition": "WHO 的心理健康动态：全球心理健康报告、ICD 诊断分类、自杀预防与精神卫生服务的政策与数据。",
       "related": [
-        "anthropic",
-        "google",
-        "model-releases"
-      ]
-    },
-    {
-      "slug": "anthropic",
-      "name": "Anthropic / Claude",
-      "group": "company",
-      "entityId": "anthropic",
-      "tags": [
-        "Anthropic",
-        "entity:anthropic"
-      ],
-      "definition": "Anthropic 的全部动态：Claude 系列模型、Claude Code、安全研究路线与公司进展的持续追踪。",
-      "related": [
-        "openai",
-        "google",
-        "safety"
-      ]
-    },
-    {
-      "slug": "google",
-      "name": "Google / Gemini",
-      "group": "company",
-      "entityId": "google",
-      "tags": [
-        "Google",
-        "DeepMind",
-        "entity:google"
-      ],
-      "definition": "Google 与 DeepMind 的 AI 动态：Gemini 系列、Veo 视频模型、研究成果与产品生态的持续追踪。",
-      "related": [
-        "openai",
-        "anthropic",
-        "multimodal"
-      ]
-    },
-    {
-      "slug": "deepseek",
-      "name": "DeepSeek",
-      "group": "company",
-      "entityId": "deepseek",
-      "tags": [
-        "DeepSeek",
-        "entity:deepseek"
-      ],
-      "definition": "DeepSeek（深度求索）的模型发布、开源权重与技术报告——开源大模型价格与性能双卷的风向标。",
-      "related": [
-        "qwen",
-        "open-source",
-        "model-releases"
-      ]
-    },
-    {
-      "slug": "qwen",
-      "name": "千问 Qwen",
-      "group": "company",
-      "entityId": "qwen",
-      "tags": [
-        "entity:qwen"
-      ],
-      "definition": "阿里千问 Qwen 系列的开源发布与迭代：从旗舰模型到端侧小模型的全谱系动态。",
-      "related": [
-        "deepseek",
-        "kimi",
-        "open-source"
-      ]
-    },
-    {
-      "slug": "kimi",
-      "name": "Kimi / 月之暗面",
-      "group": "company",
-      "entityId": "kimi",
-      "tags": [
-        "entity:kimi"
-      ],
-      "definition": "月之暗面 Kimi 系列模型与产品动态：K 系列开源模型、长上下文技术与产品演进的追踪。",
-      "related": [
-        "qwen",
-        "deepseek",
-        "minimax"
-      ]
-    },
-    {
-      "slug": "minimax",
-      "name": "MiniMax",
-      "group": "company",
-      "entityId": "minimax",
-      "tags": [
-        "entity:minimax"
-      ],
-      "definition": "MiniMax 的模型与产品动态：M 系列大模型、语音与多模态能力、开源与商业化进展。",
-      "related": [
-        "kimi",
-        "qwen",
-        "voice"
-      ]
-    },
-    {
-      "slug": "zhipu",
-      "name": "智谱 GLM",
-      "group": "company",
-      "entityId": "zhipu",
-      "tags": [
-        "entity:zhipu"
-      ],
-      "definition": "智谱的 GLM 系列模型动态：旗舰开源发布、代码与推理能力迭代、商业化与生态进展的追踪。",
-      "related": [
-        "qwen",
-        "kimi",
-        "open-source"
-      ]
-    },
-    {
-      "slug": "xai",
-      "name": "xAI / Grok",
-      "group": "company",
-      "entityId": "xai",
-      "tags": [
-        "xAI",
-        "entity:xai"
-      ],
-      "definition": "马斯克 xAI 与 Grok 系列的全部动态：模型迭代、算力扩张与 X 平台整合的持续追踪。",
-      "related": [
-        "openai",
-        "meta",
-        "industry"
-      ]
-    },
-    {
-      "slug": "meta",
-      "name": "Meta / Llama",
-      "group": "company",
-      "entityId": "meta",
-      "tags": [
-        "Meta",
-        "entity:meta"
-      ],
-      "definition": "Meta 的 AI 动态：Llama 开源模型系列、超级智能实验室与元宇宙之外的 AI 豪赌。",
-      "related": [
-        "xai",
-        "open-source",
-        "industry"
-      ]
-    },
-    {
-      "slug": "microsoft",
-      "name": "Microsoft / Copilot",
-      "group": "company",
-      "entityId": "microsoft",
-      "tags": [
-        "Microsoft",
-        "entity:microsoft"
-      ],
-      "definition": "微软的 AI 布局：Copilot 全家桶、Azure AI 基础设施与 OpenAI 合作关系的持续追踪。",
-      "related": [
-        "openai",
-        "coding",
-        "product-updates"
-      ]
-    },
-    {
-      "slug": "nvidia",
-      "name": "NVIDIA 英伟达",
-      "group": "company",
-      "entityId": "nvidia",
-      "tags": [
-        "entity:nvidia"
-      ],
-      "definition": "英伟达的 AI 芯片与生态动态：GPU 新品、CUDA 生态、机器人平台与 AI 算力市场的风向。",
-      "related": [
-        "engineering",
-        "industry",
-        "embodied"
-      ]
-    },
-    {
-      "slug": "hugging-face",
-      "name": "Hugging Face",
-      "group": "company",
-      "entityId": "hugging-face",
-      "tags": [
-        "Hugging Face",
-        "entity:hugging-face"
-      ],
-      "definition": "Hugging Face 开源社区动态：热门模型与数据集、排行榜变化与开源生态的晴雨表。",
-      "related": [
-        "open-source",
-        "model-releases",
-        "data-training"
-      ]
-    },
-    {
-      "slug": "cursor",
-      "name": "Cursor",
-      "group": "company",
-      "entityId": "cursor",
-      "tags": [
-        "entity:cursor"
-      ],
-      "definition": "Cursor 编辑器的产品迭代与生态动态——AI 编码工具竞争中最受关注的玩家之一。",
-      "related": [
-        "coding",
-        "agent",
-        "product-updates"
-      ]
-    },
-    {
-      "slug": "openrouter",
-      "name": "OpenRouter",
-      "group": "company",
-      "entityId": "openrouter",
-      "tags": [
-        "entity:openrouter"
-      ],
-      "definition": "OpenRouter 模型路由平台动态：新模型上架、用量排行与开发者选型的真实市场信号。",
-      "related": [
-        "engineering",
-        "model-releases",
-        "open-source"
-      ]
-    },
-    {
-      "slug": "agent",
-      "name": "Agent 智能体",
-      "group": "field",
-      "tags": [
-        "Agent"
-      ],
-      "definition": "让模型自主规划、调用工具、完成多步任务的技术方向——从 Claude Code、Manus 到各家 Agent 框架与评测基准的全部动态。",
-      "related": [
-        "mcp",
-        "coding",
-        "reasoning"
-      ]
-    },
-    {
-      "slug": "coding",
-      "name": "AI 编码",
-      "group": "field",
-      "tags": [
-        "编码"
-      ],
-      "definition": "AI 写代码的一切：编码助手、Vibe Coding、代码模型评测与开发工作流变革。",
-      "related": [
-        "agent",
-        "cursor",
-        "tutorials"
-      ]
-    },
-    {
-      "slug": "reasoning",
-      "name": "推理能力",
-      "group": "field",
-      "tags": [
-        "推理"
-      ],
-      "definition": "模型推理能力的进展：思维链、推理模型、数学与逻辑基准的突破与争议。",
-      "related": [
-        "papers",
-        "model-releases",
-        "agent"
-      ]
-    },
-    {
-      "slug": "multimodal",
-      "name": "多模态",
-      "group": "field",
-      "tags": [
-        "多模态"
-      ],
-      "definition": "文本之外的能力：视觉理解、图文混合、音视频输入输出的模型与产品进展。",
-      "related": [
-        "image-gen",
-        "video",
-        "voice"
-      ]
-    },
-    {
-      "slug": "image-gen",
-      "name": "图像生成",
-      "group": "field",
-      "tags": [
-        "图像生成"
-      ],
-      "definition": "AI 画图的最前线：文生图模型迭代、图像编辑能力与创作工具生态的全部动态。",
-      "related": [
-        "video",
-        "multimodal",
-        "product-updates"
-      ]
-    },
-    {
-      "slug": "video",
-      "name": "AI 视频",
-      "group": "field",
-      "tags": [
-        "视频"
-      ],
-      "definition": "AI 视频生成与理解：文生视频模型、视频编辑工具与影视创作变革的追踪。",
-      "related": [
-        "image-gen",
-        "multimodal",
-        "voice"
-      ]
-    },
-    {
-      "slug": "voice",
-      "name": "语音与音频",
-      "group": "field",
-      "tags": [
-        "语音"
-      ],
-      "definition": "AI 语音与音频的进展：语音合成、实时对话、音乐生成与音频理解的模型与产品。",
-      "related": [
-        "multimodal",
-        "video",
-        "product-updates"
-      ]
-    },
-    {
-      "slug": "embodied",
-      "name": "具身智能",
-      "group": "field",
-      "tags": [
-        "具身智能"
-      ],
-      "definition": "AI 走进物理世界：人形机器人、具身基础模型与真实环境操作能力的进展追踪。",
-      "related": [
-        "nvidia",
-        "multimodal",
-        "papers"
-      ]
-    },
-    {
-      "slug": "on-device",
-      "name": "端侧 AI",
-      "group": "field",
-      "tags": [
-        "端侧"
-      ],
-      "definition": "跑在手机、电脑与边缘设备上的 AI：小模型、本地推理与端侧芯片的进展。",
-      "related": [
-        "engineering",
-        "open-source",
-        "model-releases"
-      ]
-    },
-    {
-      "slug": "open-source",
-      "name": "开源生态",
-      "group": "field",
-      "tags": [
-        "开源生态",
-        "开源/仓库"
-      ],
-      "definition": "开源模型、框架与仓库动态：权重开放、社区项目爆火、开源与闭源的力量消长。",
-      "related": [
-        "model-releases",
-        "hugging-face",
-        "coding"
-      ]
-    },
-    {
-      "slug": "engineering",
-      "name": "部署工程",
-      "group": "field",
-      "tags": [
-        "部署/工程"
-      ],
-      "definition": "把模型跑起来的工程实践：推理优化、显存与成本、Serving 架构与基础设施选型。",
-      "related": [
-        "open-source",
-        "data-training",
-        "on-device"
-      ]
-    },
-    {
-      "slug": "data-training",
-      "name": "数据与训练",
-      "group": "field",
-      "tags": [
-        "数据/训练"
-      ],
-      "definition": "训练侧的门道：数据集构建、合成数据、预训练与后训练方法、算力与训练成本。",
-      "related": [
-        "papers",
-        "engineering",
-        "model-releases"
-      ]
-    },
-    {
-      "slug": "safety",
-      "name": "安全对齐",
-      "group": "field",
-      "tags": [
-        "安全/对齐"
-      ],
-      "definition": "AI 安全与对齐：越狱与防御、模型行为研究、安全评测与治理框架的进展。",
-      "related": [
-        "papers",
+        "nimh",
         "policy",
-        "reasoning"
+        "suicide"
       ]
     },
     {
-      "slug": "mcp",
-      "name": "MCP 与工具调用",
-      "group": "field",
+      "slug": "apa-psychology",
+      "name": "美国心理学会 APA",
+      "group": "company",
+      "entityId": "apa-psychology",
       "tags": [
-        "MCP/工具调用"
+        "美国心理学会",
+        "entity:apa-psychology"
       ],
-      "definition": "模型连接外部世界的协议与实践：MCP 生态、function calling、工具链集成的动态。",
+      "definition": "美国心理学会的动态：临床实践指南、伦理守则、行业调查与学科政策。",
       "related": [
-        "agent",
-        "coding",
-        "open-source"
-      ]
-    },
-    {
-      "slug": "model-releases",
-      "name": "模型发布",
-      "group": "genre",
-      "tags": [
-        "模型发布"
-      ],
-      "definition": "新模型的发布、开源与迭代：大模型厂商的旗舰更新、开源权重放出、性能与价格变化的第一时间记录。",
-      "related": [
-        "product-updates",
-        "papers",
-        "open-source"
-      ]
-    },
-    {
-      "slug": "product-updates",
-      "name": "产品更新",
-      "group": "genre",
-      "tags": [
-        "产品更新"
-      ],
-      "definition": "AI 产品与应用的功能上新、改版与商业化动态——谁家的产品变强了、变贵了、能用了。",
-      "related": [
-        "model-releases",
-        "industry",
-        "coding"
-      ]
-    },
-    {
-      "slug": "papers",
-      "name": "论文研究",
-      "group": "genre",
-      "tags": [
-        "论文/研究"
-      ],
-      "definition": "值得读的 AI 论文与研究成果：架构创新、训练方法、能力测量与理论进展的精选解读。",
-      "related": [
-        "reasoning",
-        "safety",
-        "data-training"
-      ]
-    },
-    {
-      "slug": "benchmarks",
-      "name": "评测基准",
-      "group": "genre",
-      "tags": [
-        "评测/基准"
-      ],
-      "definition": "模型到底谁强：Benchmark 成绩、评测方法论争议与排行榜变化的持续记录。",
-      "related": [
-        "model-releases",
-        "papers",
-        "reasoning"
-      ]
-    },
-    {
-      "slug": "tutorials",
-      "name": "教程实践",
-      "group": "genre",
-      "tags": [
-        "教程/实践"
-      ],
-      "definition": "拿来就能用的实操内容：提示词技巧、工作流搭建、工具用法与踩坑经验。",
-      "related": [
-        "coding",
-        "agent",
-        "product-updates"
-      ]
-    },
-    {
-      "slug": "opinions",
-      "name": "大佬观点",
-      "group": "genre",
-      "tags": [
-        "大佬观点"
-      ],
-      "definition": "行业关键人物在想什么：创始人访谈、研究者论战、投资人判断的观点集合。",
-      "related": [
-        "trends",
+        "apa-psychiatry",
+        "clinical-psych",
         "industry"
       ]
     },
     {
-      "slug": "trends",
-      "name": "现象与趋势",
+      "slug": "apa-psychiatry",
+      "name": "美国精神医学学会",
+      "group": "company",
+      "entityId": "apa-psychiatry",
+      "tags": [
+        "美国精神医学学会",
+        "entity:apa-psychiatry"
+      ],
+      "definition": "美国精神医学学会的动态：DSM 诊断标准的修订、精神科临床指南与《美国精神病学杂志》的重要研究。",
+      "related": [
+        "who",
+        "diagnosis",
+        "psychopharmacology"
+      ]
+    },
+    {
+      "slug": "nimh",
+      "name": "NIMH",
+      "group": "company",
+      "entityId": "nimh",
+      "tags": [
+        "NIMH",
+        "entity:nimh"
+      ],
+      "definition": "美国国立精神卫生研究所的动态：研究资助方向、RDoC 框架与官方发布的研究进展。",
+      "related": [
+        "who",
+        "fda",
+        "research"
+      ]
+    },
+    {
+      "slug": "fda",
+      "name": "FDA",
+      "group": "company",
+      "entityId": "fda",
+      "tags": [
+        "FDA",
+        "entity:fda"
+      ],
+      "definition": "FDA 与精神心理相关的监管动态：精神科新药与迷幻药物审批、数字疗法与神经调控器械的批准和警示。",
+      "related": [
+        "psychopharmacology",
+        "neuromodulation",
+        "digital-mental-health"
+      ]
+    },
+    {
+      "slug": "nice",
+      "name": "英国 NICE",
+      "group": "company",
+      "entityId": "nice",
+      "tags": [
+        "NICE",
+        "entity:nice"
+      ],
+      "definition": "英国 NICE 的心理健康指南：抑郁、焦虑、创伤等常见障碍的循证治疗推荐与更新。",
+      "related": [
+        "clinical-guidance",
+        "psychotherapy",
+        "cochrane"
+      ]
+    },
+    {
+      "slug": "nhc",
+      "name": "国家卫健委",
+      "group": "company",
+      "entityId": "nhc",
+      "tags": [
+        "国家卫健委",
+        "entity:nhc"
+      ],
+      "definition": "国家卫生健康委员会的心理健康政策：社会心理服务体系、精神卫生工作规划与危机干预机制。",
+      "related": [
+        "camh",
+        "cps",
+        "policy"
+      ]
+    },
+    {
+      "slug": "cps",
+      "name": "中国心理学会",
+      "group": "company",
+      "entityId": "cps",
+      "tags": [
+        "中国心理学会",
+        "entity:cps"
+      ],
+      "definition": "中国心理学会的动态：学术会议、学科建设、心理学家认定与临床与咨询心理学专业注册。",
+      "related": [
+        "camh",
+        "ipcas",
+        "industry"
+      ]
+    },
+    {
+      "slug": "camh",
+      "name": "中国心理卫生协会",
+      "group": "company",
+      "entityId": "camh",
+      "tags": [
+        "中国心理卫生协会",
+        "entity:camh"
+      ],
+      "definition": "中国心理卫生协会的动态：心理咨询师能力评价、团体标准、行业规范与全国心理卫生学术大会。",
+      "related": [
+        "cps",
+        "nhc",
+        "counseling"
+      ]
+    },
+    {
+      "slug": "ipcas",
+      "name": "中科院心理所",
+      "group": "company",
+      "entityId": "ipcas",
+      "tags": [
+        "中科院心理所",
+        "entity:ipcas"
+      ],
+      "definition": "中国科学院心理研究所的研究成果与机构动态，以及其主办的《心理学报》《心理科学进展》。",
+      "related": [
+        "cps",
+        "research",
+        "meta-analyses"
+      ]
+    },
+    {
+      "slug": "cochrane",
+      "name": "Cochrane",
+      "group": "company",
+      "entityId": "cochrane",
+      "tags": [
+        "Cochrane",
+        "entity:cochrane"
+      ],
+      "definition": "Cochrane 系统综述中的心理与精神卫生证据：哪些干预被证明有效、哪些证据仍不足。",
+      "related": [
+        "meta-analyses",
+        "clinical-guidance",
+        "psychotherapy"
+      ]
+    },
+    {
+      "slug": "cos",
+      "name": "开放科学中心 COS",
+      "group": "company",
+      "entityId": "cos",
+      "tags": [
+        "开放科学中心",
+        "entity:cos"
+      ],
+      "definition": "开放科学中心（COS）的动态：OSF 平台、注册报告、重复验证项目与科研透明度倡议。",
+      "related": [
+        "open-science",
+        "replication",
+        "methods"
+      ]
+    },
+    {
+      "slug": "cognitive",
+      "name": "认知心理",
+      "group": "field",
+      "tags": [
+        "认知"
+      ],
+      "definition": "注意、记忆、语言、推理、学习与意识等认知过程的研究进展。",
+      "related": [
+        "neuro",
+        "decision",
+        "educational"
+      ]
+    },
+    {
+      "slug": "social",
+      "name": "社会心理",
+      "group": "field",
+      "tags": [
+        "社会"
+      ],
+      "definition": "态度、偏见、群体、从众、道德、亲社会行为与社会影响的研究进展。",
+      "related": [
+        "personality",
+        "cross-cultural",
+        "relationships"
+      ]
+    },
+    {
+      "slug": "personality",
+      "name": "人格心理",
+      "group": "field",
+      "tags": [
+        "人格"
+      ],
+      "definition": "人格特质、个体差异、人格发展与人格测量的研究进展。",
+      "related": [
+        "social",
+        "measurement",
+        "developmental"
+      ]
+    },
+    {
+      "slug": "developmental",
+      "name": "发展心理",
+      "group": "field",
+      "tags": [
+        "发展"
+      ],
+      "definition": "从婴儿期到老年期的心理发展：认知与社会性发展、亲子关系、教养方式与毕生发展。",
+      "related": [
+        "youth",
+        "aging",
+        "educational"
+      ]
+    },
+    {
+      "slug": "clinical-psych",
+      "name": "临床心理",
+      "group": "field",
+      "tags": [
+        "临床"
+      ],
+      "definition": "心理障碍的成因、评估与治疗，临床心理学研究与实践的最新进展。",
+      "related": [
+        "psychotherapy",
+        "diagnosis",
+        "depression"
+      ]
+    },
+    {
+      "slug": "counseling",
+      "name": "心理咨询",
+      "group": "field",
+      "tags": [
+        "咨询"
+      ],
+      "definition": "心理咨询实践、咨访关系、咨询师培养与督导、咨询伦理与行业规范。",
+      "related": [
+        "psychotherapy",
+        "camh",
+        "clinical-psych"
+      ]
+    },
+    {
+      "slug": "health-psych",
+      "name": "健康心理",
+      "group": "field",
+      "tags": [
+        "健康"
+      ],
+      "definition": "压力与身体健康、健康行为改变、慢性病心理与心身关系的研究进展。",
+      "related": [
+        "stress",
+        "sleep",
+        "addiction"
+      ]
+    },
+    {
+      "slug": "neuro",
+      "name": "生理与神经",
+      "group": "field",
+      "tags": [
+        "生理/神经"
+      ],
+      "definition": "心理现象的神经与生理基础：脑影像、神经机制、内分泌、遗传与心理过程的关系。",
+      "related": [
+        "cognitive",
+        "neuromodulation",
+        "psychopharmacology"
+      ]
+    },
+    {
+      "slug": "evolutionary",
+      "name": "进化心理",
+      "group": "field",
+      "tags": [
+        "进化"
+      ],
+      "definition": "从进化角度解释人类心理与行为：择偶、合作、亲缘与跨物种比较。",
+      "related": [
+        "social",
+        "personality",
+        "cross-cultural"
+      ]
+    },
+    {
+      "slug": "organizational",
+      "name": "组织与管理",
+      "group": "field",
+      "tags": [
+        "组织/管理"
+      ],
+      "definition": "工作场所中的心理学：领导力、员工幸福感、职业倦怠、人才选拔与组织行为。",
+      "related": [
+        "stress",
+        "positive",
+        "social"
+      ]
+    },
+    {
+      "slug": "educational",
+      "name": "教育心理",
+      "group": "field",
+      "tags": [
+        "教育"
+      ],
+      "definition": "学习动机、学业表现、教学干预与学生心理健康的研究进展。",
+      "related": [
+        "developmental",
+        "cognitive",
+        "youth"
+      ]
+    },
+    {
+      "slug": "forensic",
+      "name": "司法心理",
+      "group": "field",
+      "tags": [
+        "司法"
+      ],
+      "definition": "心理学在司法与犯罪领域的应用：目击证词、审讯与虚假供述、风险评估、犯罪成因与矫治。",
+      "related": [
+        "social",
+        "clinical-psych",
+        "decision"
+      ]
+    },
+    {
+      "slug": "positive",
+      "name": "积极心理",
+      "group": "field",
+      "tags": [
+        "积极心理"
+      ],
+      "definition": "幸福感、意义感、感恩、心理韧性与积极干预的研究进展。",
+      "related": [
+        "stress",
+        "relationships",
+        "health-psych"
+      ]
+    },
+    {
+      "slug": "cross-cultural",
+      "name": "跨文化心理",
+      "group": "field",
+      "tags": [
+        "跨文化"
+      ],
+      "definition": "文化如何塑造心理与行为，跨文化比较研究与心理学研究的样本多样性问题。",
+      "related": [
+        "social",
+        "personality",
+        "replication"
+      ]
+    },
+    {
+      "slug": "decision",
+      "name": "判断与决策",
+      "group": "field",
+      "tags": [
+        "决策"
+      ],
+      "definition": "判断、决策、风险认知、行为经济学与助推（nudge）干预的研究进展。",
+      "related": [
+        "cognitive",
+        "social",
+        "replication"
+      ]
+    },
+    {
+      "slug": "depression",
+      "name": "抑郁",
+      "group": "field",
+      "tags": [
+        "抑郁"
+      ],
+      "definition": "抑郁的成因、风险因素、诊断与治疗，从心理治疗到药物与神经调控的最新证据。",
+      "related": [
+        "anxiety",
+        "suicide",
+        "psychotherapy"
+      ]
+    },
+    {
+      "slug": "anxiety",
+      "name": "焦虑",
+      "group": "field",
+      "tags": [
+        "焦虑"
+      ],
+      "definition": "焦虑障碍、恐惧与强迫相关问题的机制与治疗研究。",
+      "related": [
+        "depression",
+        "stress",
+        "psychotherapy"
+      ]
+    },
+    {
+      "slug": "trauma",
+      "name": "创伤与 PTSD",
+      "group": "field",
+      "tags": [
+        "创伤/PTSD"
+      ],
+      "definition": "创伤经历、创伤后应激障碍的机制、干预与创伤后成长。",
+      "related": [
+        "anxiety",
+        "psychotherapy",
+        "youth"
+      ]
+    },
+    {
+      "slug": "addiction",
+      "name": "成瘾",
+      "group": "field",
+      "tags": [
+        "成瘾"
+      ],
+      "definition": "物质成瘾与行为成瘾（游戏、赌博、手机）的机制、预防与治疗。",
+      "related": [
+        "psychopharmacology",
+        "youth",
+        "health-psych"
+      ]
+    },
+    {
+      "slug": "psychosis",
+      "name": "精神病性障碍与双相",
+      "group": "field",
+      "tags": [
+        "精神病性障碍",
+        "双相"
+      ],
+      "definition": "精神分裂症、精神病性体验与双相障碍的研究、治疗与康复。",
+      "related": [
+        "psychopharmacology",
+        "neuro",
+        "clinical-psych"
+      ]
+    },
+    {
+      "slug": "neurodevelopmental",
+      "name": "孤独症与 ADHD",
+      "group": "field",
+      "tags": [
+        "孤独症/ADHD"
+      ],
+      "definition": "孤独症谱系障碍、ADHD 等神经发育障碍的诊断、成因与支持干预。",
+      "related": [
+        "youth",
+        "developmental",
+        "diagnosis"
+      ]
+    },
+    {
+      "slug": "eating-disorders",
+      "name": "进食障碍",
+      "group": "field",
+      "tags": [
+        "进食障碍"
+      ],
+      "definition": "神经性厌食、贪食与暴食等进食障碍的机制与治疗研究。",
+      "related": [
+        "youth",
+        "clinical-psych",
+        "psychotherapy"
+      ]
+    },
+    {
+      "slug": "suicide",
+      "name": "自杀与自伤预防",
+      "group": "field",
+      "tags": [
+        "自杀/自伤"
+      ],
+      "definition": "自杀与自伤的风险因素、预测、危机干预与预防策略的研究和政策。",
+      "related": [
+        "depression",
+        "youth",
+        "who"
+      ]
+    },
+    {
+      "slug": "sleep",
+      "name": "睡眠",
+      "group": "field",
+      "tags": [
+        "睡眠"
+      ],
+      "definition": "睡眠与心理健康、失眠的认知行为治疗与睡眠对认知和情绪的影响。",
+      "related": [
+        "health-psych",
+        "depression",
+        "stress"
+      ]
+    },
+    {
+      "slug": "stress",
+      "name": "压力与情绪",
+      "group": "field",
+      "tags": [
+        "压力/情绪"
+      ],
+      "definition": "压力反应、情绪调节、职业倦怠与应对方式的研究进展。",
+      "related": [
+        "anxiety",
+        "health-psych",
+        "positive"
+      ]
+    },
+    {
+      "slug": "relationships",
+      "name": "人际关系与孤独",
+      "group": "field",
+      "tags": [
+        "人际关系/孤独"
+      ],
+      "definition": "亲密关系、社会联结、孤独感与社会支持对心理健康的影响。",
+      "related": [
+        "social",
+        "positive",
+        "aging"
+      ]
+    },
+    {
+      "slug": "youth",
+      "name": "儿童青少年",
+      "group": "field",
+      "tags": [
+        "儿童青少年"
+      ],
+      "definition": "儿童青少年的心理发展与心理健康：社交媒体、校园、家庭与早期干预。",
+      "related": [
+        "developmental",
+        "educational",
+        "suicide"
+      ]
+    },
+    {
+      "slug": "aging",
+      "name": "老龄化",
+      "group": "field",
+      "tags": [
+        "老龄化"
+      ],
+      "definition": "老年人的认知老化、痴呆风险、孤独与晚年心理健康。",
+      "related": [
+        "developmental",
+        "cognitive",
+        "relationships"
+      ]
+    },
+    {
+      "slug": "digital-mental-health",
+      "name": "数字心理健康",
+      "group": "field",
+      "tags": [
+        "数字心理健康"
+      ],
+      "definition": "心理健康 App、数字疗法、远程咨询与线上干预的效果证据与监管。",
+      "related": [
+        "ai-psychology",
+        "psychotherapy",
+        "fda"
+      ]
+    },
+    {
+      "slug": "ai-psychology",
+      "name": "AI 与心理",
+      "group": "field",
+      "tags": [
+        "AI与心理"
+      ],
+      "definition": "人工智能与心理学的交叉：AI 聊天与心理支持、用 AI 做心理学研究、人与 AI 互动的心理影响。",
+      "related": [
+        "digital-mental-health",
+        "cognitive",
+        "social"
+      ]
+    },
+    {
+      "slug": "psychotherapy",
+      "name": "心理治疗",
+      "group": "field",
+      "tags": [
+        "心理治疗"
+      ],
+      "definition": "CBT、ACT、DBT、精神动力学等心理治疗的疗效证据、作用机制与比较研究。",
+      "related": [
+        "clinical-guidance",
+        "depression",
+        "counseling"
+      ]
+    },
+    {
+      "slug": "psychopharmacology",
+      "name": "精神药物",
+      "group": "field",
+      "tags": [
+        "精神药物"
+      ],
+      "definition": "抗抑郁药、抗精神病药、迷幻药物辅助治疗等精神科药物的研究与审批。",
+      "related": [
+        "neuromodulation",
+        "fda",
+        "depression"
+      ]
+    },
+    {
+      "slug": "neuromodulation",
+      "name": "神经调控",
+      "group": "field",
+      "tags": [
+        "神经调控"
+      ],
+      "definition": "经颅磁刺激、深部脑刺激、电休克等神经调控治疗的研究进展。",
+      "related": [
+        "psychopharmacology",
+        "neuro",
+        "depression"
+      ]
+    },
+    {
+      "slug": "open-science",
+      "name": "开放科学",
+      "group": "field",
+      "tags": [
+        "开放科学"
+      ],
+      "definition": "预注册、注册报告、开放数据与研究透明度的实践和争论。",
+      "related": [
+        "replication",
+        "methods",
+        "cos"
+      ]
+    },
+    {
+      "slug": "research",
+      "name": "研究发现",
       "group": "genre",
       "tags": [
-        "现象/趋势"
+        "研究发现"
       ],
-      "definition": "正在发生的行业级变化：使用习惯迁移、能力涌现、社会影响与市场格局的观察。",
+      "definition": "心理学与精神医学的新实证研究：值得知道的新发现与新数据。",
       "related": [
-        "opinions",
+        "meta-analyses",
+        "replication",
+        "methods"
+      ]
+    },
+    {
+      "slug": "meta-analyses",
+      "name": "元分析与综述",
+      "group": "genre",
+      "tags": [
+        "元分析/综述"
+      ],
+      "definition": "汇总大量研究的元分析与系统综述：某个问题目前的证据整体上怎么说。",
+      "related": [
+        "research",
+        "cochrane",
+        "replication"
+      ]
+    },
+    {
+      "slug": "replication",
+      "name": "重复验证",
+      "group": "genre",
+      "tags": [
+        "重复验证"
+      ],
+      "definition": "经典效应的重复验证与多实验室合作项目：哪些发现站得住，哪些站不住。",
+      "related": [
+        "open-science",
+        "meta-analyses",
+        "integrity"
+      ]
+    },
+    {
+      "slug": "clinical-guidance",
+      "name": "临床与治疗",
+      "group": "genre",
+      "tags": [
+        "临床/治疗"
+      ],
+      "definition": "临床试验结果、治疗指南与循证推荐的更新。",
+      "related": [
+        "psychotherapy",
+        "diagnosis",
+        "nice"
+      ]
+    },
+    {
+      "slug": "diagnosis",
+      "name": "诊断与评估",
+      "group": "genre",
+      "tags": [
+        "诊断/评估"
+      ],
+      "definition": "诊断标准（DSM、ICD）的修订、筛查与评估工具的进展。",
+      "related": [
+        "measurement",
+        "apa-psychiatry",
+        "clinical-guidance"
+      ]
+    },
+    {
+      "slug": "policy",
+      "name": "政策与监管",
+      "group": "genre",
+      "tags": [
+        "政策/监管"
+      ],
+      "definition": "心理健康政策、法规与监管动态。",
+      "related": [
         "industry",
-        "safety"
+        "nhc",
+        "who"
       ]
     },
     {
@@ -553,25 +778,81 @@
       "tags": [
         "行业动态"
       ],
-      "definition": "AI 行业的商业脉搏：融资并购、人事变动、合作与竞争、政策与市场信号。",
+      "definition": "学会与机构动态、从业资质与伦理事件、心理健康行业与市场。",
       "related": [
-        "trends",
-        "opinions",
-        "policy"
+        "policy",
+        "counseling",
+        "camh"
       ]
     },
     {
-      "slug": "policy",
-      "name": "政策监管",
+      "slug": "integrity",
+      "name": "科研诚信",
       "group": "genre",
       "tags": [
-        "政策/监管"
+        "科研诚信"
       ],
-      "definition": "AI 相关政策法规与政府监管动态：立法进展、出口管制与全球治理框架的追踪。",
+      "definition": "撤稿、数据造假调查与学术不端事件，以及它们对领域的影响。",
       "related": [
-        "industry",
-        "safety",
-        "trends"
+        "replication",
+        "open-science",
+        "methods"
+      ]
+    },
+    {
+      "slug": "methods",
+      "name": "方法与统计",
+      "group": "genre",
+      "tags": [
+        "方法/统计"
+      ],
+      "definition": "研究设计、统计方法与数据分析实践的进展和争论。",
+      "related": [
+        "measurement",
+        "open-science",
+        "replication"
+      ]
+    },
+    {
+      "slug": "measurement",
+      "name": "测量与量表",
+      "group": "genre",
+      "tags": [
+        "测量/量表"
+      ],
+      "definition": "心理测量、量表编制与修订、测量不变性与评估工具的进展。",
+      "related": [
+        "methods",
+        "diagnosis",
+        "personality"
+      ]
+    },
+    {
+      "slug": "opinions",
+      "name": "学者观点",
+      "group": "genre",
+      "tags": [
+        "学者观点"
+      ],
+      "definition": "心理学者的评论、争鸣、理论文章与访谈。",
+      "related": [
+        "explainers",
+        "replication",
+        "research"
+      ]
+    },
+    {
+      "slug": "explainers",
+      "name": "科普解读",
+      "group": "genre",
+      "tags": [
+        "科普解读"
+      ],
+      "definition": "把研究讲清楚的科普与解读文章。",
+      "related": [
+        "opinions",
+        "research",
+        "positive"
       ]
     }
   ]

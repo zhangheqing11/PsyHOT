@@ -4,6 +4,8 @@
 
 {{> rules-anti-hallucination}}
 
+{{> rules-mental-health-safety}}
+
 {{> rules-self-contained-title}}
 
 {{> rules-answer-first-summary}}

@@ -19,7 +19,7 @@
     "/api/v1/items": {
       "get": {
         "operationId": "items",
-        "summary": "List recent public AI items",
+        "summary": "List recent public items",
         "description": "Start here for feeds, widgets and 'what is new' views. Covers the last 7 days only. Send If-None-Match and you get a 304 with an empty body whenever nothing changed. Do not use this to maintain a complete local copy of the selected set: it is windowed, so anything older than 7 days silently falls out. Use /api/v1/selected/snapshot plus /api/v1/selected/changes for that.",
         "parameters": [
           {

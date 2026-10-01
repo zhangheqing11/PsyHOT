@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
 /* ---------------------------------------------------------------------------
-   AIHOT design tokens — the look of the original site: warm off-white paper,
-   ink text, one teal accent (cyan in dark), hairline borders, no gradients.
+   PsyHOT design tokens — a quiet reading room for psychology: cool mist paper,
+   aubergine ink, one muted "psyche" violet accent (lavender in the dark night
+   theme), the red of a Rorschach plate for heat, soft radii, no gradients.
+   Page titles are set in a Song (serif) face where the system has one; the
+   signature is the inkblot (components/Inkblot.tsx).
    Components use the semantic names below; values change per theme only.
    --------------------------------------------------------------------------- */
 
@@ -10,15 +13,14 @@
 
 @theme {
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
+  /* Titles only: a Song face where the system has one, otherwise the same sans as the body (never SimSun). */
+  --font-display: "Songti SC", "Noto Serif SC", "Source Han Serif SC", "Noto Serif CJK SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "HarmonyOS Sans SC", "Microsoft YaHei", sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 
-  /* Brand (VI), fixed across themes. */
-  --color-brand-teal: #176b75;
-  --color-brand-cyan-0: #5deef0;
-  --color-brand-cyan-20: #2ce2e8;
-  --color-brand-cyan-54: #12ccd8;
-  --color-brand-cyan-82: #08abc2;
-  --color-brand-cyan-100: #078ea9;
+  /* Brand (VI), fixed across themes: the icon's night tile and its lavender Ψ, the light theme's violet. */
+  --color-brand-night: #15131b;
+  --color-brand-lavender: #b5a4f0;
+  --color-brand-violet: #5e4a8e;
 
   /* Semantic colours. */
   --color-bg: var(--bg);
@@ -62,15 +64,15 @@
   --color-rank-3: var(--rank-3);
   --color-rank-rest: var(--rank-rest);
 
-  /* Radius scale: mark 5 (inline code, kbd, tiny tags and swatches), control 8 (inputs, small
-     blocks), tile 10 (list rows, hover areas), card 12, panel 14 (wells, pictures), sheet 16 (dialogs,
-     sheets, hero shells); pills are rounded-full. Arbitrary radii are not used. */
+  /* Radius scale, a little softer than a tool's: mark 5 (inline code, kbd, tiny tags and swatches),
+     control 9 (inputs, small blocks), tile 11 (list rows, hover areas), card 14, panel 16 (wells,
+     pictures), sheet 20 (dialogs, sheets, hero shells); pills are rounded-full. Arbitrary radii are not used. */
   --radius-mark: 5px;
-  --radius-control: 8px;
-  --radius-tile: 10px;
-  --radius-card: 12px;
-  --radius-panel: 14px;
-  --radius-sheet: 16px;
+  --radius-control: 9px;
+  --radius-tile: 11px;
+  --radius-card: 14px;
+  --radius-panel: 16px;
+  --radius-sheet: 20px;
 
   --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
@@ -90,102 +92,102 @@
   --page-max-wide: max(1200px, calc(270dvh - 236px));
   --page-max-reading: max(1100px, calc(200dvh - 236px));
   color-scheme: light;
-  --bg: #faf9f6;
-  --bg-sunk: #f3f3ef;
-  --bg-muted: #e9ede9;
+  --bg: #f4f3f7;
+  --bg-sunk: #eeecf2;
+  --bg-muted: #e6e3ec;
   --surface: #ffffff;
-  --surface-2: #fdfdfb;
+  --surface-2: #fcfbfd;
   --raised: #ffffff;
-  --sidebar: #fdfdfb;
-  --daybar: #f0f2ee;
-  --field: #eef1ed;
-  --ink: #202a30;
-  --ink-2: #303c42;
-  --ink-3: #59656b;
-  --ink-4: #657176;
-  --line: #dfe4e1;
-  --line-strong: #d1d9d5;
-  --line-soft: #e9ede9;
-  --accent: #176b75;
-  --accent-ink: #145f68;
-  --accent-soft: rgba(23, 107, 117, 0.08);
-  --accent-softer: rgba(23, 107, 117, 0.05);
+  --sidebar: #faf9fc;
+  --daybar: #edebf2;
+  --field: #ecebf1;
+  --ink: #241f35;
+  --ink-2: #352f47;
+  --ink-3: #5b5570;
+  --ink-4: #686280;
+  --line: #e1dee8;
+  --line-strong: #d3cfdd;
+  --line-soft: #eae8ef;
+  --accent: #5e4a8e;
+  --accent-ink: #4f3d7a;
+  --accent-soft: rgba(94, 74, 142, 0.09);
+  --accent-softer: rgba(94, 74, 142, 0.05);
   --accent-contrast: #ffffff;
-  --note: #526f72;
-  --hot: #b3402a;
-  --hot-soft: rgba(179, 64, 42, 0.08);
-  --amber: #b8873a;
-  --amber-ink: #7c5a24;
-  --amber-soft: rgba(184, 135, 58, 0.1);
-  --ok: #2f7d5c;
-  --ok-soft: rgba(47, 125, 92, 0.1);
-  --ok-ink: #2a6e51;
+  --note: #5f5b7d;
+  --hot: #b13a4c;
+  --hot-soft: rgba(177, 58, 76, 0.08);
+  --amber: #a67a2d;
+  --amber-ink: #7a5920;
+  --amber-soft: rgba(166, 122, 45, 0.1);
+  --ok: #3f7a5e;
+  --ok-soft: rgba(63, 122, 94, 0.1);
+  --ok-ink: #356a51;
   /* Reset monitor: days mixed from the landed (green) and announced (amber) tones over the surface. */
-  --cal-plain: rgba(28, 39, 51, 0.024);
+  --cal-plain: rgba(36, 31, 53, 0.024);
   --cal-confirmed: color-mix(in srgb, var(--ok-ink) 12%, var(--surface));
   --cal-announced: color-mix(in srgb, var(--amber-ink) 14%, var(--surface));
   --cal-key-confirmed: color-mix(in srgb, var(--ok-ink) 30%, var(--surface));
   --cal-key-announced: color-mix(in srgb, var(--amber-ink) 30%, var(--surface));
   --panel-quiet: color-mix(in srgb, var(--bg) 48%, var(--surface));
-  --rank-1: #b3402a;
-  --rank-2: #a3642f;
-  --rank-3: #96702e;
-  --rank-rest: #6b7684;
-  --shadow-card: 0 1px 2px rgba(32, 42, 48, 0.025);
-  --shadow-card-hover: 0 3px 12px rgba(32, 42, 48, 0.055);
-  --shadow-soft: 0 4px 12px rgba(28, 39, 51, 0.06);
-  --shadow-thumb: 0 1px 2px rgba(28, 39, 51, 0.1), 0 1px 1px rgba(28, 39, 51, 0.04);
-  --shadow-pop: 0 12px 32px rgba(28, 39, 51, 0.12);
-  --prose-ink: #26323a;
-  --code-bg: #f6f7f4;
-  --selection: rgba(23, 107, 117, 0.16);
+  --rank-1: #b13a4c;
+  --rank-2: #9a4f6e;
+  --rank-3: #7f5f86;
+  --rank-rest: #75718a;
+  --shadow-card: 0 1px 2px rgba(36, 31, 53, 0.03);
+  --shadow-card-hover: 0 6px 20px rgba(36, 31, 53, 0.07);
+  --shadow-soft: 0 4px 14px rgba(36, 31, 53, 0.07);
+  --shadow-thumb: 0 1px 2px rgba(36, 31, 53, 0.1), 0 1px 1px rgba(36, 31, 53, 0.04);
+  --shadow-pop: 0 12px 32px rgba(36, 31, 53, 0.14);
+  --prose-ink: #2c2740;
+  --code-bg: #f5f4f8;
+  --selection: rgba(94, 74, 142, 0.16);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #13191c;
-  --bg-sunk: #182024;
-  --bg-muted: #202a2f;
-  --surface: #1a2226;
-  --surface-2: #1d272b;
-  --raised: #202a2f;
-  --sidebar: #161e21;
-  --daybar: #182024;
+  --bg: #15131b;
+  --bg-sunk: #1a1821;
+  --bg-muted: #232030;
+  --surface: #1c1924;
+  --surface-2: #201d29;
+  --raised: #25222f;
+  --sidebar: #18161f;
+  --daybar: #1a1821;
   --field: rgba(255, 255, 255, 0.06);
-  --ink: #e7eceb;
-  --ink-2: #d2dada;
-  --ink-3: #a5b0b3;
-  --ink-4: #89979d;
+  --ink: #ece8f4;
+  --ink-2: #d5d0e0;
+  --ink-3: #a9a2ba;
+  --ink-4: #8e87a2;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.12);
   --line-soft: rgba(255, 255, 255, 0.06);
-  --accent: #12ccd8;
-  --accent-ink: #2ce2e8;
-  --accent-soft: rgba(18, 204, 216, 0.12);
-  --accent-softer: rgba(18, 204, 216, 0.06);
-  --accent-contrast: #000000;
-  --note: #8fb8a8;
-  --hot: #d86a52;
-  --hot-soft: rgba(216, 106, 82, 0.12);
-  --amber: #d3b26a;
-  --amber-ink: #d3b26a;
-  --amber-soft: rgba(211, 178, 106, 0.12);
-  --ok: #5fc79a;
-  --ok-soft: rgba(95, 199, 154, 0.12);
-  --ok-ink: #7fd1ad;
+  --accent: #b5a4f0;
+  --accent-ink: #c9bcf7;
+  --accent-soft: rgba(181, 164, 240, 0.13);
+  --accent-softer: rgba(181, 164, 240, 0.06);
+  --accent-contrast: #15131b;
+  --note: #a9a6c6;
+  --hot: #e27586;
+  --hot-soft: rgba(226, 117, 134, 0.13);
+  --amber: #d8b36a;
+  --amber-ink: #d8b36a;
+  --amber-soft: rgba(216, 179, 106, 0.12);
+  --ok: #78c49f;
+  --ok-soft: rgba(120, 196, 159, 0.12);
+  --ok-ink: #8fd0b0;
   --cal-plain: rgba(255, 255, 255, 0.03);
-  --rank-1: #d86a52;
-  --rank-2: #d18a5e;
-  --rank-3: #d3b26a;
-  --rank-rest: #7b869a;
+  --rank-1: #e27586;
+  --rank-2: #cf86a6;
+  --rank-3: #b898c8;
+  --rank-rest: #827c96;
   --shadow-card: none;
   --shadow-card-hover: none;
   --shadow-soft: 0 6px 18px rgba(0, 0, 0, 0.35);
   --shadow-thumb: 0 1px 2px rgba(0, 0, 0, 0.45);
   --shadow-pop: 0 16px 40px rgba(0, 0, 0, 0.45);
-  --prose-ink: #d7dfdf;
-  --code-bg: #10151c;
-  --selection: rgba(18, 204, 216, 0.22);
+  --prose-ink: #dcd7e6;
+  --code-bg: #110f16;
+  --selection: rgba(181, 164, 240, 0.24);
 }
 
 @layer base {
@@ -205,6 +207,10 @@
   }
   ::selection {
     background: var(--selection);
+  }
+  /* Page titles in the display face; everything a reader scans stays in the body sans. */
+  h1 {
+    font-family: var(--font-display);
   }
   :focus-visible {
     outline: 2px solid var(--accent);
@@ -334,6 +340,15 @@
 
 .animate-fade-up {
   animation: fade-up 280ms var(--ease-out-quart) both;
+}
+
+/* The inkblot soaks into the paper once when its page opens. */
+@keyframes ink-soak {
+  from { opacity: 0; transform: scale(0.94); filter: blur(3px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+.ink-soak {
+  animation: ink-soak 1100ms var(--ease-out-quart) both;
 }
 
 /* Enter/leave keyframes for components/ui/Presence.tsx; --anim-ms overrides a default length. */

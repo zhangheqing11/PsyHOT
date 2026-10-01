@@ -43,7 +43,7 @@ async function analyzed(label: string, timelineAt: string): Promise<string> {
   });
   assert.equal(backfill, false);
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected)
-            VALUES (${articleId}, 1, 'rule', 'pass', 'ai-models', ${`标题 ${label}`}, ${`摘要 ${label}`}, 90, true)`;
+            VALUES (${articleId}, 1, 'rule', 'pass', 'research', ${`标题 ${label}`}, ${`摘要 ${label}`}, 90, true)`;
   return articleId;
 }
 

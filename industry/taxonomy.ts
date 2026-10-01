@@ -1,4 +1,4 @@
-// 这个行业的分类体系：类别、标签词表、公司（主体）名录，以及防止张冠李戴的身份词典。
+// 这个行业的分类体系：类别、标签词表、机构（主体）名录，以及防止张冠李戴的身份词典。
 // 模型按这里的词表打标签，主题页（topics.json）按标签归类，筛选栏按类别分组。
 // 换行业时：类别的 key 会出现在网址里（/all?category=…），上线后就不要再改；标签和名录可以随时增减。
 
@@ -8,132 +8,136 @@
  * 没归上类的资料在日报里放进第一个 key 为 industry 的类别所在的节（没有就放最后一节）。
  */
 export const CATEGORIES = [
-  { key: "ai-models", label: "模型", section: "模型发布/更新", guide: "新模型、模型版本、权重开放、模型能力与价格变化的发布与评测结果" },
-  { key: "ai-products", label: "产品", section: "产品发布/更新", guide: "AI 产品、功能、应用、工具、API 与平台的发布和更新" },
-  { key: "industry", label: "行业", section: "行业动态", guide: "公司经营、融资并购、人事、合作、诉讼、监管与政策、市场与基础设施" },
-  { key: "paper", label: "论文", section: "论文研究", guide: "研究论文、技术报告、基准与数据集" },
-  { key: "tip", label: "教程", section: "技巧与观点", guide: "教程、实践经验、使用技巧、提示词与工具用法、深度技术讲解" },
-  { key: "opinion", label: "观点", section: "技巧与观点", guide: "人物观点、评论、分析、访谈、现象与趋势讨论" },
+  { key: "research", label: "研究", section: "研究发现", guide: "新的实证研究：实验、调查、队列、脑影像等原创研究结果，包括预印本；不含综述和元分析" },
+  { key: "review", label: "综述", section: "综述与元分析", guide: "元分析、系统综述、伞形综述、领域综述，以及大规模重复验证项目和多实验室合作研究的结果" },
+  { key: "clinical", label: "临床", section: "临床与治疗", guide: "心理治疗与干预、精神科药物与神经调控、临床试验结果、诊断标准（DSM、ICD）、临床指南与循证建议" },
+  { key: "industry", label: "行业", section: "行业与政策", guide: "心理健康政策法规与监管、学会与机构动态、从业资质与伦理事件、科研诚信与撤稿、数字心理健康产品与市场" },
+  { key: "method", label: "方法", section: "方法与工具", guide: "研究方法与统计、测量工具与量表、实验范式与数据集、开放科学与预注册实践" },
+  { key: "opinion", label: "观点", section: "观点与解读", guide: "学者评论与学术争鸣、理论文章、访谈、科普解读、现象与趋势讨论" },
 ] as const;
 
 /**
  * 内容理解一步给每篇资料判的“内容类型”（写在 prompts/content-understanding.md 里，改了类型要同步改那份提示词）。
  * 评分提示词（prompts/selection-score.md）按类型给五个维度不同的权重。
  */
-export const ITEM_TYPES = ["model_release", "product_launch", "tool_or_prompt", "research_paper", "industry_event", "opinion_analysis", "tutorial_explainer"] as const;
+export const ITEM_TYPES = ["research_finding", "meta_review", "replication", "clinical_practice", "policy_event", "method_tool", "opinion_explainer"] as const;
 
 // ── 标签词表 ────────────────────────────────────────────────────────────────────────────
 
 /** 每篇资料的第一个标签必须是这些“分类标签”之一。 */
 export const CATEGORY_TAGS = [
-  "产品更新", "模型发布", "论文/研究", "开源/仓库", "教程/实践", "现象/趋势", "大佬观点", "评测/基准", "安全/对齐", "行业动态", "政策/监管",
-  "非AI/通用工具", "其他",
+  "研究发现", "元分析/综述", "重复验证", "临床/治疗", "诊断/评估", "政策/监管", "行业动态", "科研诚信", "方法/统计", "测量/量表", "学者观点", "科普解读",
+  "其他",
 ] as const;
 
-/** 可选的主题标签。 */
+/** 可选的主题标签：前半是分支领域，后半是常见议题。 */
 export const TOPIC_TAGS = [
-  "Agent", "编码", "推理", "多模态", "语音", "视频", "图像生成", "RAG", "端侧", "数据/训练", "搜索", "部署/工程", "开源生态", "具身智能", "MCP/工具调用",
+  "认知", "社会", "人格", "发展", "临床", "咨询", "健康", "生理/神经", "进化", "组织/管理", "教育", "司法", "积极心理", "跨文化", "决策",
+  "抑郁", "焦虑", "创伤/PTSD", "成瘾", "精神病性障碍", "双相", "孤独症/ADHD", "进食障碍", "自杀/自伤", "睡眠", "压力/情绪", "人际关系/孤独",
+  "儿童青少年", "老龄化", "数字心理健康", "AI与心理", "心理治疗", "精神药物", "神经调控", "开放科学",
 ] as const;
 
-/** 可选的实体标签（公司、机构、平台）。 */
-export const ENTITY_TAGS = ["OpenAI", "Anthropic", "DeepSeek", "DeepMind", "Google", "Meta", "Microsoft", "xAI", "Hugging Face", "GitHub", "arXiv"] as const;
+/** 可选的实体标签（国际组织、学会、监管与研究机构）。 */
+export const ENTITY_TAGS = [
+  "WHO", "美国心理学会", "美国精神医学学会", "NIMH", "FDA", "NICE", "国家卫健委", "中国心理学会", "中国心理卫生协会", "中科院心理所", "Cochrane", "开放科学中心",
+] as const;
 
-/** 模型常写的近义词，统一成词表里的写法。 */
+/** 模型常写的近义词，统一成词表里的写法（英文按小写查）。 */
 export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
-  "教程/玩法": "教程/实践", "技巧/最佳实践": "教程/实践", "合作/生态": "行业动态", "融资/收购": "行业动态", "公司动态": "行业动态",
-  合作: "行业动态", 生态: "行业动态", 融资: "行业动态", 收购: "行业动态", 投资: "行业动态", 并购: "行业动态",
-  政策: "政策/监管", 监管: "政策/监管", 法规: "政策/监管", 安全: "安全/对齐", 对齐: "安全/对齐",
-  论文: "论文/研究", 研究: "论文/研究", paper: "论文/研究", papers: "论文/研究",
-  "open-source": "开源/仓库", 开源: "开源/仓库", 仓库: "开源/仓库", repo: "开源/仓库",
-  教程: "教程/实践", 玩法: "教程/实践", 指南: "教程/实践", 技巧: "教程/实践", 最佳实践: "教程/实践", 实践: "教程/实践",
-  产品: "产品更新", 更新: "产品更新", 发布: "模型发布", 模型: "模型发布", 趋势: "现象/趋势", 现象: "现象/趋势", 观点: "大佬观点",
-  视频生成: "视频", 非ai: "非AI/通用工具", "non-ai": "非AI/通用工具", 通用工具: "非AI/通用工具", 工程工具: "非AI/通用工具",
-  安全扫描: "非AI/通用工具", devops: "非AI/通用工具", 行业: "行业动态", 动态: "行业动态",
+  研究: "研究发现", 论文: "研究发现", 实证研究: "研究发现", 新研究: "研究发现", 预印本: "研究发现", "论文/研究": "研究发现",
+  元分析: "元分析/综述", 荟萃分析: "元分析/综述", meta分析: "元分析/综述", "meta-analysis": "元分析/综述", 系统综述: "元分析/综述", 综述: "元分析/综述",
+  重复: "重复验证", 复制: "重复验证", 可重复性: "重复验证", 重复研究: "重复验证", replication: "重复验证",
+  治疗: "临床/治疗", 临床试验: "临床/治疗", 干预: "临床/治疗", 疗法: "临床/治疗",
+  诊断: "诊断/评估", 评估: "诊断/评估", 筛查: "诊断/评估",
+  政策: "政策/监管", 监管: "政策/监管", 法规: "政策/监管", 法律: "政策/监管",
+  行业: "行业动态", 机构动态: "行业动态", 学会动态: "行业动态", 融资: "行业动态", 收购: "行业动态",
+  撤稿: "科研诚信", 学术不端: "科研诚信", 数据造假: "科研诚信",
+  方法: "方法/统计", 统计: "方法/统计", 研究方法: "方法/统计", 量表: "测量/量表", 测量: "测量/量表", 问卷: "测量/量表",
+  观点: "学者观点", 评论: "学者观点", 访谈: "学者观点", 科普: "科普解读", 解读: "科普解读",
+  认知心理学: "认知", 社会心理学: "社会", 人格心理学: "人格", 发展心理学: "发展", 临床心理学: "临床", 心理咨询: "咨询",
+  健康心理学: "健康", 神经科学: "生理/神经", 脑科学: "生理/神经", 认知神经科学: "生理/神经", 生理心理学: "生理/神经", 进化心理学: "进化",
+  组织行为: "组织/管理", 工业与组织心理学: "组织/管理", 管理心理学: "组织/管理", 教育心理学: "教育", 司法心理学: "司法", 犯罪心理学: "司法", 法律心理学: "司法", 积极心理学: "积极心理", 跨文化心理学: "跨文化",
+  判断与决策: "决策", 行为经济学: "决策",
+  抑郁症: "抑郁", 焦虑症: "焦虑", 焦虑障碍: "焦虑", 创伤: "创伤/PTSD", ptsd: "创伤/PTSD", 创伤后应激障碍: "创伤/PTSD", 物质使用: "成瘾", 成瘾行为: "成瘾",
+  精神分裂症: "精神病性障碍", 精神病: "精神病性障碍", 双相情感障碍: "双相", 双相障碍: "双相",
+  孤独症: "孤独症/ADHD", 自闭症: "孤独症/ADHD", adhd: "孤独症/ADHD", 多动症: "孤独症/ADHD", 注意缺陷多动障碍: "孤独症/ADHD", 神经发育障碍: "孤独症/ADHD",
+  自杀: "自杀/自伤", 自伤: "自杀/自伤", 非自杀性自伤: "自杀/自伤", 失眠: "睡眠", 压力: "压力/情绪", 情绪: "压力/情绪", 情绪调节: "压力/情绪",
+  人际关系: "人际关系/孤独", 孤独感: "人际关系/孤独", 亲密关系: "人际关系/孤独", 社会联结: "人际关系/孤独",
+  儿童: "儿童青少年", 青少年: "儿童青少年", 老年: "老龄化", 衰老: "老龄化", 老年人: "老龄化",
+  心理健康app: "数字心理健康", 数字疗法: "数字心理健康", 人工智能: "AI与心理", ai: "AI与心理", 心理疗法: "心理治疗", 心理干预: "心理治疗",
+  药物: "精神药物", 抗抑郁药: "精神药物", 精神科药物: "精神药物", 迷幻药: "精神药物", tms: "神经调控", 经颅磁刺激: "神经调控", dbs: "神经调控", 脑刺激: "神经调控",
+  预注册: "开放科学", 开放数据: "开放科学",
+  世卫组织: "WHO", 世界卫生组织: "WHO", 卫健委: "国家卫健委", 心理所: "中科院心理所",
 };
 
 /** 模型漏了分类标签时，按内容类型补一个。 */
 export const CATEGORY_BY_ITEM_TYPE: Readonly<Record<string, string>> = {
-  model_release: "模型发布", product_launch: "产品更新", tool_or_prompt: "教程/实践", research_paper: "论文/研究",
-  industry_event: "行业动态", opinion_analysis: "大佬观点", tutorial_explainer: "教程/实践",
+  research_finding: "研究发现", meta_review: "元分析/综述", replication: "重复验证", clinical_practice: "临床/治疗",
+  policy_event: "行业动态", method_tool: "方法/统计", opinion_explainer: "学者观点",
 };
 
-// ── 公司与主体 ──────────────────────────────────────────────────────────────────────────
+// ── 机构与主体 ──────────────────────────────────────────────────────────────────────────
 
-/** 公司主题：id → 显示名、卡片上显示的标签（null 表示只用 entity:<id> 归类）、别名。 */
+/** 机构主题：id → 显示名、卡片上显示的标签（null 表示只用 entity:<id> 归类）、别名。 */
 export const ENTITIES: Record<string, { name: string; displayTag: string | null; aliases: string[] }> = {
-  openai: { name: "OpenAI", displayTag: "OpenAI", aliases: ["OpenAI", "ChatGPT", "Sora", "Codex", "GPT"] },
-  anthropic: { name: "Anthropic", displayTag: "Anthropic", aliases: ["Anthropic", "Claude"] },
-  google: { name: "Google", displayTag: "Google", aliases: ["Google", "DeepMind", "Gemini", "谷歌"] },
-  deepseek: { name: "DeepSeek", displayTag: "DeepSeek", aliases: ["DeepSeek", "深度求索"] },
-  qwen: { name: "千问 Qwen", displayTag: null, aliases: ["Qwen", "通义", "阿里"] },
-  kimi: { name: "Kimi / 月之暗面", displayTag: null, aliases: ["Kimi", "月之暗面", "Moonshot"] },
-  minimax: { name: "MiniMax", displayTag: null, aliases: ["MiniMax", "海螺"] },
-  zhipu: { name: "智谱 GLM", displayTag: null, aliases: ["智谱", "GLM", "Z.ai"] },
-  xai: { name: "xAI", displayTag: "xAI", aliases: ["xAI", "Grok"] },
-  meta: { name: "Meta", displayTag: "Meta", aliases: ["Meta", "Llama"] },
-  microsoft: { name: "Microsoft", displayTag: "Microsoft", aliases: ["Microsoft", "微软", "Copilot"] },
-  nvidia: { name: "NVIDIA", displayTag: null, aliases: ["NVIDIA", "英伟达"] },
-  "hugging-face": { name: "Hugging Face", displayTag: "Hugging Face", aliases: ["Hugging Face"] },
-  cursor: { name: "Cursor", displayTag: null, aliases: ["Cursor", "Anysphere"] },
-  openrouter: { name: "OpenRouter", displayTag: null, aliases: ["OpenRouter"] },
+  who: { name: "世界卫生组织 WHO", displayTag: "WHO", aliases: ["WHO", "世界卫生组织", "世卫组织", "World Health Organization"] },
+  "apa-psychology": { name: "美国心理学会 APA", displayTag: "美国心理学会", aliases: ["American Psychological Association", "美国心理学会"] },
+  "apa-psychiatry": { name: "美国精神医学学会", displayTag: "美国精神医学学会", aliases: ["American Psychiatric Association", "美国精神医学学会", "DSM"] },
+  nimh: { name: "美国国立精神卫生研究所 NIMH", displayTag: "NIMH", aliases: ["NIMH", "National Institute of Mental Health"] },
+  fda: { name: "美国 FDA", displayTag: "FDA", aliases: ["FDA", "美国食品药品监督管理局"] },
+  nice: { name: "英国 NICE", displayTag: "NICE", aliases: ["NICE", "National Institute for Health and Care Excellence"] },
+  nhc: { name: "国家卫生健康委员会", displayTag: "国家卫健委", aliases: ["国家卫健委", "国家卫生健康委员会"] },
+  cps: { name: "中国心理学会", displayTag: "中国心理学会", aliases: ["中国心理学会", "Chinese Psychological Society"] },
+  camh: { name: "中国心理卫生协会", displayTag: "中国心理卫生协会", aliases: ["中国心理卫生协会"] },
+  ipcas: { name: "中国科学院心理研究所", displayTag: "中科院心理所", aliases: ["中科院心理所", "中国科学院心理研究所"] },
+  cochrane: { name: "Cochrane", displayTag: "Cochrane", aliases: ["Cochrane"] },
+  cos: { name: "开放科学中心 COS", displayTag: "开放科学中心", aliases: ["Center for Open Science", "开放科学中心", "OSF"] },
 };
 
 /**
- * 身份词典：摘要和标题里出现的公司，必须在原文里也出现过，否则退回原标题、丢掉摘要（防止模型张冠李戴）。
- * 行业没有这个问题时可以留空数组。
+ * 身份词典：摘要和标题里出现的机构，必须在原文里也出现过，否则退回原标题、丢掉摘要（防止模型张冠李戴，
+ * 比如把一项普通研究写成“哈佛研究发现”）。中英文写法放在同一个规则里，翻译后的名字也能对上原文。
  */
 export const IDENTITY_LEXICON: ReadonlyArray<{ id: string; name: string; patterns: RegExp[] }> = [
-  { id: "openai", name: "OpenAI", patterns: [/openai|chatgpt|\bgpt-?[o\d]|\bsora\b|\bcodex\b/i] },
-  { id: "anthropic", name: "Anthropic", patterns: [/anthropic|\bclaude\b/i, /\b(?:opus|sonnet|haiku)\s*\d+(?:[.\-]\d+)*\b/i, /\bfable\s*\d+(?:[.\-]\d+)*\b|\bmythos\b/i] },
-  { id: "google", name: "Google / Gemini", patterns: [/google|deepmind|\bgemini\b|notebooklm|\bveo\s?\d|\bAlphaFold\b|\bAMIE\b/i] },
-  { id: "deepseek", name: "DeepSeek", patterns: [/deepseek|深度求索/i] },
-  { id: "xai", name: "xAI / Grok", patterns: [/\bxai\b|\bgrok\b/i] },
-  { id: "meta", name: "Meta / Llama", patterns: [/\bMeta\b/, /\bmeta\s?ai\b|\bllama\b/i] },
-  { id: "microsoft", name: "Microsoft / Copilot", patterns: [/microsoft|copilot|微软/i] },
-  { id: "nvidia", name: "NVIDIA", patterns: [/nvidia|英伟达|\bnemotron\b|\bnemo\b|\bblackwell\b|\brubin(?:\s+ultra)?\b|\bcuda\b/i] },
-  { id: "qwen", name: "千问 Qwen", patterns: [/\bqwen|通义|千问/i] },
-  { id: "hugging-face", name: "Hugging Face", patterns: [/hugging\s?face/i] },
-  { id: "cursor", name: "Cursor", patterns: [/\bCursor\b/] },
-  { id: "kimi", name: "Kimi / 月之暗面", patterns: [/\bkimi\b|月之暗面|\bmoonshot\s?ai\b/i] },
-  { id: "openrouter", name: "OpenRouter", patterns: [/openrouter/i] },
-  { id: "minimax", name: "MiniMax", patterns: [/minimax/i] },
-  { id: "zhipu", name: "智谱 GLM", patterns: [/智谱|\bglm-?[4-9]/i] },
-  { id: "hunyuan", name: "腾讯混元", patterns: [/混元|hunyuan/i] },
-  { id: "doubao", name: "字节豆包", patterns: [/豆包|doubao|字节跳动|bytedance/i] },
-  { id: "mistral", name: "Mistral", patterns: [/mistral/i] },
-  { id: "perplexity", name: "Perplexity", patterns: [/\bPerplexity\b/] },
-  { id: "runway", name: "Runway", patterns: [/\brunway\b/i] },
-  { id: "suno", name: "Suno", patterns: [/\bsuno\b/i] },
-  { id: "midjourney", name: "Midjourney", patterns: [/midjourney/i] },
-  { id: "stability-ai", name: "Stability AI", patterns: [/stability\s?ai/i] },
-  { id: "elevenlabs", name: "ElevenLabs", patterns: [/eleven\s?labs/i] },
-  { id: "vllm", name: "vLLM", patterns: [/\bvllm\b/i] },
-  { id: "ollama", name: "Ollama", patterns: [/\bollama\b/i] },
-  { id: "windsurf", name: "Windsurf", patterns: [/windsurf/i] },
-  { id: "devin", name: "Devin", patterns: [/\bdevin\b/i] },
-  { id: "manus", name: "Manus", patterns: [/\bmanus\b/i] },
-  { id: "apple", name: "Apple AI", patterns: [/\bapple\s?(intelligence|silicon|ai)\b|苹果(智能|\s?AI)/i] },
-  { id: "amazon", name: "Amazon / AWS", patterns: [/amazon|\baws\b|亚马逊/i] },
-  { id: "baidu", name: "百度文心", patterns: [/百度|baidu|文心|\bernie\s?bot\b/i] },
+  { id: "who", name: "世界卫生组织 WHO", patterns: [/\bWHO\b|世界卫生组织|世卫组织/, /world health organi[sz]ation/i] },
+  { id: "apa-psychology", name: "美国心理学会", patterns: [/american psychological association|美国心理学会|美国心理协会/i] },
+  { id: "apa-psychiatry", name: "美国精神医学学会", patterns: [/american psychiatric association|美国精神医学学会|美国精神病学(?:学)?会|美国精神病学协会/i] },
+  { id: "nimh", name: "NIMH", patterns: [/\bNIMH\b|national institute of mental health|美国国立精神卫生研究所|美国国家精神卫生研究所/i] },
+  { id: "fda", name: "FDA", patterns: [/\bFDA\b|美国食品(?:和|与)?药品?(?:监督)?管理局/] },
+  { id: "nice", name: "NICE", patterns: [/national institute for health and care excellence|英国国家卫生与临床优化研究所/i] },
+  { id: "nhc", name: "国家卫健委", patterns: [/国家卫(?:生)?健(?:康)?委(?:员会)?|national health commission/i] },
+  { id: "cps", name: "中国心理学会", patterns: [/中国心理学会|chinese psychological society/i] },
+  { id: "camh", name: "中国心理卫生协会", patterns: [/中国心理卫生协会|chinese (?:mental health association|association for mental health)/i] },
+  { id: "ipcas", name: "中科院心理所", patterns: [/中(?:国)?科(?:学)?院心理(?:研究)?所|institute of psychology,? chinese academy of sciences/i] },
+  { id: "cochrane", name: "Cochrane", patterns: [/cochrane/i] },
+  { id: "cos", name: "开放科学中心", patterns: [/center for open science|开放科学中心/i] },
+  { id: "harvard", name: "哈佛大学", patterns: [/harvard|哈佛/i] },
+  { id: "stanford", name: "斯坦福大学", patterns: [/stanford|斯坦福/i] },
+  { id: "yale", name: "耶鲁大学", patterns: [/\byale\b|耶鲁/i] },
+  { id: "mit", name: "麻省理工学院", patterns: [/\bMIT\b|麻省理工/, /massachusetts institute of technology/i] },
+  { id: "oxford", name: "牛津大学", patterns: [/university of oxford|oxford university|牛津大学/i] },
+  { id: "cambridge", name: "剑桥大学", patterns: [/university of cambridge|cambridge university|剑桥大学/i] },
+  { id: "ucl", name: "伦敦大学学院", patterns: [/\bUCL\b|伦敦大学学院/, /university college london/i] },
+  { id: "kings-college", name: "伦敦国王学院", patterns: [/king['’]s college london|伦敦国王学院/i] },
+  { id: "pku", name: "北京大学", patterns: [/北京大学|peking university/i] },
+  { id: "bnu", name: "北京师范大学", patterns: [/北京师范大学|北师大|beijing normal university/i] },
 ];
 
-/** 这些域名上的文章，发布方就是对应的公司（托管平台如 GitHub、arXiv 不算）。 */
+/**
+ * 这些域名上的文章，发布方就是对应的机构。只列机构自己的站：期刊和新闻稿平台上的文章多是别人的研究，
+ * 写成“某某机构发布”反而会张冠李戴。
+ */
 export const PUBLISHER_DOMAINS: ReadonlyArray<{ entityId: string; domains: readonly string[] }> = [
-  { entityId: "openai", domains: ["openai.com"] },
-  { entityId: "anthropic", domains: ["anthropic.com", "claude.com"] },
-  { entityId: "google", domains: ["deepmind.google", "ai.google", "blog.google"] },
-  { entityId: "deepseek", domains: ["deepseek.com"] },
-  { entityId: "xai", domains: ["x.ai"] },
-  { entityId: "meta", domains: ["ai.meta.com"] },
-  { entityId: "microsoft", domains: ["microsoft.com"] },
-  { entityId: "nvidia", domains: ["nvidia.com"] },
-  { entityId: "qwen", domains: ["qwen.ai"] },
-  { entityId: "cursor", domains: ["cursor.com"] },
-  { entityId: "openrouter", domains: ["openrouter.ai"] },
+  { entityId: "who", domains: ["who.int"] },
+  { entityId: "nimh", domains: ["nimh.nih.gov"] },
+  { entityId: "fda", domains: ["fda.gov"] },
+  { entityId: "nice", domains: ["nice.org.uk"] },
+  { entityId: "nhc", domains: ["nhc.gov.cn"] },
+  { entityId: "camh", domains: ["camh.org.cn"] },
+  { entityId: "cos", domains: ["cos.io"] },
 ];
 
-/** 原文里的这些写法也算提到了对应公司。 */
+/** 原文里的这些写法也算提到了对应机构。 */
 export const IDENTITY_CONTEXT_ALIASES: ReadonlyArray<{ entityId: string; pattern: RegExp }> = [
-  { entityId: "meta", pattern: /@AIatMeta\b/i },
-  { entityId: "zhipu", pattern: /\bZhipu(?:\s+AI\b|['’]s\b)/i },
+  { entityId: "apa-psychiatry", pattern: /\bDSM-?(?:5|IV|5-TR)\b/i },
 ];

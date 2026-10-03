@@ -70,7 +70,7 @@ docker compose exec -T db pg_dump -U aihot aihot | gzip > myhot-$(date +%F).sql.
 sh deploy/stats.sh > report.html
 ```
 
-报表只统计真实的页面访问：爬虫、静态资源、接口和页面内部的数据请求都会被排除。想单独看某个渠道带来的访问，分享时给链接加个参数，比如 `?from=xhs`。
+报表按网页发出的浏览计数请求（`/_pv`，每打开一页发一次，站内跳转也算）来统计，所以预加载、不执行脚本的爬虫、静态资源和接口请求都不会算进去；浏览器开了“请勿追踪”的访客不计数。这个请求由 Caddy 直接应答，不用 HTTPS 方式部署时它会返回 404，不影响网站。想单独看某个渠道带来的访问，分享时给链接加个参数，比如 `?from=xhs`。
 
 改了 `deploy/Caddyfile` 之后要重建 Caddy 容器（`docker compose --profile https up -d --force-recreate caddy`）：它是单文件挂载，`git pull` 替换文件后，容器里看到的还是旧文件。
 

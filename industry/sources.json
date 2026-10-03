@@ -203,9 +203,23 @@
   {
    "id": "rss-american-journal-psychiatry",
    "name": "American Journal of Psychiatry",
-   "kind": "rss",
+   "kind": "json_list",
    "config": {
-    "feedUrl": "https://psychiatryonline.org/action/showFeed?type=etoc&feed=rss&jc=ajp",
+    "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=ISSN%3A%220002-953X%22&sort=P_PDATE_D%20desc&format=json&resultType=core&pageSize=25",
+    "itemsPath": "resultList.result",
+    "titlePaths": [
+     "title"
+    ],
+    "summaryPaths": [
+     "abstractText"
+    ],
+    "summaryIsBody": true,
+    "publishedAtPath": "firstPublicationDate",
+    "urlTemplate": "https://doi.org/{raw:doi}",
+    "externalIdPath": "id",
+    "authorPaths": [
+     "authorString"
+    ],
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -853,9 +867,19 @@
   {
    "id": "rss-psychiatric-news",
    "name": "Psychiatric News",
-   "kind": "rss",
+   "kind": "json_list",
    "config": {
-    "feedUrl": "https://psychnews.psychiatryonline.org/action/showFeed?type=etoc&feed=rss&jc=pn",
+    "url": "https://api.crossref.org/journals/0033-2704/works?sort=created&order=desc&rows=25&select=title,DOI,URL,created,abstract",
+    "itemsPath": "message.items",
+    "titlePaths": [
+     "title.0"
+    ],
+    "summaryPaths": [
+     "abstract"
+    ],
+    "publishedAtPath": "created.date-time",
+    "urlTemplate": "https://doi.org/{raw:DOI}",
+    "externalIdPath": "DOI",
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -863,15 +887,17 @@
    "tier": "T1",
    "first_party": true,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "isolated",
    "interval_minutes": 180,
    "tags": [
     "学会",
     "精神医学",
-    "行业"
+    "行业",
+    "暂停：无正文"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "rss-kff-mental-health",

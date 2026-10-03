@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>每天读完心理学和精神医学的新研究，挑出值得看的几条。</b><br>
-  期刊、预印本、学会和媒体，61 个公开信源；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
+  期刊、预印本、学会和媒体，60 个公开信源；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
 </p>
 
 <p align="center">
@@ -65,12 +65,12 @@ PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。�
 
 ## 信源
 
-61 个公开信源，全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊和机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
+60 个公开信源（另有 1 个暂停），全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊和机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
 
 | 方向 | 信源 |
 |---|---|
 | 综合与综述 | Nature Human Behaviour、Communications Psychology、Nature Reviews Psychology、Psychological Science、Perspectives on Psychological Science、Current Directions in Psychological Science、Psychological Science in the Public Interest |
-| 精神医学与心理健康 | The Lancet Psychiatry、JAMA Psychiatry、American Journal of Psychiatry、World Psychiatry、Nature Mental Health、Biological Psychiatry、Psychiatric News |
+| 精神医学与心理健康 | The Lancet Psychiatry、JAMA Psychiatry、American Journal of Psychiatry、World Psychiatry、Nature Mental Health、Biological Psychiatry |
 | 临床、治疗与咨询 | Clinical Psychological Science、Clinical Psychology Review、Behaviour Research and Therapy、Psychotherapy Research、Counselling and Psychotherapy Research、Journal of Counseling & Development |
 | 认知 | Trends in Cognitive Sciences、Cognition、Cognitive Psychology、Cognitive Science |
 | 社会、人格与跨文化 | Personality and Social Psychology Review、Journal of Experimental Social Psychology、Journal of Cross-Cultural Psychology |
@@ -82,7 +82,7 @@ PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。�
 | 学会、政策与媒体 | Association for Psychological Science、KFF Health News（心理健康）、PsyPost、ScienceDaily（心理学）、Psyche、Greater Good、The Transmitter |
 | 中文 | 《心理学报》、《心理科学进展》、中国心理卫生协会 |
 
-完整配置见 [`industry/sources.json`](industry/sources.json)。还缺的：中文媒体和学会的动态多发在公众号上（需要付费的公众号接口），NIMH、SAMHSA 等美国政府站点在部分网络下无法访问。欢迎补充，见 [贡献说明](CONTRIBUTING.md)。
+完整配置见 [`industry/sources.json`](industry/sources.json)。《美国精神病学杂志》的官网会拦截机房 IP，所以改走 Europe PMC 的公开接口（有标题和摘要）；Psychiatric News 只能拿到标题，没有正文，已暂停。《心理科学进展》和中国心理卫生协会的网站对境外 IP 有限制，从香港服务器抓取会失败，需要一个大陆出口才能接入。还缺的：中文媒体和学会的动态多发在公众号上（需要付费的公众号接口），NIMH、SAMHSA 等美国政府站点在部分网络下无法访问。欢迎补充，见 [贡献说明](CONTRIBUTING.md)。
 
 ## 跑起来
 
@@ -140,4 +140,4 @@ PsyHOT 汇总的是研究和行业动态，只用于了解领域进展，不构�
 
 ---
 
-<sub>**In English:** PsyHOT is a daily digest of psychology and psychiatry research. It reads 61 public sources (journals, preprint servers, societies and media), filters and scores every item twice with a language model against an evidence-aware rubric, writes Chinese headlines and summaries under mental-health-safe writing rules, clusters coverage of the same study into one story, and publishes a daily briefing. It is built on the open-source [AIHOT](https://github.com/KKKKhazix/AIHOT) framework; everything specific to psychology lives in `industry/`. Not medical advice.</sub>
+<sub>**In English:** PsyHOT is a daily digest of psychology and psychiatry research. It reads 60 public sources (journals, preprint servers, societies and media), filters and scores every item twice with a language model against an evidence-aware rubric, writes Chinese headlines and summaries under mental-health-safe writing rules, clusters coverage of the same study into one story, and publishes a daily briefing. It is built on the open-source [AIHOT](https://github.com/KKKKhazix/AIHOT) framework; everything specific to psychology lives in `industry/`. Not medical advice.</sub>

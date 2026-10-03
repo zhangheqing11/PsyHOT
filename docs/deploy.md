@@ -62,6 +62,18 @@ docker compose exec -T db pg_dump -U aihot aihot | gzip > myhot-$(date +%F).sql.
 
 数据都在三个 Docker 卷里：`db`（数据库）、`data`（上传的图片、图片缓存、本地备份）、`caddy`（证书）。`docker compose down` 不会删除它们；`docker compose down -v` 会。
 
+### 看访问量
+
+用 HTTPS 方式启动时，Caddy 会把访问日志写在 `caddy` 卷里（`/data/logs/`，满 20 MB 轮换，保留 30 天），隐私说明里要写明这一点。服务器上装好 `goaccess`（`sudo apt install goaccess`）后，生成一份网页报表：
+
+```bash
+sh deploy/stats.sh > report.html
+```
+
+报表只统计真实的页面访问：爬虫、静态资源、接口和页面内部的数据请求都会被排除。想单独看某个渠道带来的访问，分享时给链接加个参数，比如 `?from=xhs`。
+
+改了 `deploy/Caddyfile` 之后要重建 Caddy 容器（`docker compose --profile https up -d --force-recreate caddy`）：它是单文件挂载，`git pull` 替换文件后，容器里看到的还是旧文件。
+
 ### 看日志
 
 ```bash

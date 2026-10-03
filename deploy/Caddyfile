@@ -3,6 +3,16 @@
 {$SITE_DOMAIN} {
 	encode zstd gzip
 	reverse_proxy web:3000
+	# Access log for visit counts (deploy/stats.sh). JSON, rotated at 20 MB and kept 30 days; Caddy
+	# redacts Cookie and Authorization headers. Disclosed in industry/pages/privacy.md.
+	log {
+		output file /data/logs/access.log {
+			roll_size 20MiB
+			roll_keep 30
+			roll_keep_for 720h
+		}
+		format json
+	}
 }
 
 # www.<domain> goes to the bare domain (one address for the site, so links and search results do not split).

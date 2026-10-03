@@ -22,6 +22,7 @@ import {
   type AnalyzeInputArticle,
 } from "@aihot/backend/editorial/analyze";
 import { modelFor } from "@aihot/backend/editorial/models";
+import { waitForOffPeak } from "@aihot/backend/lib/offpeak";
 import { importSelectBenchRun } from "@aihot/backend/admin/selectbench";
 
 const { values } = parseArgs({
@@ -34,8 +35,10 @@ const { values } = parseArgs({
     seed: { type: "string", default: "7" },
     label: { type: "string" },
     "no-import": { type: "boolean", default: false },
+    now: { type: "boolean", default: false },
   },
 });
+await waitForOffPeak("eval-selection");
 
 interface GoldRow {
   caseId: string;

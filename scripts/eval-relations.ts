@@ -8,6 +8,7 @@ import { parseArgs } from "node:util";
 import { REPO_ROOT } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { modelFor } from "@aihot/backend/editorial/models";
+import { waitForOffPeak } from "@aihot/backend/lib/offpeak";
 import { PAIR_SYSTEM, PairSchema, RELATE_PROMPT_VERSION, pairUser } from "@aihot/backend/events/relate";
 import { MODELS, ModelOutputError, chatJson } from "@aihot/backend/providers/llm";
 import { completeReceipt } from "@aihot/backend/providers/receipts";
@@ -30,8 +31,10 @@ const { values } = parseArgs({
     concurrency: { type: "string", default: "6" },
     seed: { type: "string", default: "7" },
     thresholds: { type: "string", default: "0.75,0.8" },
+    now: { type: "boolean", default: false },
   },
 });
+await waitForOffPeak("eval-relations");
 
 async function pmap<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);

@@ -3,8 +3,11 @@
 import { parseArgs } from "node:util";
 import { closeDb, sql } from "@aihot/backend/db";
 import { enqueue, QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
+import { waitForOffPeak } from "@aihot/backend/lib/offpeak";
 
-const { values } = parseArgs({ options: { all: { type: "boolean", default: false }, limit: { type: "string", default: "1000" } } });
+const { values } = parseArgs({ options: { all: { type: "boolean", default: false }, limit: { type: "string", default: "1000" }, now: { type: "boolean", default: false } } });
+// The worker starts on these at once, so they are sent off-peak.
+await waitForOffPeak("enqueue-analysis");
 const rows = await sql<{ id: string }[]>`
   SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id
   WHERE s.participation_mode = 'editorial'

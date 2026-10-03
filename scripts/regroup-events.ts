@@ -26,12 +26,13 @@ import { enqueue, getBoss, QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
 import { backfillStoryHeat, computeHotRanking } from "@aihot/backend/events/hot";
 import { consolidate, warmRecallWindow } from "@aihot/backend/events/group";
 import { firmlyTied } from "@aihot/backend/events/relate";
+import { waitForOffPeak } from "@aihot/backend/lib/offpeak";
 
 const { values, positionals } = parseArgs({
   allowPositionals: true,
   options: {
     since: { type: "string" }, snapshot: { type: "string", multiple: true }, "signals-hours": { type: "string", default: "48" },
-    "dry-run": { type: "boolean", default: false },
+    "dry-run": { type: "boolean", default: false }, now: { type: "boolean", default: false },
   },
 });
 const command = positionals[0];
@@ -208,6 +209,8 @@ async function consolidateSince() {
 }
 
 try {
+  // plan and consolidate start bulk model work (embeddings, regroup judgements): off-peak only.
+  if (command === "plan" || (command === "consolidate" && !values["dry-run"])) await waitForOffPeak(`regroup-events ${command}`);
   if (command === "plan") await plan();
   else if (command === "redirect") await redirect();
   else if (command === "finish") await finish();

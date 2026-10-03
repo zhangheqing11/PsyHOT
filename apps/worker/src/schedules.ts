@@ -44,10 +44,11 @@ export const SCHEDULES: Scheduled[] = [
   { name: "stories.status", cron: "7 * * * *", run: refreshStoryStatuses },
   { name: "stories.links", cron: "12 * * * *", run: linkRelatedStories },
   { name: "reports.daily", cron: "0 8 * * *", missed: "once", run: () => composeDaily(beijingDate(Date.now())) },
-  { name: "reports.weekly", cron: "0 10 * * 1", missed: "once", run: () => composeWeekly(isoWeekLabel(addDays(beijingDate(Date.now()), -7))) },
+  // The period reports call the model: before 9:00, while the provider still charges the off-peak price.
+  { name: "reports.weekly", cron: "30 8 * * 1", missed: "once", run: () => composeWeekly(isoWeekLabel(addDays(beijingDate(Date.now()), -7))) },
   {
     name: "reports.monthly",
-    cron: "30 10 1 * *",
+    cron: "40 8 1 * *",
     missed: "once",
     run: () => {
       const [y, m] = beijingDate(Date.now()).split("-").map(Number) as [number, number];

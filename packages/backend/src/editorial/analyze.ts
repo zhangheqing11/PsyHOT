@@ -21,7 +21,7 @@ import { buildMaterial, firstImagePart, loadAnalyzeInput, type AnalyzeInputArtic
 import { pageFetchable } from "../content/extract.ts";
 import { shutdownSignal } from "../jobs/queue.ts";
 import {
-  buildArticlePrompt, buildLongTweetPrompt, buildShortTweetPrompt, finalizeCopy, isShortTweetInput, looksZh, MAX_BODY_CHARS, missingEvidence,
+  buildArticlePrompt, buildLongTweetPrompt, buildShortTweetPrompt, finalizeCopy, isShortTweetInput, looksZh, MAX_BODY_CHARS, missingEvidence, thinMaterial,
   needsShortTweetTranslation, parseTranslateOutput, PREFILTER_SYSTEM, prefilterUser, translateInputOf, UNDERSTAND_SYSTEM, understandUser,
   type IdentityGuard,
 } from "./writing.ts";
@@ -381,6 +381,11 @@ export async function runAnalysis(a: AnalyzeInputArticle, opts: StepOpts & { sta
   const prefilter = await runSelectionPrefilter(a, opts);
   // UNKNOWN is let through (its material is as complete as it will get); BLOCK stops here.
   if (prefilter.label === "BLOCK") return { prefilter, scores: null, writing: null, structure: null };
+  // Only a title to go on: not scored and not written up, so it is not published until its material arrives.
+  if (thinMaterial(a) && opts.stages !== "selection") {
+    const plain = { reasonZh: null, tags: null, receiptIds: [] as number[], reused: true };
+    return { prefilter, scores: null, writing: { kind: "none", model: null, titleZh: looksZh(a.title) ? a.title : "", summaryZh: "", ...plain }, structure: null };
+  }
   if (opts.stages === "selection") {
     const scores = await runSelectionScores(a, opts);
     return { prefilter, scores, writing: null, structure: null };

@@ -12,7 +12,7 @@ import { upsertMaterial } from "@aihot/backend/content/materials";
 import { analyzeArticle, SCORE_SYSTEM, tierThreshold } from "@aihot/backend/editorial/analyze";
 import { queueProcessing } from "@aihot/backend/jobs/content";
 import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
-import { compactAnswerFirstSummary, enforceIdentity, parseTranslateOutput, PREFILTER_SYSTEM } from "@aihot/backend/editorial/writing";
+import { compactAnswerFirstSummary, enforceIdentity, parseTranslateOutput, PREFILTER_SYSTEM, thinMaterial } from "@aihot/backend/editorial/writing";
 import { promptText } from "@aihot/backend/editorial/prompts";
 import { SITE } from "@aihot/industry/site";
 
@@ -134,11 +134,29 @@ test("the prefilter's BLOCK stops everything; UNKNOWN goes on like PASS", async 
   const vague = await analyzeArticle(vagueId);
   assert.deepEqual([vague!.output!.relevance, vague!.output!.selected, vague!.output!.titleZh], ["pass", true, "理解标题 VAGUE"]);
   assert.equal((await row(vagueId)).output.prefilter.label, "UNKNOWN", "the prefilter's own answer stays on record");
-  // Nothing but a title and no page to fetch: the BLOCK counts as UNKNOWN and is scored, but the
-  // translation writes nothing from a bare title, so it waits for material instead of being published.
+  // Nothing but a title and no page to fetch: the BLOCK counts as UNKNOWN, but a title is not scored
+  // or written up, so it waits for material instead of being published.
   const bare = await analyzeArticle(await article("BARE", { bodyText: null, excerpt: null, bodyStatus: "none" }));
-  assert.deepEqual([bare!.output!.relevance, bare!.output!.selected, bare!.output!.score], ["unknown", false, 32]);
-  assert.deepEqual(calls("BARE").sort(), ["prefilter", "score", "score", "structure"]);
+  assert.deepEqual([bare!.output!.relevance, bare!.output!.selected, bare!.output!.score], ["unknown", false, null]);
+  assert.deepEqual(calls("BARE"), ["prefilter"]);
+});
+
+test("a journal feed's metadata is no abstract: only the prefilter runs and nothing is published", async () => {
+  const meta = `Publication date: Available online 2 October 2026 Source: Clinical Psychology Review Author(s): A. Author, B. Author (${T} META)`;
+  const res = await analyzeArticle(await article("CLEAR", { url: `https://example.com/meta-${T}`, title: `CLEAR meta only ${T}`, bodyText: null, excerpt: meta, bodyStatus: "unconfirmed" }));
+  assert.deepEqual([res!.output!.relevance, res!.output!.selected, res!.output!.score, res!.output!.summaryZh], ["unknown", false, null, ""]);
+  const id = res!.analysisId;
+  assert.ok(id, "the judgement is recorded, to be redone when an abstract arrives");
+});
+
+test("thin material: feed metadata, a citation line or a lone dot; an abstract sentence is enough", () => {
+  const thin = (excerpt: string | null, bodyText: string | null = null) => thinMaterial({ excerpt, bodyText } as never);
+  assert.equal(thin("Publication date: November 2026 Source: Behaviour Research and Therapy, Volume 206 Author(s): S. Azevedo, R. A. Bryant"), true);
+  assert.equal(thin("World Psychiatry, Volume 25, Issue 3, Page 386-387, October 2026."), true);
+  assert.equal(thin("."), true);
+  assert.equal(thin(null), true);
+  assert.equal(thin("This cohort study investigates changes in the genetic risk profile of individuals diagnosed with autism spectrum disorder over years."), false);
+  assert.equal(thin(null, "A full body text."), false);
 });
 
 test("a feed summary alone: the article page is fetched first, then the whole article is judged", async () => {

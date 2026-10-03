@@ -130,6 +130,21 @@ export function missingEvidence(a: AnalyzeInputArticle): boolean {
   return !a.bodyText?.trim() && !a.excerpt?.trim() && !String(a.xPost?.text ?? "").trim() && !String(a.xPost?.quoted?.text ?? "").trim();
 }
 
+/** What a journal feed puts where an abstract would be (ScienceDirect: date, issue and authors). */
+const FEED_METADATA = /(publication date|source|author\(s\))\s*:.*?(?=(publication date|source|author\(s\))\s*:|$)/gis;
+/** Fewer characters than this, once feed metadata is removed, is no abstract (a citation line, a lone "."). */
+const MIN_ABSTRACT_CHARS = 80;
+
+/**
+ * Nothing to score beyond the title: no body, and the feed's summary is metadata or a citation line
+ * (ScienceDirect and Taylor & Francis feeds, journal pages behind a robot check). Such an item is neither
+ * scored nor written up; a later revision that brings its abstract is analysed in full.
+ */
+export function thinMaterial(a: AnalyzeInputArticle): boolean {
+  if (a.xPost || a.bodyText?.trim()) return false;
+  return (a.excerpt ?? "").replace(FEED_METADATA, "").trim().length < MIN_ABSTRACT_CHARS;
+}
+
 export const understandUser = (a: AnalyzeInputArticle) =>
   ["请按系统规则理解以下单篇材料，一次返回全部六个字段。", renderContext(a, { annotateQuoted: true })].join("\n\n");
 

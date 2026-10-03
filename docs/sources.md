@@ -66,7 +66,7 @@
 
 有些期刊的订阅源只给标题和作者（ScienceDirect 给出版日期、来源和作者，Taylor & Francis 的摘要字段为空），原文页面又有机器人验证，抓不到正文。这样的条目只跑预筛、不评分、不写摘要，不会出现在站上（`editorial/writing.ts` 的 `thinText`）。
 
-采集开启时，worker 每 20 分钟为这类近 45 天的条目查一次开放的学术元数据，依次是 OpenAlex、Europe PMC、Crossref：链接里有 DOI 就按 DOI 查，ScienceDirect 的链接先用 PII 在 Crossref 换成 DOI，都没有就按标题精确匹配。查到的摘要作为新版本写进条目的摘要字段，条目会重新完整分析。数据库收录有延迟，查不到的按 6 小时、1 天、3 天、7 天、14 天重试，之后放弃。记录在 `abstract_lookups` 表里。这些都是免费的公开接口，不需要 Key。
+采集开启时，worker 每 20 分钟为这类近 45 天的条目查一次开放的学术元数据，依次是 OpenAlex、Europe PMC、Crossref：链接里有 DOI 就按 DOI 查，ScienceDirect 的链接先用 PII 在 Crossref 换成 DOI，都没有就按标题精确匹配。查到的摘要作为新版本写进条目的摘要字段，条目会重新完整分析。数据库收录有延迟，查不到的按 6 小时、1 天、3 天、7 天、14 天重试，之后放弃。记录在 `abstract_lookups` 表里。这些都是免费的公开接口，不需要 Key；`industry/site.ts` 里填了 `contactEmail` 的话，查 Crossref 和 OpenAlex 时会带上这个邮箱，进它们限流更宽的“礼貌通道”。
 
 ## 抓取频率
 

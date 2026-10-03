@@ -2,6 +2,7 @@ import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { config } from "@aihot/backend/config";
+import { SITE } from "@aihot/industry/site";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { cleanAbstract, doiFromUrl, enrichThinAbstracts, findAbstract, invertedToText, piiFromUrl, sameTitle } from "@aihot/backend/content/abstracts";
@@ -10,14 +11,21 @@ import { stopBoss } from "@aihot/backend/jobs/queue";
 const T = tag();
 const SOURCE = `test-abstracts-${T}`;
 const ABSTRACT = `Attachment theory has been used to understand vulnerability to addictive behaviours (${T}). This systematic review synthesised 120 studies and found that anxious attachment was associated with problematic involvement across formally recognised addictions and other behaviours.`;
+// ScienceDirect ids of this run: a link seen in an earlier run is the same article, already enriched.
+const run = String(Date.now() % 1e7).padStart(7, "0");
+const HIT = `S027273582${run}`;
+const MISS = `S027273583${run}`;
+const DOI = `10.1016/j.cpr.${T}`;
 const words = ABSTRACT.split(" ");
 const inverted = Object.fromEntries([...new Set(words)].map((w) => [w, words.flatMap((x, i) => (x === w ? [i] : []))]));
 
 // One stub for the three services: the PII resolves to a DOI, OpenAlex has the found article only,
 // Europe PMC and Crossref have nothing.
+const seen: string[] = [];
 const api = await stub((_hit, req) => {
-  if (req.url.startsWith("/crossref/works?filter=alternative-id:S0272735826009999")) return { message: { items: [{ DOI: "10.1016/j.cpr.2026.999999" }] } };
-  if (req.url.startsWith(`/openalex/works/doi:10.1016/j.cpr.2026.999999`)) return { doi: "https://doi.org/10.1016/j.cpr.2026.999999", title: "x", abstract_inverted_index: inverted };
+  seen.push(req.url);
+  if (req.url.startsWith(`/crossref/works?filter=alternative-id:${HIT}`)) return { message: { items: [{ DOI }] } };
+  if (req.url.startsWith(`/openalex/works/doi:${DOI}`)) return { doi: `https://doi.org/${DOI}`, title: "x", abstract_inverted_index: inverted };
   if (req.url.startsWith("/epmc/")) return { resultList: { result: [] } };
   if (req.url.startsWith("/openalex/works?")) return { results: [] };
   return { message: { items: [] } };
@@ -53,13 +61,16 @@ test("identifiers and titles: DOI in a link, a ScienceDirect PII, the same title
 });
 
 test("a ScienceDirect item: PII → DOI through Crossref, the abstract from OpenAlex", async () => {
-  const { found } = await findAbstract({ title: "Any title", url: "https://www.sciencedirect.com/science/article/pii/S0272735826009999" });
-  assert.deepEqual([found?.provider, found?.doi, found?.text], ["openalex", "10.1016/j.cpr.2026.999999", ABSTRACT]);
+  const { found } = await findAbstract({ title: "Any title", url: `https://www.sciencedirect.com/science/article/pii/${HIT}` });
+  assert.deepEqual([found?.provider, found?.doi, found?.text], ["openalex", DOI, ABSTRACT]);
+  const polite = seen.filter((u) => /^\/(crossref|openalex)\//.test(u));
+  assert.equal(polite.length, 2);
+  for (const u of polite) assert.equal(new URL(u, api.url).searchParams.get("mailto"), SITE.contactEmail, "the contact address goes with Crossref and OpenAlex");
 });
 
 test("a found abstract becomes the excerpt in a new revision; a miss is tried again later", async () => {
-  const hitId = await thinArticle("S0272735826009999", `Found ${T}`);
-  const missId = await thinArticle("S0272735826008888", `Missing ${T}`);
+  const hitId = await thinArticle(HIT, `Found ${T}`);
+  const missId = await thinArticle(MISS, `Missing ${T}`);
   const [before] = await sql<{ revision: number }[]>`SELECT revision FROM articles WHERE id = ${hitId}`;
   await enrichThinAbstracts(50);
   const [hit] = await sql<{ excerpt: string; revision: number; processing_state: string }[]>`SELECT excerpt, revision, processing_state FROM articles WHERE id = ${hitId}`;

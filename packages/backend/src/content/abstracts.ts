@@ -4,7 +4,9 @@
 // ScienceDirect PII turned into a DOI through Crossref), otherwise by an exact title match. A found
 // abstract becomes the article's excerpt in a new revision, so the item is analysed again in full and
 // scored. Indexes lag, so a miss is retried on a widening schedule and given up after the last try.
-// These are free public APIs: no receipts, no keys; they run only while collection is on.
+// These are free public APIs: no receipts, no keys; they run only while collection is on. The site's
+// contact address (SITE.contactEmail) goes with Crossref and OpenAlex requests, as both ask.
+import { SITE } from "@aihot/industry/site";
 import { sql } from "../db.ts";
 import { thinText } from "../editorial/writing.ts";
 import { queueProcessing } from "../jobs/content.ts";
@@ -75,6 +77,9 @@ export function cleanAbstract(raw: string | null | undefined): string | null {
   return text.length >= MIN_ABSTRACT_CHARS ? text.slice(0, MAX_ABSTRACT_CHARS) : null;
 }
 
+/** Crossref and OpenAlex serve requests that carry a contact address from a less throttled pool. */
+const polite = (url: string) => (SITE.contactEmail ? `${url}${url.includes("?") ? "&" : "?"}mailto=${encodeURIComponent(SITE.contactEmail)}` : url);
+
 async function getJson(url: string): Promise<any | null> {
   const res = await guardedFetch(url, { timeoutMs: 20_000, headers: { accept: "application/json" } });
   if (res.status === 404) return null;
@@ -86,7 +91,7 @@ async function getJson(url: string): Promise<any | null> {
 const searchTerms = (title: string) => normTitle(title).slice(0, 200);
 
 async function doiForPii(pii: string): Promise<string | null> {
-  const data = await getJson(`${apis().crossref}/works?filter=alternative-id:${encodeURIComponent(pii)}&rows=1&select=DOI`);
+  const data = await getJson(polite(`${apis().crossref}/works?filter=alternative-id:${encodeURIComponent(pii)}&rows=1&select=DOI`));
   const doi = data?.message?.items?.[0]?.DOI;
   return typeof doi === "string" ? doi.toLowerCase() : null;
 }
@@ -95,10 +100,10 @@ async function fromOpenAlex(doi: string | null, title: string): Promise<string |
   const base = apis().openalex;
   const select = "select=doi,title,abstract_inverted_index";
   if (doi) {
-    const work = await getJson(`${base}/works/doi:${encodeURI(doi)}?${select}`);
+    const work = await getJson(polite(`${base}/works/doi:${encodeURI(doi)}?${select}`));
     return cleanAbstract(invertedToText(work?.abstract_inverted_index));
   }
-  const data = await getJson(`${base}/works?filter=title.search:${encodeURIComponent(searchTerms(title))}&per-page=5&${select}`);
+  const data = await getJson(polite(`${base}/works?filter=title.search:${encodeURIComponent(searchTerms(title))}&per-page=5&${select}`));
   const work = (data?.results ?? []).find((w: { title?: string }) => w.title && sameTitle(w.title, title));
   return cleanAbstract(invertedToText(work?.abstract_inverted_index));
 }
@@ -113,8 +118,8 @@ async function fromEuropePmc(doi: string | null, title: string): Promise<string 
 
 async function fromCrossref(doi: string | null, title: string): Promise<string | null> {
   const base = apis().crossref;
-  if (doi) return cleanAbstract((await getJson(`${base}/works/${encodeURI(doi)}`))?.message?.abstract);
-  const data = await getJson(`${base}/works?query.bibliographic=${encodeURIComponent(searchTerms(title))}&rows=3&select=DOI,title,abstract`);
+  if (doi) return cleanAbstract((await getJson(polite(`${base}/works/${encodeURI(doi)}`)))?.message?.abstract);
+  const data = await getJson(polite(`${base}/works?query.bibliographic=${encodeURIComponent(searchTerms(title))}&rows=3&select=DOI,title,abstract`));
   const item = (data?.message?.items ?? []).find((i: { title?: string[] }) => i.title?.[0] && sameTitle(i.title[0], title));
   return cleanAbstract(item?.abstract);
 }

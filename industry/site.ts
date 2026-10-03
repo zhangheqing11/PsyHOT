@@ -25,8 +25,8 @@ export const SITE = {
    * 已经有人接入后就不要再改。
    */
   mcpPrefix: "psyhot",
-  /** 对外联系邮箱（选填）：使用规则、llms.txt、响应头里会写。 */
-  contactEmail: null as string | null,
+  /** 对外联系邮箱（选填）：使用规则、llms.txt、响应头里会写；查摘要时报给 Crossref、OpenAlex，走它们的礼貌通道。 */
+  contactEmail: "18920138631@163.com" as string | null,
   /** 页脚的一行小字（选填）。 */
   footerNote: "内容不构成诊断或治疗建议 · 由 AIHOT 开源框架驱动",
   /** 中国大陆网站的 ICP 备案号（选填），填了就显示在页脚并链接到工信部备案系统。 */

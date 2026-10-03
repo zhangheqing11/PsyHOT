@@ -4,6 +4,7 @@ import { FEATURES } from "@aihot/industry/features";
 import { credential } from "@aihot/backend/config";
 import { ensureQueue, recordRun } from "@aihot/backend/jobs/queue";
 import { sweepUnprocessed } from "@aihot/backend/jobs/content";
+import { enrichThinAbstracts } from "@aihot/backend/content/abstracts";
 import { translatePending } from "@aihot/backend/editorial/translate";
 import { adaptIntervals, scheduleDueSources } from "@aihot/backend/sources/collect";
 import { scheduleMpReconcile } from "@aihot/backend/sources/mp";
@@ -85,6 +86,8 @@ export const SCHEDULES: Scheduled[] = [
         { name: "sources.adapt-intervals", cron: "20 4 * * *", run: adaptIntervals },
         // WeChat official accounts (paid), each once per its interval.
         { name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile() },
+        // Abstracts for journal items that have only a title, from open scholarly metadata (free).
+        { name: "content.abstracts", cron: "*/20 * * * *", run: () => enrichThinAbstracts() },
       ]
     : []),
   // Codex reset monitor: checked every minute, scanned every 5 (every 3 while hot). It reads X through

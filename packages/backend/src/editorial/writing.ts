@@ -142,7 +142,12 @@ const MIN_ABSTRACT_CHARS = 80;
  */
 export function thinMaterial(a: AnalyzeInputArticle): boolean {
   if (a.xPost || a.bodyText?.trim()) return false;
-  return (a.excerpt ?? "").replace(FEED_METADATA, "").trim().length < MIN_ABSTRACT_CHARS;
+  return thinText(a.excerpt);
+}
+
+/** A feed summary that is no abstract (also what content/abstracts.ts looks an abstract up for). */
+export function thinText(excerpt: string | null | undefined): boolean {
+  return (excerpt ?? "").replace(FEED_METADATA, "").trim().length < MIN_ABSTRACT_CHARS;
 }
 
 export const understandUser = (a: AnalyzeInputArticle) =>

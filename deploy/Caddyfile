@@ -4,3 +4,8 @@
 	encode zstd gzip
 	reverse_proxy web:3000
 }
+
+# www.<domain> goes to the bare domain (one address for the site, so links and search results do not split).
+www.{$SITE_DOMAIN} {
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}

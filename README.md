@@ -17,6 +17,10 @@
 </p>
 
 <p align="center">
+  在线站点：<a href="https://psyhot.cn"><b>psyhot.cn</b></a>
+</p>
+
+<p align="center">
   <a href="#跑起来">跑起来</a> ·
   <a href="#它怎么挑">它怎么挑</a> ·
   <a href="#信源">信源</a> ·

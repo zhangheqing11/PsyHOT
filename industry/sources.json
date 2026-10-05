@@ -1699,6 +1699,10 @@
     "itemSelector": "a.item_box",
     "titleSelector": "p.title",
     "publishedAtSelector": ".date_wrap",
+    "detail": {
+     "maxFetches": 10,
+     "summarySelector": ".postbody"
+    },
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1725,6 +1729,10 @@
     "itemSelector": "a.item_box",
     "titleSelector": "p.title",
     "publishedAtSelector": ".date_wrap",
+    "detail": {
+     "maxFetches": 10,
+     "summarySelector": ".postbody"
+    },
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1836,7 +1844,8 @@
      "maxFetches": 12,
      "publishedAtRegex": "\"crtime\":\"([^\"]+)\"",
      "titleRegex": "\"title\":\"([^\"]+)\"",
-     "titleAuthoritative": true
+     "titleAuthoritative": true,
+     "summarySelector": "meta[name=\"description\"]"
     },
     "_aihot": {
      "initialBackfillLimit": 5

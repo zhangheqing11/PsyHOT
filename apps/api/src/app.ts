@@ -14,6 +14,7 @@ import { registerMedia } from "./routes/media.ts";
 import { registerFeeds } from "./routes/feeds.ts";
 import { registerStatic } from "./routes/static.ts";
 import { registerMcp } from "./routes/mcp.ts";
+import { registerSubscriptions } from "./routes/subscriptions.ts";
 import { sendProblem } from "./http/respond.ts";
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -64,6 +65,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   });
 
   registerSite(app);
+  registerSubscriptions(app);
   if (FEATURES.leaderboard) registerLeaderboard(app);
   registerOg(app);
   registerAdminAuth(app);

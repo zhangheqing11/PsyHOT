@@ -26,6 +26,7 @@ import { backupConfigured, runBackup } from "@aihot/backend/operations/backup";
 import { sourceHealthWeekly } from "@aihot/backend/operations/reports";
 import { markStalePendingReceipts } from "@aihot/backend/providers/receipts";
 import { markStaleDeliveries } from "@aihot/backend/notify/deliver";
+import { sendDailyEmails } from "@aihot/backend/notify/subscriptions";
 
 interface Scheduled {
   name: string;
@@ -57,6 +58,8 @@ export const SCHEDULES: Scheduled[] = [
     },
   },
   { name: "reports.catch-up", cron: "15 * * * *", run: () => catchUpReports() },
+  // Today's daily report to confirmed subscribers, once it exists (off unless EMAIL_ENABLED).
+  { name: "email.daily", cron: "*/10 * * * *", run: () => sendDailyEmails() },
   { name: "ops.retention", cron: "30 3 * * *", missed: "once", run: () => dailyRetention() },
   { name: "sources.icons", cron: "40 4 * * *", missed: "once", run: () => refreshSourceIcons() },
   // IndexNow for new indexable pages (off unless INDEXNOW_SUBMIT_ENABLED).

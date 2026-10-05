@@ -5,6 +5,7 @@
 // Rules are hairlines in two weights: line-strong closes the masthead and underlines a page's heading
 // and the neighbours; line parts stories, columns and list rows. Nothing is set in solid ink. Stories
 // sit in rows of two whose rules run across the page, each story as tall as its neighbour.
+import { FEATURES } from "@aihot/industry/features";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
@@ -17,6 +18,7 @@ import { SourceAvatar } from "../../components/ui/SourceAvatar";
 import { Inkblot } from "../../components/Inkblot";
 import { Nameplate } from "./Nameplate";
 import { IssueDots } from "./IssueDots";
+import { SubscribeBox } from "./SubscribeBox";
 import { EDITION, KIND_LABEL, MOTTO, dateLine, dateMark, headline, issueNumber, metricItems, neighbourLabel, reportPath, shortDay } from "./format";
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -408,6 +410,7 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
         </SectionPage>
       )}
 
+      {daily && FEATURES.emailDigest && <SubscribeBox />}
       <Neighbours report={report} index={index} />
       {!daily && <History report={report} index={index} />}
       <footer className="py-10 text-center">

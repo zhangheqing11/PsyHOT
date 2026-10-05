@@ -16,6 +16,7 @@
     "hyparquet": "1.31.1",
     "linkedom": "0.18.13",
     "marked": "18.0.14",
+    "nodemailer": "^10.0.15",
     "pg-boss": "12.34.0",
     "postgres": "3.4.9",
     "sanitize-html": "2.17.7",
@@ -23,5 +24,8 @@
     "turndown": "7.2.4",
     "undici": "8.11.2",
     "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/nodemailer": "^8.0.2"
   }
 }

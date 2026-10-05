@@ -10,6 +10,7 @@ import { registerNotifyJobs } from "@aihot/backend/jobs/notify";
 import { registerPublicationJobs } from "@aihot/backend/jobs/publication";
 import { registerSchedules } from "./schedules.ts";
 import { ensureContentTargets } from "@aihot/backend/notify/deliver";
+import { closeMailer } from "@aihot/backend/notify/email";
 import { startHeartbeat } from "@aihot/backend/operations/heartbeat";
 
 assertProductionSecrets([["auth", "IMG_PROXY_SIGN_SECRET"]]);
@@ -37,6 +38,7 @@ const shutdown = async () => {
   console.log(JSON.stringify({ level: "info", msg: "worker stopping" }));
   clearInterval(heartbeat);
   await stopBoss();
+  closeMailer();
   await closeDb();
   process.exit(0);
 };

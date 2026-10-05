@@ -24,6 +24,8 @@ export default [
   route("privacy", "routes/privacy.tsx"),
   route("changelog", "routes/changelog.tsx"),
   route("feedback", "routes/feedback.tsx"),
+  route("subscribe/confirm", "routes/subscription.tsx", { id: "subscribe-confirm" }),
+  route("unsubscribe", "routes/subscription.tsx", { id: "unsubscribe" }),
   route("more", "routes/more.tsx"),
   route("starred", "routes/starred.tsx"),
   route("agent", "routes/agent.tsx"),

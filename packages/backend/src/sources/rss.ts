@@ -20,9 +20,13 @@ const parser = new XMLParser({
   stopNodes: ["feed.entry.title[type=xhtml]", "feed.entry.summary[type=xhtml]", "feed.entry.content[type=xhtml]"],
 });
 
+// Some feeds escape their CDATA wrapper (&lt;![CDATA[…]]&gt;, Psychiatric Times): decoding the entities gives a
+// literal wrapper, which stripTags would take for one tag and drop with the whole title inside.
+const ESCAPED_CDATA = /^<!\[CDATA\[([\s\S]*)\]\]>$/;
+
 function text(v: unknown): string {
   if (v === null || v === undefined) return "";
-  if (typeof v === "string" || typeof v === "number") return String(v);
+  if (typeof v === "string" || typeof v === "number") return String(v).replace(ESCAPED_CDATA, "$1");
   if (Array.isArray(v)) return text(v[0]);
   if (typeof v === "object") {
     const o = v as Record<string, unknown>;

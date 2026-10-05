@@ -128,6 +128,11 @@ function embeddedJson(html: string, source: SourceRow): unknown {
   throw new FetchError(`embedded key ${key} not found`);
 }
 
+/** Search APIs mark the matched words (中国政府网: 健全社会<em>心理</em>服务体系); the marks are no word breaks. */
+function unmark(s: string): string {
+  return s.replace(/<\/?em>/gi, "");
+}
+
 export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
   const c = source.config;
   const url = String(c.url ?? "");
@@ -170,11 +175,11 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
     const summaryIsBody = c.summaryIsBody === true && !!summary;
     out.push({
       url,
-      title: collapseWhitespace(stripTags(title)),
+      title: collapseWhitespace(stripTags(unmark(title))),
       author: firstString(item, c.authorPaths),
       publishedAt: toDate(getPath(item, c.publishedAtPath), c.publishedAtUnit),
-      excerpt: summary ? collapseWhitespace(stripTags(summary)).slice(0, 2000) : null,
-      bodyText: summaryIsBody ? stripTags(summary!) : null,
+      excerpt: summary ? collapseWhitespace(stripTags(unmark(summary))).slice(0, 2000) : null,
+      bodyText: summaryIsBody ? stripTags(unmark(summary!)) : null,
       bodyStatus: summaryIsBody ? "ok" : "pending",
       raw: { externalId: externalId ?? null },
     });

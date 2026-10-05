@@ -38,6 +38,18 @@ const pages: Record<string, (cdn: string) => string> = {
     `<content type="html"><![CDATA[<p>${"The feed carries this post whole, paragraph after paragraph. ".repeat(30)}</p>]]></content></entry></feed>`,
   // A list API that gives calendar days as yyyymmdd.
   "/days.json": () => JSON.stringify({ data: { list: [{ seq: 695, ttl: "MCFlow", day: "20260922" }, { seq: 1, ttl: "Bad day", day: "20260230" }] } }),
+  // 中国政府网's policy search: the matched words come wrapped in <em>.
+  "/policy-search.json": () =>
+    JSON.stringify({ searchVO: { catMap: { bumenfile: { listVO: [{
+      id: 25956594, pubtime: 1775731980000, url: "https://www.gov.cn/zhengce/zhengceku/202604/content_7065035.htm",
+      title: "关于印发健全社会<em>心理</em>服务体系和危机干预机制实施方案的通知",
+      summary: "为深入贯彻落实党的二十届三中、四中全会精神，健全社会<em>心理</em>服务体系和危机干预机制，制定本方案。",
+    }] } } } }),
+  // Psychiatric Times escapes its CDATA wrappers.
+  "/escaped-cdata.xml": () =>
+    `<?xml version="1.0"?><rss version="2.0"><channel><title>Feed</title><item><title>&lt;![CDATA[ARFID: When Remission Is Not Silence]]&gt;</title>` +
+    `<link>https://example.org/arfid</link><description>&lt;![CDATA[A remitted eating disorder can still shape daily life.]]&gt;</description>` +
+    `<pubDate>Mon, 05 Oct 2026 12:00:00 GMT</pubDate></item></channel></rss>`,
   // Google Developers Blog: no date in the feed or in meta tags, only in JSON-LD.
   "/ld-post": () =>
     `<html><head><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Blog"},` +
@@ -202,6 +214,19 @@ test("noise words match whatever their case", () => {
   assert.equal(noiseFiltered(c("Manus：正组建团队开发面向国内市场的产品", "与笔记本厂商合作的 Agent 产品"), source), false);
   assert.equal(noiseFiltered(c("新款笔记本开售", "首发价 4999 元"), source), true);
   assert.equal(noiseFiltered(c("iPhone 18 开售", ""), source), true);
+});
+
+test("search hit marks are no word breaks, and escaped CDATA wrappers keep their titles", async () => {
+  const [policy] = await fetchJsonList({ id: "test-json", config: {
+    url: `${site}/policy-search.json`, itemsPath: "searchVO.catMap.bumenfile.listVO", titlePaths: ["title"], summaryPaths: ["summary"],
+    publishedAtPath: "pubtime", publishedAtUnit: "epoch_ms", urlTemplate: "{raw:url}",
+  } } as never);
+  assert.equal(policy!.title, "关于印发健全社会心理服务体系和危机干预机制实施方案的通知");
+  assert.equal(policy!.excerpt, "为深入贯彻落实党的二十届三中、四中全会精神，健全社会心理服务体系和危机干预机制，制定本方案。");
+  assert.equal(policy!.publishedAt?.toISOString(), "2026-04-09T10:53:00.000Z");
+  const read = await fetchRss({ id: "test-feed", config: { feedUrl: `${site}/escaped-cdata.xml` }, participation_mode: "editorial", cursor: null } as never, { force: true });
+  assert.equal(read.candidates[0]!.title, "ARFID: When Remission Is Not Silence");
+  assert.equal(read.candidates[0]!.excerpt, "A remitted eating disorder can still shape daily life.");
 });
 
 test("dates in yyyymmdd and in JSON-LD are read", async () => {

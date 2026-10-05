@@ -10,5 +10,5 @@ export const FEATURES = {
    * 邮件订阅日报：日报页底部出现订阅框，确认页和退订页可用。发信还要在 .env 里配好
    * EMAIL_ENABLED、EMAIL_SMTP_*、EMAIL_FROM（见 docs/deploy.md“邮件订阅”），没配好时订阅框会提示暂未开放。
    */
-  emailDigest: false,
+  emailDigest: true,
 } as const;

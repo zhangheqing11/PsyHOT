@@ -183,6 +183,7 @@ test("an issue the mail service refuses for its content goes out as the short no
   const text = bodyOf(got[0]!.data);
   assert.ok(text.includes(`/daily/${NOTICE_KEY}`) && text.includes("共 2 条"), "it links the issue and counts its entries");
   assert.ok(!text.includes(SCREENED), "without the refused content");
+  assert.ok(text.includes("内容政策限制"), "and says why it is only a link");
   assert.ok(text.includes(`/unsubscribe?t=tok-notice-${T}`));
   const [d] = await sql<{ status: string; error: string }[]>`
     SELECT d.status, d.error FROM email_deliveries d JOIN email_subscribers s ON s.id = d.subscriber_id WHERE s.email = ${reader} AND d.report_key = ${NOTICE_KEY}`;

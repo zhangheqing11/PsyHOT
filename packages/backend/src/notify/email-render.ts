@@ -3,7 +3,7 @@
 // plain-text part.
 import type { ReportCitation, ReportDetail } from "@aihot/contracts/site";
 import { SITE, withSubject } from "@aihot/industry/site";
-import { config } from "../config.ts";
+import { config, credential } from "../config.ts";
 import { escapeHtml } from "../lib/text.ts";
 
 const C = { bg: "#f4f3f7", paper: "#ffffff", ink: "#241f35", ink2: "#4a4560", muted: "#7a7590", line: "#e4e1ec", accent: "#5e4a8e" };
@@ -67,15 +67,19 @@ export function dailyNotice(report: ReportDetail, unsubscribeUrl: string): Rende
   const issueUrl = `${config.siteUrl}/daily/${report.key}`;
   const count = report.sections.reduce((n, s) => n + s.items.length, 0) + report.flashes.length;
   const line = `今天的${daily}已经出炉，共 ${count} 条，汇集了期刊、预印本和学会的最新研究与动态。完整内容请到网站阅读。`;
+  // Readers are told why the issue came as a link (EMAIL_PROVIDER_NAME names the service).
+  const provider = credential("integrations", "EMAIL_PROVIDER_NAME");
+  const why = `受邮件服务商${provider ? `（${provider}）` : ""}的内容政策限制，今天的完整${daily}无法通过邮件发送，所以这次只附上阅读链接。`;
   const body = `
 <p style="font-size:13px;color:${C.muted};margin:14px 0 4px;">${e(daily)} · ${e(report.key)}</p>
-<p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:8px 0 22px;">${e(line)}</p>
+<p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:8px 0 10px;">${e(line)}</p>
+<p style="font-size:13px;line-height:1.8;color:${C.muted};margin:0 0 22px;">${e(why)}</p>
 <p style="margin:0 0 6px;text-align:center;">${button(issueUrl, "阅读本期")}</p>`;
   const footer = `你收到这封邮件，是因为订阅了 ${e(SITE.name)} ${e(daily)}。不想再收到？${link(unsubscribeUrl, "一键退订", C.accent)}`;
   return {
     subject: `${SITE.name} ${daily} · ${dayLabel(report.key)}`,
     html: layout({ preheader: line, body, footer }),
-    text: `${SITE.name} ${daily} · ${report.key}\n\n${line}\n\n阅读本期：${issueUrl}\n\n——\n你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订：${unsubscribeUrl}\n`,
+    text: `${SITE.name} ${daily} · ${report.key}\n\n${line}\n\n${why}\n\n阅读本期：${issueUrl}\n\n——\n你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订：${unsubscribeUrl}\n`,
   };
 }
 

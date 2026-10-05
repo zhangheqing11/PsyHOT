@@ -78,23 +78,23 @@ sh deploy/stats.sh > report.html
 
 日报页底部有订阅框（`industry/features.ts` 的 `emailDigest`）。读者留下邮箱后先收到一封确认邮件，点了“确认订阅”才会开始收日报；每天日报生成后 10 分钟内，worker 把它发给所有已确认的地址，每期每人只发一次。每封邮件都带一键退订（邮件底部的链接，以及邮件客户端里的“退订”按钮），退订即删除地址；7 天没确认的地址也会删除。
 
-发信用 SMTP，下面以腾讯云邮件推送为例（别的服务填对应的 SMTP 地址即可）：
+发信用 SMTP，下面以阿里云邮件推送为例（别的服务填对应的 SMTP 地址即可）。腾讯云邮件推送的个人实名账号不能用 SMTP，只能用审核过的模板发信，放不下每天不同的日报。
 
-1. 开通[邮件推送](https://console.cloud.tencent.com/ses)，在“发信域名”里新建一个子域名，比如 `mail.你的域名`（官方建议用子域名，不影响主域名的其他邮件）。
-2. 按页面给出的值，在域名解析里添加 MX、SPF、DKIM、DMARC 四条记录，回到页面点“验证”。这些记录要一直保留，删了会发不出去。
-3. 在“发信地址”里新建地址，比如 `daily@mail.你的域名`，再点“设置 SMTP 密码”。
+1. 开通[邮件推送](https://dm.console.aliyun.com/)（账号要先实名认证），在“发信域名”里新建一个子域名，比如 `dm.你的域名`（用子域名，不影响主域名的其他邮件）。
+2. 按页面给出的值，在域名解析里添加所有权验证、SPF、MX、DKIM、DMARC 记录，回到页面点“验证”。这些记录要一直保留，删了会发不出去。
+3. 在“发信地址”里新建地址，比如 `daily@dm.你的域名`，类型选“批量邮件”，再点“设置 SMTP 密码”。
 4. 在服务器的 `.env` 里填：
    ```bash
    EMAIL_ENABLED=true
-   EMAIL_SMTP_HOST=smtp.qcloudmail.com
+   EMAIL_SMTP_HOST=smtpdm.aliyun.com
    EMAIL_SMTP_PORT=465
-   EMAIL_SMTP_USER=daily@mail.你的域名
+   EMAIL_SMTP_USER=daily@dm.你的域名
    EMAIL_SMTP_PASS=刚设的 SMTP 密码
-   EMAIL_FROM=站名 <daily@mail.你的域名>
+   EMAIL_FROM=站名 <daily@dm.你的域名>
    ```
    然后 `docker compose --profile https up -d api worker` 让它生效。
 
-没打开 `EMAIL_ENABLED` 或没填 SMTP 时，订阅框会提示“暂未开放”，什么都不会发出。腾讯云新发信域名每天最多发 500 封，发信质量好会自动提高；每个账号有一次性 1000 封免费额度，之后约 0.002 元一封。
+没打开 `EMAIL_ENABLED` 或没填 SMTP 时，订阅框会提示“暂未开放”，什么都不会发出。阿里云每个账号共有 2000 封免费额度（每天最多 200 封），之后 2 元一千封；初始每天最多发 2000 封，随信誉等级调整。
 
 ### 看日志
 

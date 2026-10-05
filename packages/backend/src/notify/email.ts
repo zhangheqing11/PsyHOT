@@ -1,4 +1,4 @@
-// Outgoing email over SMTP (Tencent Cloud SES in production; any SMTP service works). EMAIL_ENABLED is
+// Outgoing email over SMTP (Alibaba Cloud DirectMail in production; any SMTP service works). EMAIL_ENABLED is
 // the safety valve: off, or without a server and a sender address, nothing is sent.
 import { SITE } from "@aihot/industry/site";
 import nodemailer, { type Transporter } from "nodemailer";
@@ -30,7 +30,7 @@ function mailer(): Transporter {
     port,
     secure: port === 465,
     auth: user ? { user, pass: setting("EMAIL_SMTP_PASS") ?? "" } : undefined,
-    // One connection reused, at most 10 messages a second (Tencent Cloud SES allows 20).
+    // One connection reused, at most 10 messages a second (well under the providers' limits).
     pool: true,
     maxConnections: 1,
     rateDelta: 1000,

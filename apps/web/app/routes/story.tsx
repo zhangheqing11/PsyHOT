@@ -1,3 +1,4 @@
+import { HOT, hoursLabel } from "@aihot/industry/selection";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, redirect, useLoaderData } from "react-router";
@@ -158,7 +159,7 @@ export default function StoryPage() {
   const [order, setOrder] = useState<"desc" | "asc">("desc");
   const status = STATUS[story.status];
   // A settled story nobody watched (history pages) has no heat to explain or chart.
-  const observed = story.status !== "settled" || story.heat.length > 0 || story.whyHot.participants48h > 0 || story.whyHot.rank !== null;
+  const observed = story.status !== "settled" || story.heat.length > 0 || story.whyHot.participantsInWindow > 0 || story.whyHot.rank !== null;
   const sectionKeys: SectionKey[] = observed ? ["overview", "reports", "heat"] : ["overview", "reports"];
   const [activeSection, goSection] = useActiveSection(sectionKeys);
   const counts = {
@@ -367,7 +368,7 @@ export default function StoryPage() {
           {observed && (
             <RailCard title="为什么热">
               <p className="text-[12.5px] leading-[1.75] text-ink-3">
-                过去 48 小时，已观察到 <b className="num font-semibold text-ink">{story.whyHot.participants48h}</b> 个独立主体参与讨论或报道，最近 6 小时新增{" "}
+                过去 {hoursLabel(HOT.windowHours)}，已观察到 <b className="num font-semibold text-ink">{story.whyHot.participantsInWindow}</b> 个独立信源报道或讨论，最近 6 小时新增{" "}
                 <b className="num font-semibold text-ink">{story.whyHot.newParticipants6h}</b> 个。
               </p>
               {!story.whyHot.observationComplete && <p className="mt-2 text-[12px] leading-relaxed text-ink-4">部分信源观测不完整，以上仅为已观察到的参与。</p>}

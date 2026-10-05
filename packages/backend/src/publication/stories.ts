@@ -1,6 +1,7 @@
 // Stories (events) and the hot ranking through the public read layer. The website sees heat values;
 // v1 / MCP / Skill only see ranks and counts.
 import type { HeatPoint, HotResponse, StoryDetail, StoryReportView } from "@aihot/contracts/site";
+import { HOT } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 import { latestHotRanking, rankingExtras } from "../events/hot-read.ts";
@@ -116,8 +117,8 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
   const content = await storyContent(storyId, now);
   if (!content) return null;
   const { s, reports, developments } = content;
-  const [why] = await sql<{ p48: number; p6: number; r24: number }[]>`
-    SELECT count(DISTINCT participant_key) FILTER (WHERE observed_at > ${now}::timestamptz - interval '48 hours') AS p48,
+  const [why] = await sql<{ pw: number; p6: number; r24: number }[]>`
+    SELECT count(DISTINCT participant_key) FILTER (WHERE observed_at > ${now}::timestamptz - make_interval(hours => ${HOT.windowHours})) AS pw,
            count(DISTINCT participant_key) FILTER (WHERE observed_at > ${now}::timestamptz - interval '6 hours'
              AND participant_key NOT IN (SELECT participant_key FROM story_signals x WHERE x.story_id = ${storyId} AND x.observed_at <= ${now}::timestamptz - interval '6 hours')) AS p6,
            count(*) FILTER (WHERE kind = 'editorial' AND observed_at > ${now}::timestamptz - interval '24 hours') AS r24
@@ -127,11 +128,11 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
   // Only hours observed in full are drawn (the chart leaves a gap otherwise).
   const heat = await sql<{ hour: Date; heat: number; participants: number }[]>`
     SELECT hour, heat, participants FROM story_heat_hourly WHERE story_id = ${storyId} AND complete AND hour > ${now}::timestamptz - interval '7 days' ORDER BY hour`;
-  // Complete when none of the sources behind the last 48 hours' participants is behind on collection.
+  // Complete when none of the sources behind the window's participants is behind on collection.
   const behind = behindSources(await sourceClocks(), now.getTime(), true);
   const [partial] = behind.length
     ? await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM story_signals WHERE story_id = ${storyId} AND source_id = ANY(${behind}::text[])
-                                  AND observed_at > ${now}::timestamptz - interval '48 hours' AND observed_at <= ${now}`
+                                  AND observed_at > ${now}::timestamptz - make_interval(hours => ${HOT.windowHours}) AND observed_at <= ${now}`
     : [{ n: 0 }];
   const related = await relatedStories(storyId);
   const latestAt = s.latest_at ?? reports[0]!.at;
@@ -151,7 +152,7 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
     excerpt: !s.digest && !s.summary && origin?.summary ? { text: origin.summary, sourceName: origin.source_name } : null,
     latest: s.latest,
     whyHot: {
-      participants48h: Number(why?.p48 ?? 0),
+      participantsInWindow: Number(why?.pw ?? 0),
       newParticipants6h: Number(why?.p6 ?? 0),
       recentReports24h: Number(why?.r24 ?? 0),
       observationComplete: !partial?.n,
@@ -224,7 +225,7 @@ async function queryHotCovers(entries: Array<{ storyId: number; representativeIt
 
 export async function loadHot(): Promise<HotResponse> {
   const ranking = await latestHotRanking();
-  if (!ranking) return { computedAt: null, ruleVersion: null, windowHours: 48, entries: [] };
+  if (!ranking) return { computedAt: null, ruleVersion: null, windowHours: HOT.windowHours, entries: [] };
   const at = new Date(ranking.computedAt);
   const [sparks, covers, extras] = await Promise.all([
     sparklines(
@@ -237,7 +238,7 @@ export async function loadHot(): Promise<HotResponse> {
   return {
     computedAt: ranking.computedAt,
     ruleVersion: ranking.ruleVersion,
-    windowHours: 48,
+    windowHours: HOT.windowHours,
     entries: ranking.entries.map((e) => {
       const picture = covers.get(e.storyId);
       const coverUrl = picture ? proxiedImage(picture.url, "full") : null;

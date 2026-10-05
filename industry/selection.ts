@@ -16,3 +16,24 @@ export const SELECTION = {
    */
   understandFloor: 50,
 } as const;
+
+/**
+ * 热点榜。心理学的一项研究通常只有一本期刊发表，媒体跟进又常常晚几周到几个月，很少能在两天内
+ * 凑齐多个独立信源，所以这里放宽了窗口，并把评分算进热度：
+ *   热度 = 质量 × 各独立参与方之和。每个参与方（同一机构的多个渠道算一个）在窗口内只算一次，
+ *   按半衰期衰减；质量 = 这件事里最高的评分 ÷ 100，没有评分按 50 算。
+ * 被多家报道的研究自然排在前面；只有一家报道的，要进了精选才上榜，按评分和新旧排。
+ */
+export const HOT = {
+  /** 统计多长时间内的报道（小时）。 */
+  windowHours: 7 * 24,
+  /** 热度每过多少小时减半。 */
+  halfLifeHours: 72,
+  /** 只有一个参与方时，是否进了精选就能上榜（false 时至少要两个独立参与方）。 */
+  singleSourceIfSelected: true,
+} as const;
+
+/** 24 的整数倍写成“N 天”，否则写“N 小时”（页面上说明热点规则时用）。 */
+export function hoursLabel(hours: number): string {
+  return hours % 24 === 0 ? `${hours / 24} 天` : `${hours} 小时`;
+}

@@ -1,3 +1,4 @@
+import { HOT, hoursLabel } from "@aihot/industry/selection";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { Link, useLoaderData } from "react-router";
 import type { HotEntryView, HotResponse } from "@aihot/contracts/site";
@@ -18,7 +19,7 @@ export async function loader({ request }: { request: Request }) {
 export function meta() {
   return pageMeta({
     title: withSubject("热点榜"),
-    description: `过去 48 小时${withSubject("领域")}讨论最多的 10 个事件：热度指数、趋势与组成热度的公开来源。`,
+    description: `过去 ${hoursLabel(HOT.windowHours)}${withSubject("领域")}最值得关注的 10 项研究与事件：热度指数、趋势与报道它们的公开来源。`,
     path: "/hot",
     image: "/og/pages/hot.png",
   });
@@ -238,18 +239,18 @@ export default function HotPage() {
             实时热度
           </div>
           <h1 className="mt-1.5 text-[24px] font-bold leading-[1.3] tracking-[-0.01em] text-ink lg:text-[26px]">{withSubject("热点榜")}</h1>
-          <p className="mt-1.5 text-[13.5px] text-ink-3">过去 {hot.windowHours} 小时，{withSubject("领域")}讨论最多的 {hot.entries.length || 10} 件事</p>
+          <p className="mt-1.5 text-[13.5px] text-ink-3">过去 {hoursLabel(hot.windowHours)}，{withSubject("领域")}最值得关注的 {hot.entries.length || 10} 件事</p>
         </div>
         {hot.computedAt && (
           <p className="text-[12px] text-ink-4">
-            <span className="num">{monthDayTime(hot.computedAt)}</span> 更新 · 按讨论热度排序
+            <span className="num">{monthDayTime(hot.computedAt)}</span> 更新 · 按热度排序
           </p>
         )}
       </header>
 
       {!lead ? (
         <div className="card rounded-sheet">
-          <EmptyState title="暂时没有热点">还没有足够多来源共同讨论的事件。</EmptyState>
+          <EmptyState title="暂时没有热点">最近还没有进精选或被多个信源报道的研究。</EmptyState>
         </div>
       ) : (
         <>
@@ -293,8 +294,8 @@ export default function HotPage() {
           </span>
         </summary>
         <div className="max-w-[760px] space-y-2 pb-2 pl-[21px] pt-2 leading-[1.75] text-ink-3">
-          <p>热度来自参与同一事件的独立账号与机构，重复采集只算一次，并按 24 小时半衰期衰减。它衡量讨论活跃程度，不是报道质量评分。</p>
-          <p>榜单统计过去 48 小时。趋势只比较持续覆盖的同一组信源；它反映我们的监测范围，不代表全网人数。缺少可比历史时，不展示趋势线。</p>
+          <p>热度 = 质量 × 报道它的独立信源数。质量取这件事里最高的模型评分；每个信源只算一次，重复采集不加分，并按 {hoursLabel(HOT.halfLifeHours)}半衰期衰减。被多家期刊、媒体或机构报道的研究会排在前面；只有一个信源的，进了精选才上榜。</p>
+          <p>榜单统计过去 {hoursLabel(HOT.windowHours)}。心理学研究通常只在一本期刊发表，媒体跟进也常晚几周，所以窗口比新闻类网站长。趋势只比较持续覆盖的同一组信源，反映的是我们的监测范围，不代表全网关注度。缺少可比历史时，不展示趋势线。</p>
           <p>
             信源名单只展示可公开阅读的报道来源；讨论参与者还包括只计入热度的账号与机构。同一机构的多个渠道可能合并计数，因此参与者不一定多于信源数。点击事件可查看各方报道与观点。
           </p>

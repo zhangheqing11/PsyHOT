@@ -9,6 +9,7 @@ import { loadTopic } from "@aihot/backend/publication/topics";
 import { loadStoryDetail, resolveStory } from "@aihot/backend/publication/stories";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { FEATURES } from "@aihot/industry/features";
+import { HOT, hoursLabel } from "@aihot/industry/selection";
 import { config } from "@aihot/backend/config";
 import { ogEtag, renderOg, type OgCard } from "../og/render.ts";
 import { posterEtag, renderPoster, type Poster } from "../og/poster.ts";
@@ -17,7 +18,7 @@ const S = SITE.subject;
 const PAGES: Record<string, OgCard> = {
   site: { kicker: SITE.name, title: SITE.tagline, subtitle: SITE.description },
   all: { kicker: `全部${withSubject("动态")}`, title: "所有信源的最新动态，一站看完", subtitle: "按时间汇总各信源的最新动态，可按类别与标签筛选。" },
-  hot: { kicker: "热点榜", title: `过去 48 小时，大家在讨论什么`, subtitle: "热度指数、趋势与组成热度的公开来源。", accent: "hot" },
+  hot: { kicker: "热点榜", title: `过去 ${hoursLabel(HOT.windowHours)}，最值得关注的${SITE.subject}研究`, subtitle: "按模型评分和报道它的独立信源计算热度。", accent: "hot" },
   daily: { kicker: withSubject("日报"), title: `每天 8 点，一份读得完的${withSubject("日报")}`, subtitle: `前一天值得关注的${S}动态。` },
   weekly: { kicker: withSubject("周报"), title: "一周大事，一次看清", subtitle: "本周的主线、重要发布与值得回看的讨论。" },
   monthly: { kicker: withSubject("月报"), title: "一个月的变化", subtitle: "月度主线与关键事件回顾。" },

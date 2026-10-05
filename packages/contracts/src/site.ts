@@ -280,7 +280,8 @@ export interface StoryDetail {
   excerpt: { text: string; sourceName: string } | null;
   latest: string | null;
   whyHot: {
-    participants48h: number;
+    /** Independent participants over the hot window (industry/selection.ts HOT.windowHours). */
+    participantsInWindow: number;
     newParticipants6h: number;
     recentReports24h: number;
     observationComplete: boolean;

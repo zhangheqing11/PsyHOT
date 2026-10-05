@@ -1,6 +1,7 @@
 // /llms.txt — generated from the site's own configuration; only real, available resources are listed.
 import { SITE, withSubject } from "@aihot/industry/site";
 import { FEATURES } from "@aihot/industry/features";
+import { HOT, hoursLabel } from "@aihot/industry/selection";
 import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { siteUrl } from "./links.ts";
 import { sql } from "../db.ts";
@@ -54,7 +55,7 @@ export function llmsTxt(opts: { hasDailies: boolean; hasWeekly: boolean; hasMont
   lines.push(`- [隐私说明](${u("/privacy")})`, "");
   lines.push("## 网站主要页面", "");
   lines.push(`- [首页 · 精选](${u("/")}): 每日精选动态`);
-  lines.push(`- [热点榜](${u("/hot")}): 过去 48 小时内被多个独立信源共同讨论的事件`);
+  lines.push(`- [热点榜](${u("/hot")}): 过去 ${hoursLabel(HOT.windowHours)}内最值得关注的研究与事件，热度 = 模型评分 × 报道它的独立信源（随时间衰减）`);
   lines.push(`- [全部动态](${u("/all")}): 全部公开资讯，可按分类筛选`);
   if (opts.hasDailies) {
     lines.push(`- [${daily}](${u("/daily")}): 每日精编汇总`);

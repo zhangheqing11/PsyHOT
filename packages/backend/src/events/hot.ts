@@ -1,13 +1,18 @@
-// Hot ranking: attention over the last 48 hours from independent participants.
-// Each participant counts once per window (repeat collection does not add heat), decays with a
-// 24-hour half-life, and the source time (not collection time) places evidence in the window.
+// Hot ranking: attention over the window (industry/selection.ts HOT) from independent participants,
+// weighted by the story's quality. Each participant counts once per window (repeat collection does
+// not add heat) and decays with the half-life; the source time (not collection time) places evidence
+// in the window. Quality is the story's best selection score / 100 (50 when unscored). A story enters
+// with two participants, or with one when it was selected.
+import { HOT } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
 import { tierRank, type HotEntry } from "./hot-read.ts";
 
-export const HOT_RULE_VERSION = "heat-v1-48h-halflife24h";
-const WINDOW_HOURS = 48;
-const HALF_LIFE_HOURS = 24;
+const WINDOW_HOURS = HOT.windowHours;
+const HALF_LIFE_HOURS = HOT.halfLifeHours;
 const MIN_PARTICIPANTS = 2;
+export const HOT_RULE_VERSION = `heat-v2-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality`;
+/** Quality of a story nobody scored (title-only material, unscored sources). */
+const UNSCORED = 50;
 
 interface HeatRow {
   story_id: number;
@@ -26,6 +31,8 @@ interface HeatRow {
   recent6h: number;
   editorial_participants: number;
   signal_participants: number;
+  /** A publication of the story is selected (and visible at the time). */
+  selected: boolean;
 }
 
 interface SourceClock {
@@ -50,7 +57,7 @@ export function behindSources(clocks: SourceClock[], at: number, grace: boolean)
   return clocks.filter((c) => c.lastOk === null || c.lastOk < at - (grace ? c.graceMs : 0)).map((c) => c.id);
 }
 
-/** Heat of every story at `at` (defaults to now), from story_signals alone; `behind` marks sources not fully observed. */
+/** Heat of every story at `at` (defaults to now): story_signals times the story's quality; `behind` marks sources not fully observed. */
 async function heatRows(at: Date, behind: string[] = []): Promise<HeatRow[]> {
   const prev = new Date(at.getTime() - 6 * 3600 * 1000);
   const decayNow = sql`power(0.5, extract(epoch FROM (${at}::timestamptz - last_at)) / 3600.0 / ${HALF_LIFE_HOURS})`;
@@ -77,10 +84,18 @@ async function heatRows(at: Date, behind: string[] = []): Promise<HeatRow[]> {
         count(*) FILTER (WHERE editorial) AS editorial_participants,
         count(*) FILTER (WHERE NOT editorial) AS signal_participants
       FROM obs GROUP BY story_id
+    ), quality AS (
+      SELECT f.story_id, coalesce(max(p.score), ${UNSCORED}) / 100.0 AS q, bool_or(p.selected) AS selected
+      FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
+      WHERE f.story_id IN (SELECT story_id FROM agg) AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${at})
+      GROUP BY f.story_id
     )
-    SELECT a.story_id, st.public_id::text AS public_id, st.title, st.first_report_at, st.latest_at,
-           a.participants, a.heat, a.heat_prev, a.heat_obs, a.heat_prev_obs, a.behind_participants, a.recent6h, a.editorial_participants, a.signal_participants
+    SELECT a.story_id, st.public_id::text AS public_id, st.title, st.first_report_at, st.latest_at, a.participants,
+           a.heat * w.q AS heat, a.heat_prev * w.q AS heat_prev, a.heat_obs * w.q AS heat_obs, a.heat_prev_obs * w.q AS heat_prev_obs,
+           a.behind_participants, a.recent6h, a.editorial_participants, a.signal_participants, coalesce(q.selected, false) AS selected
     FROM agg a JOIN stories st ON st.id = a.story_id
+    LEFT JOIN quality q ON q.story_id = a.story_id
+    CROSS JOIN LATERAL (SELECT coalesce(q.q, ${UNSCORED} / 100.0) AS q) w
     WHERE st.merged_into IS NULL`;
 }
 
@@ -88,10 +103,15 @@ export function heatIndex(heat: number): number {
   return Math.round(heat * 100) / 10; // one decimal on the 10× scale shown to readers
 }
 
+/** Stories that may enter the ranking at `at`, hottest first. */
+export async function hotCandidates(at: Date, behind: string[] = []): Promise<HeatRow[]> {
+  const rows = (await heatRows(at, behind)).filter((r) =>
+    Number(r.editorial_participants) >= 1 && (Number(r.participants) >= MIN_PARTICIPANTS || (HOT.singleSourceIfSelected && r.selected)));
+  return rows.sort((a, b) => Number(b.heat) - Number(a.heat) || (b.latest_at?.getTime() ?? 0) - (a.latest_at?.getTime() ?? 0));
+}
+
 export async function computeHotRanking(at = new Date()): Promise<{ id: number; entries: number }> {
-  const behind = behindSources(await sourceClocks(), at.getTime(), true);
-  const rows = (await heatRows(at, behind)).filter((r) => Number(r.participants) >= MIN_PARTICIPANTS && Number(r.editorial_participants) >= 1);
-  rows.sort((a, b) => Number(b.heat) - Number(a.heat) || (b.latest_at?.getTime() ?? 0) - (a.latest_at?.getTime() ?? 0));
+  const rows = await hotCandidates(at, behindSources(await sourceClocks(), at.getTime(), true));
 
   const entries: HotEntry[] = [];
   for (const r of rows) {
@@ -154,7 +174,7 @@ export async function computeHotRanking(at = new Date()): Promise<{ id: number; 
   const [row] = await sql<{ id: number }[]>`
     INSERT INTO hot_rankings (computed_at, rule_version, entries, evidence, published)
     VALUES (${at}, ${HOT_RULE_VERSION}, ${sql.json(entries as never)},
-            ${sql.json({ windowHours: WINDOW_HOURS, halfLifeHours: HALF_LIFE_HOURS, minParticipants: MIN_PARTICIPANTS, candidates: rows.length } as never)}, true)
+            ${sql.json({ windowHours: WINDOW_HOURS, halfLifeHours: HALF_LIFE_HOURS, minParticipants: MIN_PARTICIPANTS, singleSourceIfSelected: HOT.singleSourceIfSelected, candidates: rows.length } as never)}, true)
     RETURNING id`;
   // Keep a bounded history of rankings.
   await sql`DELETE FROM hot_rankings WHERE computed_at < now() - interval '30 days'`;
@@ -189,6 +209,8 @@ export async function snapshotHeat(at = new Date()): Promise<{ stories: number; 
       repaired += 1;
     }
   }
+  // The story page and the ranking's sparklines read at most the last 7 days.
+  await sql`DELETE FROM story_heat_hourly WHERE hour < now() - interval '30 days'`;
   return { stories: rows.length, repaired };
 }
 

@@ -57,6 +57,28 @@ export function confirmationEmail(token: string): RenderedMail {
   };
 }
 
+/**
+ * The short form of a daily report: that it is out, how many entries, and the link. Sent when the mail
+ * service's content screening refuses the full issue (a digest dense with clinical terms reads to it like
+ * a medical advert); it carries no titles, so it gets through.
+ */
+export function dailyNotice(report: ReportDetail, unsubscribeUrl: string): RenderedMail {
+  const daily = withSubject("日报");
+  const issueUrl = `${config.siteUrl}/daily/${report.key}`;
+  const count = report.sections.reduce((n, s) => n + s.items.length, 0) + report.flashes.length;
+  const line = `今天的${daily}已经出炉，共 ${count} 条，汇集了期刊、预印本和学会的最新研究与动态。完整内容请到网站阅读。`;
+  const body = `
+<p style="font-size:13px;color:${C.muted};margin:14px 0 4px;">${e(daily)} · ${e(report.key)}</p>
+<p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:8px 0 22px;">${e(line)}</p>
+<p style="margin:0 0 6px;text-align:center;">${button(issueUrl, "阅读本期")}</p>`;
+  const footer = `你收到这封邮件，是因为订阅了 ${e(SITE.name)} ${e(daily)}。不想再收到？${link(unsubscribeUrl, "一键退订", C.accent)}`;
+  return {
+    subject: `${SITE.name} ${daily} · ${dayLabel(report.key)}`,
+    html: layout({ preheader: line, body, footer }),
+    text: `${SITE.name} ${daily} · ${report.key}\n\n${line}\n\n阅读本期：${issueUrl}\n\n——\n你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订：${unsubscribeUrl}\n`,
+  };
+}
+
 /** Where a citation is read: its page on the site, else the original; null once withdrawn. */
 function hrefOf(c: ReportCitation): string | null {
   if (!c.available) return null;

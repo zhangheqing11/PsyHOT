@@ -18,6 +18,9 @@ const T = tag();
 const SOURCE = `test-subscriptions-${T}`;
 const REPORT_KEY = `2099-11-${String(10 + Math.floor(Math.random() * 19))}`;
 const REFUSED = `refused-${T}@example.com`;
+const NOTICE_KEY = `2099-12-${String(10 + Math.floor(Math.random() * 19))}`;
+/** Content the local server refuses, as Alibaba Cloud's screening refuses some issues. */
+const SCREENED = "SCREENED-CONTENT";
 
 interface Received { to: string[]; data: string }
 const mails: Received[] = [];
@@ -37,9 +40,9 @@ const smtp = net.createServer((sock) => {
         cur.data = buf.slice(0, end);
         buf = buf.slice(end + 5);
         inData = false;
-        mails.push(cur);
+        if (bodyOf(cur.data).includes(SCREENED)) sock.write("554 Reject by content spam [@sm190603] ANTISPAM_CAT: spam content\r\n");
+        else (mails.push(cur), sock.write("250 queued\r\n"));
         cur = { to: [], data: "" };
-        sock.write("250 queued\r\n");
         continue;
       }
       const nl = buf.indexOf("\r\n");
@@ -90,7 +93,7 @@ before(async () => {
 });
 after(async () => {
   await sql`DELETE FROM email_subscribers WHERE email LIKE ${`%${T}%`}`;
-  await sql`DELETE FROM reports WHERE kind = 'daily' AND key = ${REPORT_KEY}`;
+  await sql`DELETE FROM reports WHERE kind = 'daily' AND key IN (${REPORT_KEY}, ${NOTICE_KEY})`;
   closeMailer();
   await app.close();
   smtp.close();
@@ -163,6 +166,28 @@ test("an issue goes once to each confirmed address; a refused one is retried, th
     SELECT d.status, d.attempts, d.error FROM email_deliveries d JOIN email_subscribers s ON s.id = d.subscriber_id WHERE s.email = ${REFUSED} AND d.report_key = ${REPORT_KEY}`;
   assert.deepEqual([refused!.status, refused!.attempts], ["failed", 3], "a refused address is tried three times");
   assert.match(refused!.error, /550/);
+});
+
+test("an issue the mail service refuses for its content goes out as the short notice", async () => {
+  const reader = `notice-${T}@example.com`;
+  await sql`INSERT INTO email_subscribers (email, token, status, confirmed_at) VALUES (${reader}, ${`tok-notice-${T}`}, 'active', now())`;
+  const citation = { itemId: null, title: `${SCREENED} 抑郁症研究-${T}`, summary: "一项研究。", sourceName: "Test", sourceUrl: "https://example.com/x", sourceId: null, firstParty: false, role: null, storyPublicId: null, publishedAt: null };
+  const content = { date: NOTICE_KEY, lead: null, highlights: [], sections: [{ label: "研究", items: [citation, { ...citation, title: `另一条-${T}` }] }], flashes: [], metrics: {} };
+  await sql`INSERT INTO reports (kind, key, window_start, window_end, content, generated_at, model, origin)
+            VALUES ('daily', ${NOTICE_KEY}, now() - interval '1 day', now(), ${sql.json(content as never)}, now(), 'test', 'model')`;
+
+  const run = await sendDailyEmails(new Date(`${NOTICE_KEY}T03:00:00Z`));
+  assert.ok(run && run.notices >= 1);
+  const got = mailsTo(reader);
+  assert.equal(got.length, 1, "one email, the notice");
+  const text = bodyOf(got[0]!.data);
+  assert.ok(text.includes(`/daily/${NOTICE_KEY}`) && text.includes("共 2 条"), "it links the issue and counts its entries");
+  assert.ok(!text.includes(SCREENED), "without the refused content");
+  assert.ok(text.includes(`/unsubscribe?t=tok-notice-${T}`));
+  const [d] = await sql<{ status: string; error: string }[]>`
+    SELECT d.status, d.error FROM email_deliveries d JOIN email_subscribers s ON s.id = d.subscriber_id WHERE s.email = ${reader} AND d.report_key = ${NOTICE_KEY}`;
+  assert.equal(d!.status, "sent");
+  assert.match(d!.error, /short notice/);
 });
 
 test("unsubscribing from the page or the mail client deletes the address", async () => {

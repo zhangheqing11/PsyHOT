@@ -8,7 +8,7 @@ import { config } from "../config.ts";
 import { sql } from "../db.ts";
 import { shutdownSignal } from "../jobs/queue.ts";
 import { loadReport } from "../publication/reports.ts";
-import { confirmationEmail, dailyEmail } from "./email-render.ts";
+import { confirmationEmail, dailyEmail, dailyNotice } from "./email-render.ts";
 import { emailReady, sendMail } from "./email.ts";
 
 export class SubscriptionRejected extends Error {
@@ -112,12 +112,16 @@ export async function unsubscribe(token: string): Promise<boolean> {
 const unsubscribeUrl = (token: string) => `${config.siteUrl}/unsubscribe?t=${encodeURIComponent(token)}`;
 const oneClickUrl = (token: string) => `${config.siteUrl}/api/site/subscriptions/one-click?t=${encodeURIComponent(token)}`;
 
+/** The mail service refused the message for its content (Alibaba Cloud: "554 Reject by content spam"). */
+const contentRefused = (error: unknown) => /content spam/i.test(String((error as Error)?.message ?? ""));
+
 /**
  * Sends today's daily report to every confirmed address that has not had it. Runs every few minutes:
  * nothing happens before the report exists, an issue with nothing in it is not sent, and an address
- * confirmed later in the day still gets that day's issue.
+ * confirmed later in the day still gets that day's issue. When the mail service's content screening
+ * refuses the full issue, the short notice (dailyNotice) goes instead, for the rest of the run too.
  */
-export async function sendDailyEmails(now = new Date()): Promise<{ key: string; sent: number; failed: number } | null> {
+export async function sendDailyEmails(now = new Date()): Promise<{ key: string; sent: number; failed: number; notices: number } | null> {
   await sql`DELETE FROM email_subscribers WHERE status = 'pending' AND created_at < now() - make_interval(days => ${PENDING_DAYS})`;
   if (!emailReady()) return null;
   const key = beijingDate(now);
@@ -130,10 +134,12 @@ export async function sendDailyEmails(now = new Date()): Promise<{ key: string; 
     ORDER BY s.id`;
   let sent = 0;
   let failed = 0;
+  let noticeOnly = false;
+  let notices = 0;
   for (const s of due) {
     if (shutdownSignal.signal.aborted) break; // the next run continues
     const mail = dailyEmail(report, unsubscribeUrl(s.token));
-    if (!mail) return { key, sent, failed };
+    if (!mail) return { key, sent, failed, notices };
     // Claim the (address, issue) pair; a pair left "sending" by a crash is in doubt and is not sent again.
     const [claim] = await sql`
       INSERT INTO email_deliveries (subscriber_id, report_key, status) VALUES (${s.id}, ${key}, 'sending')
@@ -141,13 +147,23 @@ export async function sendDailyEmails(now = new Date()): Promise<{ key: string; 
         WHERE email_deliveries.status = 'failed' AND email_deliveries.attempts < ${MAX_ATTEMPTS}
       RETURNING subscriber_id`;
     if (!claim) continue;
+    const headers = { "List-Unsubscribe": `<${oneClickUrl(s.token)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" };
     try {
-      await sendMail({
-        to: s.email,
-        ...mail,
-        headers: { "List-Unsubscribe": `<${oneClickUrl(s.token)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" },
-      });
-      await sql`UPDATE email_deliveries SET status = 'sent', sent_at = now(), error = NULL, updated_at = now() WHERE subscriber_id = ${s.id} AND report_key = ${key}`;
+      let note: string | null = null;
+      if (!noticeOnly) {
+        try {
+          await sendMail({ to: s.email, ...mail, headers });
+        } catch (error) {
+          if (!contentRefused(error)) throw error;
+          noticeOnly = true;
+        }
+      }
+      if (noticeOnly) {
+        await sendMail({ to: s.email, ...dailyNotice(report, unsubscribeUrl(s.token)), headers });
+        note = "full issue refused for its content; the short notice was sent";
+        notices += 1;
+      }
+      await sql`UPDATE email_deliveries SET status = 'sent', sent_at = now(), error = ${note}, updated_at = now() WHERE subscriber_id = ${s.id} AND report_key = ${key}`;
       sent += 1;
     } catch (error) {
       await sql`UPDATE email_deliveries SET status = 'failed', error = ${String((error as Error).message).slice(0, 500)}, updated_at = now()
@@ -155,5 +171,5 @@ export async function sendDailyEmails(now = new Date()): Promise<{ key: string; 
       failed += 1;
     }
   }
-  return { key, sent, failed };
+  return { key, sent, failed, notices };
 }

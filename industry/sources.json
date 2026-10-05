@@ -1395,6 +1395,929 @@
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
+  },
+  {
+   "id": "json-govcn-policy-xinli",
+   "name": "中国政府网 政策文件库 · 心理",
+   "kind": "json_list",
+   "config": {
+    "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_gw_bm_gb&q=%E5%BF%83%E7%90%86&timetype=timeqb&sort=pubtime&sortType=1&searchfield=title&p=1&n=20",
+    "itemsPath": "searchVO.catMap.bumenfile.listVO",
+    "titlePaths": [
+     "title"
+    ],
+    "summaryPaths": [
+     "summary"
+    ],
+    "publishedAtPath": "pubtime",
+    "publishedAtUnit": "epoch_ms",
+    "urlTemplate": "{raw:url}",
+    "externalIdPath": "id",
+    "fetchPublicContent": true,
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "json-govcn-policy-jingshenweisheng",
+   "name": "中国政府网 政策文件库 · 精神卫生",
+   "kind": "json_list",
+   "config": {
+    "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_gw_bm_gb&q=%E7%B2%BE%E7%A5%9E%E5%8D%AB%E7%94%9F&timetype=timeqb&sort=pubtime&sortType=1&searchfield=title&p=1&n=20",
+    "itemsPath": "searchVO.catMap.bumenfile.listVO",
+    "titlePaths": [
+     "title"
+    ],
+    "summaryPaths": [
+     "summary"
+    ],
+    "publishedAtPath": "pubtime",
+    "publishedAtUnit": "epoch_ms",
+    "urlTemplate": "{raw:url}",
+    "externalIdPath": "id",
+    "fetchPublicContent": true,
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "json-govcn-policy-jingshenzhangai",
+   "name": "中国政府网 政策文件库 · 精神障碍",
+   "kind": "json_list",
+   "config": {
+    "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_gw_bm_gb&q=%E7%B2%BE%E7%A5%9E%E9%9A%9C%E7%A2%8D&timetype=timeqb&sort=pubtime&sortType=1&searchfield=title&p=1&n=20",
+    "itemsPath": "searchVO.catMap.bumenfile.listVO",
+    "titlePaths": [
+     "title"
+    ],
+    "summaryPaths": [
+     "summary"
+    ],
+    "publishedAtPath": "pubtime",
+    "publishedAtUnit": "epoch_ms",
+    "urlTemplate": "{raw:url}",
+    "externalIdPath": "id",
+    "fetchPublicContent": true,
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "json-govcn-policy-jingshenyaopin",
+   "name": "中国政府网 政策文件库 · 精神药品",
+   "kind": "json_list",
+   "config": {
+    "url": "https://sousuo.www.gov.cn/search-gov/data?t=zhengcelibrary_gw_bm_gb&q=%E7%B2%BE%E7%A5%9E%E8%8D%AF%E5%93%81&timetype=timeqb&sort=pubtime&sortType=1&searchfield=title&p=1&n=20",
+    "itemsPath": "searchVO.catMap.bumenfile.listVO",
+    "titlePaths": [
+     "title"
+    ],
+    "summaryPaths": [
+     "summary"
+    ],
+    "publishedAtPath": "pubtime",
+    "publishedAtUnit": "epoch_ms",
+    "urlTemplate": "{raw:url}",
+    "externalIdPath": "id",
+    "fetchPublicContent": true,
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "药监"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-cac-zcfg",
+   "name": "国家网信办 · 政策法规",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.cac.gov.cn/wxzw/zcfg/A093703index_1.htm",
+    "itemSelector": "#loadingInfoPage li",
+    "linkSelector": "h5 a",
+    "titleSelector": "h5 a",
+    "publishedAtSelector": ".times",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "监管",
+    "AI"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-ncmhc-notice",
+   "name": "国家心理健康和精神卫生防治中心 · 通知公告",
+   "kind": "web_list",
+   "config": {
+    "url": "https://ncmhc.org.cn/channel/index/wid/347",
+    "itemSelector": "li.news_info",
+    "linkSelector": "a.title",
+    "titleSelector": "a.title",
+    "publishedAtSelector": "span.data",
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "机构",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-ncmhc-news",
+   "name": "国家心理健康和精神卫生防治中心 · 中心动态",
+   "kind": "web_list",
+   "config": {
+    "url": "https://ncmhc.org.cn/channel/index/wid/346",
+    "itemSelector": "li.news_info",
+    "linkSelector": "a.title",
+    "titleSelector": "a.title",
+    "publishedAtSelector": "span.data",
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "机构",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-cps-notice",
+   "name": "中国心理学会 · 通知公告",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.cpsbeijing.org/cms/show.action?code=publish_4028807663014aa8016304ceba0f00b9&siteid=100000&channelid=0000000036",
+    "itemSelector": "div.conlist11",
+    "linkSelector": "div.left a",
+    "publishedAtSelector": "span",
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "轮通知",
+      "学术年会",
+      "学术会议",
+      "研讨会",
+      "会议通知",
+      "征文",
+      "年会",
+      "会员系统",
+      "申报"
+     ],
+     "keepIfMatches": [
+      "伦理",
+      "守则",
+      "标准",
+      "规范",
+      "声明",
+      "倡议",
+      "共识"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "cps",
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "中文",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-chinacpb-notice",
+   "name": "注册系统 · 重要通知",
+   "kind": "web_list",
+   "config": {
+    "url": "http://www.chinacpb.net/public/index.php/xwz/tongzhi/liebiao/leixing/29.html",
+    "itemSelector": "a.item_box",
+    "titleSelector": "p.title",
+    "publishedAtSelector": ".date_wrap",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "cps",
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "中文",
+    "从业资质"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-chinacpb-news",
+   "name": "注册系统 · 最新资讯",
+   "kind": "web_list",
+   "config": {
+    "url": "http://www.chinacpb.net/public/index.php/xwz/zixun/liebiao/leixing/53.html",
+    "itemSelector": "a.item_box",
+    "titleSelector": "p.title",
+    "publishedAtSelector": ".date_wrap",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "cps",
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "中文",
+    "从业资质"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-psychina-yaowen",
+   "name": "中国网·心理中国 · 要闻",
+   "kind": "web_list",
+   "config": {
+    "url": "http://psy.china.com.cn/node_1013423.htm",
+    "itemSelector": ".list_text2 li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "中文",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-psychina-industry",
+   "name": "中国网·心理中国 · 行业资讯",
+   "kind": "web_list",
+   "config": {
+    "url": "http://psy.china.com.cn/node_1013427.htm",
+    "itemSelector": ".list_text2 li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "中文",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-psychina-policy",
+   "name": "中国网·心理中国 · 政策信息",
+   "kind": "web_list",
+   "config": {
+    "url": "http://psy.china.com.cn/node_1013428.htm",
+    "itemSelector": ".list_text2 li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "媒体",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-jkb-news",
+   "name": "健康报",
+   "kind": "web_list",
+   "config": {
+    "url": "http://www.jkb.com.cn/news/",
+    "itemSelector": "div.news li",
+    "linkSelector": "a",
+    "titleSelector": "a",
+    "denyUrlPrefixes": [
+     "http://www.jkb.com.cn/news/character/"
+    ],
+    "detail": {
+     "maxFetches": 12,
+     "publishedAtRegex": "\"crtime\":\"([^\"]+)\"",
+     "titleRegex": "\"title\":\"([^\"]+)\"",
+     "titleAuthoritative": true
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "媒体",
+    "中文",
+    "卫生"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-36kr",
+   "name": "36氪",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.36kr.com/feed",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "中文",
+    "热度信号"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-bhbusiness",
+   "name": "Behavioral Health Business",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://bhbusiness.com/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-stat-mental-health",
+   "name": "STAT · 心理健康",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.statnews.com/topic/mental-health/feed/",
+    "fetchPublicContent": true,
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "心理健康"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-medpage-psychiatry",
+   "name": "MedPage Today · 精神科",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.medpagetoday.com/rss/psychiatry.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-guardian-mental-health",
+   "name": "The Guardian · 心理健康",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.theguardian.com/society/mental-health/rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "心理健康"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-fda-press",
+   "name": "美国 FDA · 新闻稿",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.fda.gov/about-fda/contact-fda/stay-informed/rss-feeds/press-releases/rss.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "fda",
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "政府",
+    "监管",
+    "药物"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "json-who-news",
+   "name": "WHO · 新闻",
+   "kind": "json_list",
+   "config": {
+    "url": "https://www.who.int/api/news/newsitems?sf_culture=en&$orderby=PublicationDateAndTime%20desc&$top=25",
+    "itemsPath": "value",
+    "titlePaths": [
+     "Title"
+    ],
+    "publishedAtPath": "PublicationDateAndTime",
+    "urlTemplate": "https://www.who.int/news/item{raw:ItemDefaultUrl}",
+    "externalIdPath": "Id",
+    "fetchPublicContent": true,
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "who",
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "国际组织",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-psychiatry-org-news",
+   "name": "美国精神医学学会 · 新闻稿",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.psychiatry.org/news-room/news-releases",
+    "itemSelector": "article.c-article-item",
+    "linkSelector": "h2 a",
+    "titleSelector": "h2 a",
+    "publishedAtSelector": ".c-meta__date",
+    "publishedAtUtcOffset": "-04:00",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "apa-psychiatry",
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "精神医学",
+    "行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-rcpsych-news",
+   "name": "英国皇家精神科医学院 · 新闻",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.rcpsych.ac.uk/news-and-features/latest-news",
+    "itemSelector": "div.news-item",
+    "linkSelector": "a.button-link",
+    "titleSelector": "h5",
+    "publishedAtRegex": "latest-news/detail/(\\d{4}/\\d{2}/\\d{2})/",
+    "publishedAtUtcOffset": "+01:00",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "学会",
+    "精神医学",
+    "英国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-bacp-news",
+   "name": "英国心理咨询与心理治疗协会（BACP）· 新闻",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.bacp.co.uk/news/news-from-bacp/",
+    "itemSelector": ".signpost",
+    "linkSelector": "a.signpost__link",
+    "titleSelector": ".signpost__title",
+    "publishedAtSelector": "time",
+    "allowUrlPrefixes": [
+     "https://www.bacp.co.uk/news/news-from-bacp/20"
+    ],
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "学会",
+    "心理咨询",
+    "英国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-openai-news",
+   "name": "OpenAI · 新闻",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://openai.com/news/rss.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "公司",
+    "AI"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-anthropic-news",
+   "name": "Anthropic · 新闻",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.anthropic.com/news",
+    "itemSelector": "a[class*=\"PublicationList\"][class*=\"listItem\"]",
+    "titleSelector": "span[class*=\"__title\"]",
+    "publishedAtSelector": "time",
+    "publishedAtUtcOffset": "-07:00",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "公司",
+    "AI"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-characterai-blog",
+   "name": "Character.AI · 博客",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://blog.character.ai/rss/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "公司",
+    "AI",
+    "AI 陪伴"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychedelic-alpha",
+   "name": "Psychedelic Alpha",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://psychedelicalpha.com/feed",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 120,
+   "tags": [
+    "媒体",
+    "致幻剂"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-ftc-press",
+   "name": "美国 FTC · 新闻稿",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.ftc.gov/feeds/press-release.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "政府",
+    "监管"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-ema-news",
+   "name": "欧洲药品管理局（EMA）· 新闻",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.ema.europa.eu/en/news.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "监管",
+    "药物"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-nice-news",
+   "name": "NICE · 新闻",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.nice.org.uk/news/articles",
+    "itemSelector": "article",
+    "linkSelector": "h3 a",
+    "titleSelector": "h3",
+    "publishedAtSelector": "time",
+    "publishedAtUtcOffset": "+01:00",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "allowUrlPrefixes": [
+     "https://www.nice.org.uk/news/articles/"
+    ]
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": "nice",
+   "participation_mode": "editorial",
+   "interval_minutes": 180,
+   "tags": [
+    "机构",
+    "指南",
+    "英国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-psychiatric-times",
+   "name": "Psychiatric Times",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.psychiatrictimes.com/rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-bbc-health",
+   "name": "BBC · 健康",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://feeds.bbci.co.uk/news/health/rss.xml",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 60,
+   "tags": [
+    "媒体",
+    "热度信号"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
   }
  ]
 }

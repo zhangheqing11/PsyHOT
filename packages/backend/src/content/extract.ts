@@ -2,6 +2,7 @@
 // Jina Reader is the budgeted fallback for pages that only render in a browser.
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
+import { credential } from "../config.ts";
 import { sql } from "../db.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
@@ -24,6 +25,11 @@ const MIN_BODY_CHARS = 200;
 
 export function readable(html: string, url: string): ExtractedBody | null {
   const { document } = parseHTML(html);
+  // Markup after an early </html> (中国政府网's policy pages close it twice) is parsed beside <html>, and
+  // Readability, looking for the BODY above its best candidate, fails on it. It belongs to the body.
+  for (const node of [...document.childNodes]) {
+    if (node.nodeType === 1 && node !== document.documentElement && document.body) document.body.appendChild(node);
+  }
   try {
     const base = document.createElement("base");
     base.setAttribute("href", url);
@@ -57,7 +63,8 @@ export async function extractFromUrl(url: string, opts: { allowJina: boolean; su
   } catch {
     // fall through to Jina
   }
-  if (!opts.allowJina) return null;
+  // Without a Jina key there is no fallback: the article goes on with what its source gave.
+  if (!opts.allowJina || !credential("collectors", "JINA_API_KEY")) return null;
   try {
     const page = await jinaRead(url, { purpose: "body_fallback", subject: opts.subject });
     const html = markdownBody(page.markdown, url);

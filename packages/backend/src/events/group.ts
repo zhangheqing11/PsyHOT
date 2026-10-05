@@ -21,6 +21,7 @@ import { chatJson } from "../providers/llm.ts";
 import { BudgetExceededError, ReceiptBusyError, completeReceipt } from "../providers/receipts.ts";
 import { embeddingsAvailable, ensureEmbeddings } from "../providers/embeddings.ts";
 import { isHistorical, STALE_ON_DISCOVERY_MS } from "../content/materials.ts";
+import { doiFromUrl, identityKeyForUrl } from "../lib/url.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { publishArticle } from "../publication/publish.ts";
 import { mergeStoryInto } from "./merge.ts";
@@ -410,6 +411,43 @@ async function relatedPosts(a: ArticleRow): Promise<{ sameUrl: PoolRow | null; r
   return { sameUrl: sameUrl ?? null, referenced };
 }
 
+/** How far back a shared link is looked up among our reports (a paper is discussed weeks after it appears). */
+const LINKED_DAYS = 120;
+
+/** Links in a text (a post's body carries its link card and the links in its text). */
+export function linksIn(text: string | null | undefined): string[] {
+  return [...new Set((text ?? "").match(/https?:\/\/[^\s<>"'）)]+/g) ?? [])].map((u) => u.replace(/[.,;:!?]+$/, ""));
+}
+
+/**
+ * Reports a discussion post links to: by the report's own address, or by DOI (a doi.org link to a paper
+ * whose report has the publisher's address; nature.com addresses carry the DOI's suffix).
+ */
+async function linkedReports(a: ArticleRow): Promise<PoolRow[]> {
+  const links = linksIn(a.body_text).filter((u) => u !== a.url).slice(0, 12);
+  if (links.length === 0) return [];
+  const keys = new Set<string>();
+  const dois = new Set<string>();
+  for (const u of links) {
+    const key = identityKeyForUrl(u);
+    if (key) keys.add(key);
+    const doi = doiFromUrl(u);
+    if (!doi) continue;
+    dois.add(doi);
+    const nature = /^10\.1038\/(s\d{5}-.+)$/.exec(doi)?.[1];
+    if (nature) keys.add(identityKeyForUrl(`https://www.nature.com/articles/${nature}`)!);
+  }
+  return sql<PoolRow[]>`
+    SELECT fa.article_id, fa.fact_id, f.story_id, f.title AS fact_title
+    FROM articles b JOIN fact_articles fa ON fa.article_id = b.id AND fa.role IN ('primary', 'report')
+    JOIN facts f ON f.id = fa.fact_id JOIN stories st ON st.id = f.story_id AND st.merged_into IS NULL
+    LEFT JOIN abstract_lookups l ON l.article_id = b.id
+    WHERE b.id <> ${a.id} AND b.discovered_at > now() - make_interval(days => ${LINKED_DAYS}) AND ${trusted("fa")}
+      AND (b.identity_key = ANY(${[...keys]}::text[]) OR l.doi = ANY(${[...dois]}::text[])
+           OR lower(b.url) LIKE ANY(${[...dois].map((d) => `%${d.replace(/[\\%_]/g, "\\$&")}%`)}::text[]))
+    ORDER BY fa.created_at LIMIT 1`;
+}
+
 // ---------------------------------------------------------------------------
 // Consolidation
 // ---------------------------------------------------------------------------
@@ -571,7 +609,7 @@ export async function linkRelatedStories(): Promise<{ added: number }> {
 export interface GroupResult {
   verdict:
     | "same-fact" | "same-url" | "new-fact-in-story" | "new-story" | "roundup" | "kept" | "standalone" | "manual" | "skipped"
-    | "signal" | "signal-native" | "signal-unmatched" | "historical";
+    | "signal" | "signal-native" | "signal-link" | "signal-unmatched" | "historical";
   factId?: number;
   storyId?: number;
   /** Stories compared because this report tied them together (see consolidate). */
@@ -826,16 +864,17 @@ async function rematchSignals(articleId: string, queryText: string): Promise<num
 }
 
 /**
- * Discussion evidence (hot_signal sources): the post the item replies to or quotes decides first;
- * otherwise clear candidates are judged, and a nearly identical report attaches without a call.
+ * Discussion evidence (hot_signal sources): the post the item replies to or quotes decides first, then
+ * a report it links to; otherwise clear candidates are judged, and a nearly identical report attaches
+ * without a call.
  */
 async function groupSignal(a: ArticleRow, source: { id: string; signal_group_id: string | null }, observedAt: Date): Promise<GroupResult> {
   const { referenced } = await relatedPosts(a);
-  if (referenced.length) {
-    const target = referenced[0]!;
-    await recordSignal(sql, target.story_id, a.id, source, "signal", observedAt);
-    await recordDecision(sql, a.id, target.fact_id, target.story_id, "signal-native", [{ id: target.fact_id, score: 1, relation: "SAME_STORY", confidence: 1 }], null);
-    return { verdict: "signal-native", storyId: target.story_id };
+  const [native, verdict] = referenced.length ? [referenced[0]!, "signal-native" as const] : [(await linkedReports(a))[0], "signal-link" as const];
+  if (native) {
+    await recordSignal(sql, native.story_id, a.id, source, "signal", observedAt);
+    await recordDecision(sql, a.id, native.fact_id, native.story_id, verdict, [{ id: native.fact_id, score: 1, relation: "SAME_STORY", confidence: 1 }], null);
+    return { verdict, storyId: native.story_id };
   }
   if (!embeddingsAvailable()) return { verdict: "signal-unmatched" };
   const recalled = await recallFacts(a.id, signalText(a), SIGNAL_MIN_COSINE, SIGNAL_TOP_FACTS);

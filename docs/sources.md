@@ -55,10 +55,20 @@
 
 每个公众号按它的抓取间隔检查一次（查列表按次计费），新文章的正文一并取回。
 
+### Bluesky（`json_list` 的 `bluesky_feed` 适配器）
+
+```json
+{ "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:xxxx&limit=30&filter=posts_no_replies", "adapter": "bluesky_feed" }
+```
+
+读 Bluesky 的公开接口，不需要 key。`actor` 用账号的 DID（`did:plc:…`，改名不受影响）。每条帖子以它在 bsky.app 的地址入库，转发也算（日期按转发时间）；帖子带的链接卡片、正文里的链接、引用帖子的链接都写进正文。只有图片或视频、没有文字和链接的帖子跳过。这类信源一般设成 `hot_signal`。
+
 ## 分级、参与方式与全文
 
 - **分级** `tier`：`T1` 官方一手（官网、官方博客、机构）、`T1_5` 官方账号与准官方创作者、`T2` 媒体与个人、`EXCLUDE_MP` 不参与精选。入选门槛按分级不同（`industry/selection.ts`）。
 - **参与方式** `participation_mode`：`editorial` 进精选和全部动态；`hot_signal` 不单独展示，只作为“大家在讨论什么”的热度证据；`isolated` 不进任何公开页面。
+- **同一参与方** `signal_group_id`：同一个机构的几个信源（它的期刊、它在 Bluesky 上的几个账号）填同一个值，热度里只算一个参与方。比如一个学会在社交媒体上宣传自家期刊的论文，不算“另一方也在关注”。
+- **热度证据怎么挂上事件**（`hot_signal`）：先看帖子回复或引用的是不是已收录的帖子；再看它带的链接是不是指向已收录的报道（按网址，或按 DOI：doi.org 链接能对上出版社地址的论文）；都不是，才按文本相似度找最接近的事件。前两种不调用模型。
 - **一手** `first_party`：来源是当事方自己。事件页会优先展示一手报道。
 - **全文**：`site_fulltext` 决定站内能不能显示全文，`syndicate_fulltext` 决定全文 RSS 能不能带正文。两者**默认都关**，只显示摘要和原文链接；来源明确允许时再打开。公众号、付费墙内容不会因为技术上抓得到就获得全文展示。
 

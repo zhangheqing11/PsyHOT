@@ -234,7 +234,8 @@
     "精神医学"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "signal_group_id": "apa-psychiatry"
   },
   {
    "id": "rss-world-psychiatry",
@@ -433,7 +434,8 @@
     "认知"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "signal_group_id": "cogsci"
   },
   {
    "id": "rss-pspr",
@@ -456,7 +458,8 @@
     "人格"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "signal_group_id": "spsp"
   },
   {
    "id": "rss-jesp",
@@ -545,7 +548,8 @@
     "儿童青少年"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "signal_group_id": "acamh"
   },
   {
    "id": "rss-biological-psychiatry",
@@ -897,7 +901,8 @@
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false,
-   "enabled": false
+   "enabled": false,
+   "signal_group_id": "apa-psychiatry"
   },
   {
    "id": "rss-kff-mental-health",
@@ -1129,7 +1134,8 @@
     "教育"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "signal_group_id": "bps"
   },
   {
    "id": "rss-learning-instruction",
@@ -1240,7 +1246,8 @@
     "司法"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "signal_group_id": "bps"
   },
   {
    "id": "rss-psychology-crime-law",
@@ -2324,6 +2331,2796 @@
    "tags": [
     "媒体",
     "热度信号"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-bpsofficial",
+   "name": "British Psychological Society · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:k2g2gbe4ndicqigteuh7qaln&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "bps",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-researchdigest",
+   "name": "BPS Research Digest · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:xlsb7cd7dcxlbhymb2s4nv7w&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "bps",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-psychmag",
+   "name": "The Psychologist · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vtcu4ojgqbq3six2jqhsgckt&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "bps",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-spspnews",
+   "name": "Society for Personality and Social Psychology · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zwg77gzsbpvlwpamquwofe7o&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "spsp",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-cogscisociety",
+   "name": "Cognitive Science Society · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:o4leanhr6doxmo5fgp7u7rsm&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "cogsci",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-improvingpsych-org",
+   "name": "Society for the Improvement of Psychological Science (SIPS) · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:pwkuonuxck6hcqmansrkfkyl&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-socphilpsych",
+   "name": "Society for Philosophy and Psychology · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vo53upwawgcmcnr2clfsbupo&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-apapsychiatric",
+   "name": "American Psychiatric Association · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:2drsuw4umfdu3qgwnk74mxbb&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "apa-psychiatry",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-rcpsych",
+   "name": "The Royal College of Psychiatrists · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zskomzoou5sbsyt53ckgnqjf&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-kingsioppn",
+   "name": "Institute of Psychiatry, Psychology & Neuroscience · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:k3mxwxh2c2r5b6ywr3cnd6gv&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mqmentalhealth",
+   "name": "MQ Mental Health Research · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:bnduyfpwnscaianrgnkcpahm&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-acamh",
+   "name": "ACAMH - Association for Child and Adolescent Mental Health · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:7xmie5xibfni42bqbwamkgmw&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "signal_group_id": "acamh",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "学会与机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-jayvanbavel",
+   "name": "Jay Van Bavel, PhD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:e5yna6cmvlsyrbc7ehtunvwc&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-profsanderlinden",
+   "name": "Sander van der Linden · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:psqkqzjz6a3ftcuqtl6qi26u&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-sjblakemore",
+   "name": "Prof Sarah-Jayne Blakemore · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:kwhhuyziyxrvrjphfnqjmcy3&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-russpoldrack-org",
+   "name": "Russ Poldrack · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:cyfsihuhqziogky33edvvz7k&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-markrubin",
+   "name": "Mark Rubin · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:4jb3re5tvklsvhuc3lkerj5q&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-lakens",
+   "name": "Daniel Lakens · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:gzvucotqb7rp6y2lxw4cxl7p&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-debruine",
+   "name": "Lisa DeBruine · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:yrdy5sepig5zkkvpg2oytaje&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-deevybee",
+   "name": "Dorothy Bishop · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:bom4p44masckbj7vnfm6aunp&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-briannosek",
+   "name": "Brian Nosek · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:m4oniojqmvnpjfyjlqwbhkm3&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-alexh",
+   "name": "Alex Holcombe · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:kynaetyuzsp46xejc6mzpjle&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-gordpennycook",
+   "name": "Gordon Pennycook · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:l5q26ozsx6vemisfun3ay7zn&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-lkfazio",
+   "name": "Lisa Fazio · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:cld5n2dr75mswbjqbeuzfp6r&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mjcrockett",
+   "name": "M.J. Crockett · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:jhxnlqmy26jikbcst6kux7fr&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-lewan-uk",
+   "name": "Stephan Lewandowsky · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:77ahy3h7ohelv2jbu5mzemuq&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-irisvanrooij",
+   "name": "Iris van Rooij · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:24ngrqljhck7hpvbgrg7a23k&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-jnfrltackett",
+   "name": "Jennifer Tackett · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:h5x2wsobzypkmpavq34kygcu&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-solomonkurz",
+   "name": "Solomon Kurz · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vvh2bpvv5h5hmruh36seh7i4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-lluaces",
+   "name": "Lorenzo Lorenzo-Luaces, PhD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ajfd4hfvlvuz535i5ier2imu&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-awaisaftab",
+   "name": "Awais Aftab · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:o3vabq2mcbzg54o364id2pf4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-psychunseen",
+   "name": "Joe Pierre, MD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ktzpvvtxp2odjrdwnglvspbb&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-hugospiers",
+   "name": "Hugo Spiers · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ww6ppv2qr6wpnjg7uizycxcd&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-elisabethbik",
+   "name": "Elisabeth Bik · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:lalznr2yvov2sammblk73wx4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-eikofried",
+   "name": "Eiko Fried · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:eaue7vouqytk7cbzt3ojx6oj&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-omidvebrahimi",
+   "name": "Omid V. Ebrahimi · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zootms4p4diu2gd3u2ydieyc&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tobiasuhauser",
+   "name": "Tobias Hauser · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:2j5tm55wq2gdpkjo7zqqjb5i&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-ajshackman",
+   "name": "Alex Shackman · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:oogszw6ksj7d5wcwso2wilwz&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-dsbarra",
+   "name": "David A. Sbarra · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:tqf6lhyxvk3udgs7ojena3mq&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-kph3k",
+   "name": "Kathryn Paige Harden · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zkm2v5gev5qoedafher4r73v&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-alisongopnik",
+   "name": "Alison Gopnik · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:tc3myhltwiszas5a73vfhbfc&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-drlarisa",
+   "name": "Larisa Heiphetz Solomon · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:k7bngs5tysvcg6xt47eeojo4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-umpamdk",
+   "name": "Pam Davis-Kean, PhD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:2ihna4vvh2ndpzkvgmnb2p5g&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-manybabies-org",
+   "name": "ManyBabies · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:rztx5arcu5xae7r2ttjuadtx&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mkgood",
+   "name": "Magnus Karlsson-Good · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ehjcr5jonfztk2k4xzdk54zb&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-pgmj",
+   "name": "Magnus Johansson · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:bqitzxvqh5v63obk3avpqikw&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-labasedow",
+   "name": "Lukas A. Basedow, PhD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:5oucnbubnrp4s2n3kjjhyoj4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-drjacekdebiec",
+   "name": "Jacek Debiec, MD, PhD, DPhil · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:uwuzdtemuozm4q6t7pxz6rtp&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-drdrtsai",
+   "name": "Alexander Tsai, MD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:7tohx5b2cwgddnawmvghryf5&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-kevinmking",
+   "name": "Kevin M. King · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ezpdevyjnu5c3g5fhurisc5a&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-akmontoya",
+   "name": "Amanda Kay Montoya · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:klcncd66ye4u37e53ztgfwdh&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-ruben-the100-ci",
+   "name": "Ruben C. Arslan · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:rbamsrq5xdc25fdrmiicvi3f&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-bwroberts",
+   "name": "Brent W. Roberts · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:f6osrhoikfdahdkq72qrt2g2&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-calvinklai",
+   "name": "Calvin Lai · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:d2yeov2pnikdz4ajmqti4lgj&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-bethclarke",
+   "name": "Beth Clarke · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:q3bcrstrotvuh6fcn2evaypx&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-psforscher",
+   "name": "Patrick S. Forscher · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:uhzmys4vpkfdbqfytyrtqzo7&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-bxjaeger",
+   "name": "Bastian Jaeger · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:i646r2zmi64it67f5b5hbsu6&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-courtneybhilton",
+   "name": "Courtney Hilton · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:wgivbeawnbr7i3kambv4a7eu&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-juliastern",
+   "name": "Julia Stern · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:h3tvmlzma2u5etq6mqdrdt4x&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-hcp4715",
+   "name": "Hu Chuan-Peng · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:44rllevzk37qkeqy2z6xmugk&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-frederikaust-com",
+   "name": "Frederik Aust · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vpitmoleutkkl6hxjl2w6h5d&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-benedek",
+   "name": "Benedek Kurdi · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:m4vvly6ajcbfbnot3m52pick&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tomhardwicke",
+   "name": "Tom Hardwicke · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vqq3eb5i3pjkh4zlp4j46v24&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-marcuscrede",
+   "name": "Marcus Crede · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vbodcooc4ubiiusytzzd6dn7&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-bwyble",
+   "name": "Brad Wyble · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:yjcskm7x6zn3zasd3ngv54u5&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-shannon47burns",
+   "name": "Shannon Burns, PhD · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:qqcwx4clzhwnkuad7n3kmd5r&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-dorsaamir",
+   "name": "Dorsa Amir · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:jlefyjssc6ajh3d6dfwmh2is&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-erinwestgate",
+   "name": "Erin Westgate · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:evialqeatdrcahxuncjnr7jf&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-ianhussey-mmmdata-io",
+   "name": "Ian Hussey · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:2tt6dl3e5xovlcf2tzhzzy3m&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-heatherurry-io",
+   "name": "Heather Urry · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:b434qj7zkl6lfuni7lzvtkqy&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-robmok",
+   "name": "Rob Mok · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:nc3zp47dabssmyrluqlhjdeh&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-matti-vuorre-com",
+   "name": "Matti Vuorre · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ai4isl2n4j2h7qcqebj7vu2k&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-syeducation",
+   "name": "moin syed · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:f53vbt3f7yt5dom4tbcyhojr&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-jinxungoh",
+   "name": "Jin X. Goh | 吴晋勋 · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:le7k5zwsli5545o5habpizir&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mzloteanu",
+   "name": "Dr Mircea Zloteanu · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:oxbw4yyfdujd2rhakdsrg73m&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-maurosilvajunior",
+   "name": "Mauro Silva Júnior · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:2obr5oklwv5jp6zw2qrypyec&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-smfleming",
+   "name": "Steve Fleming · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:jaednxqzajjarrfkclul2izo&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tomfarsides",
+   "name": "Tom Farsides · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:5syb2hetvnmigqeusk4vk6st&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-kaisassenberg",
+   "name": "Kai Sassenberg · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:hnslfgbnacoiufyfqko4sjol&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-jzacks",
+   "name": "Jeff Zacks · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zu7avycchuefvnrpa6krqf4w&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-jonasdora",
+   "name": "Jonas Dora · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:pp5fxfqc6noxbnh3cjd24ify&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-reeserichardson",
+   "name": "Reese Richardson · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zksiuknephxzeyvlzbcbpbbb&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-drbarner",
+   "name": "David Barner · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ufsmrita6nn7ku6ukou3pa7i&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mjbsp",
+   "name": "mark brandt · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:eoedukv7uvfieg5edl6jvg6r&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-hugoreasoning",
+   "name": "Hugo Mercier · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:agfhb445n6ars2gzeh32t2ed&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-matthewmatix",
+   "name": "Matt Williams · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:io6v2kz6aifhaq6bkx3cq4sw&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-levelsof",
+   "name": "Melissa Kibbe · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zidlqyldy5mff4j7vjdakjsb&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-norabradford",
+   "name": "Nora Bradford · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:73vhxr76y4hornoyoa5nwcat&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-dsquintana",
+   "name": "Dan Quintana · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ho22o3jwfn4k7diklsrfnazt&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-rhens",
+   "name": "Rik Henson · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:gircfyitwa6h25zrsfkom55a&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-eriknook",
+   "name": "Erik Nook · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:5lt3xbqofxhg6x46nvzn7tex&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-jrvollhardt",
+   "name": "Johanna Ray Vollhardt · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:zr342jr6dosoftgukp76svhi&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mattwall",
+   "name": "Matt Wall · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:wlckjxgox5w7gt3akputopnb&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-drandreahoward",
+   "name": "Andrea Howard · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:e25wzsfadk3udxj3nwchkddz&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tobiasdienlin-com",
+   "name": "Tobias Dienlin · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:b75xf4laxgknzy3xkhk3sz3o&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-criener",
+   "name": "Cedar Riener · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:s7bmqfb4i3tshcuwaisovoqe&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-gillianrbrown1",
+   "name": "Prof. Gillian Brown · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:eafhajrnsquu6ns37ylr4nb3&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tsay",
+   "name": "Jonathan Tsay · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:5cpmrbzjesc2afly7vxoc7cl&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-fierycushman",
+   "name": "Fiery Cushman · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:qtdetab37mi2yfv7qliksrya&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-hakwan",
+   "name": "hakwan lau · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:nyx64cl7oqkc3nqwiu3cnps5&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-gershbrain",
+   "name": "Sam Gershman · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ku7v5o3u5qysxdiuu3eigpkw&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-lspiering",
+   "name": "Lisa Spiering · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:crutrzevbjw25wdyachg3xey&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-marccoutanche",
+   "name": "Marc Coutanche · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:jirzy6je3ur32r2i4bwzpdw4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-byrdnick-com",
+   "name": "Nick Byrd, Ph.D. · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:jf4udtyuylqocyyrqdwqoxuf&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mzettersten",
+   "name": "Martin Zettersten · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:kqh65rqugojdqm7ikdaiexp4&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mvugt",
+   "name": "Marieke van Vugt · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:7t6gcbveyh65wvgzmsuopxpp&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tomcostello",
+   "name": "Tom Costello · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:s6qdjdlzjmrjdhecartnl7do&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-michaelgaebler-com",
+   "name": "Michael Gaebler · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:kkwxy3aiuv3al5yfymvn4imm&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-davidlevari",
+   "name": "David Levari · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:saippvjy3n4v746lje64gezg&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mcxfrank",
+   "name": "Mike Frank · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:kkij4bfbznvqomfmzv36ksgw&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-acerbialberto-com",
+   "name": "Alberto Acerbi · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:7rr5pfsh3l4b5qv64h47za4a&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-tomhartley-me-uk",
+   "name": "Tom Hartley · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:eklxbg6ph6jagb2t3vtjrjvc&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-desrocherslab",
+   "name": "Theresa Desrochers, Ph.D. · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:hyu7aayl47viu4ptqlmrgctw&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-priyasilverstein-com",
+   "name": "Priya Silverstein · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:2tnby3rd32bvlwzvagvia6ca&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-nicolenelson",
+   "name": "Nicole Nelson · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:7xdrszf7qfexv5sqawlwb66r&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-profjohndrury",
+   "name": "John Drury · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:j6gzeg3rgaoplm5yjermfeqi&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-michelenuijten",
+   "name": "Michèle Nuijten · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:hxlsaiy2sctensgjmw3dfwop&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-monicarosenb",
+   "name": "Monica Rosenberg · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:vgo4z2d3qrxkzjpsqf424hw5&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-lhuntneuro",
+   "name": "Laurence Hunt · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:ukcch2rdonw7wwl3hnqpjt4t&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-mohammadatari",
+   "name": "Mohammad Atari · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:uslnog3pepzgfdwwmtpkqamv&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "bsky-adrienfillon",
+   "name": "Adrien Fillon · Bluesky",
+   "kind": "json_list",
+   "config": {
+    "url": "https://public.api.bsky.app/xrpc/app.bsky.feed.getAuthorFeed?actor=did:plc:sktqvm6ewv6zx5pr5gpc6tus&limit=30&filter=posts_no_replies",
+    "adapter": "bluesky_feed",
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "hot_signal",
+   "interval_minutes": 120,
+   "tags": [
+    "Bluesky",
+    "研究者"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false

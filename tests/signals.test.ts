@@ -127,3 +127,35 @@ test("a discussion post that quotes a post not yet collected joins its story whe
   const again = await groupArticle(postId, { signalOnly: true });
   assert.deepEqual([again.verdict, again.storyId], ["signal-native", first.storyId]);
 });
+
+test("a discussion post linking a paper we hold joins its story without a model call", async () => {
+  // A researcher shares the doi.org address of a paper whose report has the publisher's address, and the
+  // DOI of a Nature paper whose report has its nature.com address.
+  const paper = async (suffix: string, url: string) => {
+    const { articleId } = await upsertMaterial({ sourceId: EDITORIAL, url, title: `Paper ${suffix} ${T}`, bodyText: "Abstract.", bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
+    await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected, output)
+              VALUES (${articleId}, 1, 'rule', 'pass', 'research', ${`论文 ${suffix} ${T}`}, '摘要', 80, false, ${sql.json({ fact: { title: `论文 ${suffix}` } })})`;
+    await publishArticle(articleId);
+    return groupArticle(articleId);
+  };
+  const sage = await paper("sage", `https://journals.sagepub.com/doi/full/10.1177/09567976-${T}?af=R`);
+  const nature = await paper("nature", `https://www.nature.com/articles/s41562-026-${T}`);
+  const post = async (suffix: string, body: string) => {
+    const { articleId } = await upsertMaterial({
+      sourceId: SIGNAL, url: `https://bsky.app/profile/someone.bsky.social/post/${suffix}${T}`, title: `${ALONE} worth reading`, bodyText: body, bodyStatus: "ok", via: "fetch", publishedAt: new Date(),
+    });
+    await settleNonEditorial(articleId);
+    return articleId;
+  };
+  const before = provider.hits();
+  const viaDoi = await groupArticle(await post("a", `${ALONE} new paper!\n\nhttps://doi.org/10.1177/09567976-${T}.`), { signalOnly: true });
+  assert.deepEqual([viaDoi.verdict, viaDoi.storyId], ["signal-link", sage.storyId], "by the DOI in the publisher's address");
+  const viaNature = await groupArticle(await post("b", `${ALONE}\n\nhttps://doi.org/10.1038/s41562-026-${T}`), { signalOnly: true });
+  assert.deepEqual([viaNature.verdict, viaNature.storyId], ["signal-link", nature.storyId], "a Nature DOI by its nature.com address");
+  assert.equal(provider.hits(), before, "no embedding or judge call");
+  const [signal] = await sql<{ kind: string }[]>`SELECT kind FROM story_signals WHERE story_id = ${sage.storyId!} AND source_id = ${SIGNAL}`;
+  assert.equal(signal?.kind, "signal", "the post adds heat to the paper's story");
+
+  const unknown = await groupArticle(await post("c", `${ALONE}\n\nhttps://doi.org/10.9999/unknown-${T}`), { signalOnly: true });
+  assert.notEqual(unknown.verdict, "signal-link", "a paper we do not hold links nothing");
+});

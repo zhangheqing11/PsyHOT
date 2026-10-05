@@ -11,6 +11,7 @@ import { sql } from "../db.ts";
 import { thinText } from "../editorial/writing.ts";
 import { queueProcessing } from "../jobs/content.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
+import { doiFromUrl } from "../lib/url.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { contentHash } from "./materials.ts";
 
@@ -28,23 +29,14 @@ const apis = () => ({
   europepmc: process.env.EUROPEPMC_API_URL ?? "https://www.ebi.ac.uk/europepmc/webservices/rest",
 });
 
+export { doiFromUrl };
+
 export interface FoundAbstract {
   provider: "openalex" | "europepmc" | "crossref";
   doi: string | null;
   text: string;
 }
 
-/** The DOI in an article link (Taylor & Francis, Wiley, SAGE and others put it in the path). */
-export function doiFromUrl(url: string): string | null {
-  let s = url;
-  try {
-    s = decodeURIComponent(url);
-  } catch {
-    // keep the raw link
-  }
-  const m = /\b(10\.\d{4,9}\/[^\s?#&"<>]+)/.exec(s);
-  return m ? m[1]!.replace(/[.,;)]+$/, "").toLowerCase() : null;
-}
 
 /** ScienceDirect's article id (PII) in a link such as /science/article/pii/S0272735826001121. */
 export function piiFromUrl(url: string): string | null {

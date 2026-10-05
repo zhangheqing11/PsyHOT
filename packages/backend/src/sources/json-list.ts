@@ -2,6 +2,7 @@
 import { credential } from "../config.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
+import { blueskyCandidate, type FeedItem } from "./bluesky.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 
 export function getPath(obj: unknown, path: string): unknown {
@@ -157,9 +158,11 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       throw new FetchError("response is not JSON");
     }
   }
-  let items = c.itemsPath ? getPath(data, c.itemsPath) : c.jsonKey ? getPath(data, c.jsonKey) : data;
+  const bluesky = c.adapter === "bluesky_feed";
+  let items = c.itemsPath ? getPath(data, c.itemsPath) : c.jsonKey ? getPath(data, c.jsonKey) : bluesky ? getPath(data, "feed") : data;
   if (c.itemsObjectValues && items && typeof items === "object" && !Array.isArray(items)) items = Object.values(items);
   if (!Array.isArray(items)) throw new FetchError("items path did not resolve to an array");
+  if (bluesky) return items.map((i) => blueskyCandidate(i as FeedItem)).filter((x): x is Candidate => !!x);
 
   const out: Candidate[] = [];
   for (const item of items) {

@@ -53,6 +53,18 @@ export function tweetIdFromUrl(url: string): string | null {
  * Identity of material at an address. `keepFragment` is for sources whose entries are sections of one
  * page (release notes: overview#september-24-2026): without it every section is the same article.
  */
+/** The DOI in a link (doi.org, and publishers that put it in the path: Taylor & Francis, Wiley, SAGE…), lower case. */
+export function doiFromUrl(url: string): string | null {
+  let s = url;
+  try {
+    s = decodeURIComponent(url);
+  } catch {
+    // keep the raw link
+  }
+  const m = /\b(10\.\d{4,9}\/[^\s?#&"<>]+)/.exec(s);
+  return m ? m[1]!.replace(/[.,;)]+$/, "").toLowerCase() : null;
+}
+
 export function identityKeyForUrl(url: string, opts: { keepFragment?: boolean } = {}): string | null {
   const tweet = tweetIdFromUrl(url);
   if (tweet) return `x:${tweet}`;

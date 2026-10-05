@@ -56,15 +56,25 @@ export const ABOUT = {
     publish: "每天 08:00 出日报，周一出周报，每月 1 日出月报；最精选的几条可以推到飞书群。",
   },
   /**
-   * 作者块（选填），null 就不显示。
+   * 作者块：已启用；设为 null 可隐藏。姓名和介绍留空，待站点作者自行填写。
+   * name：姓名；greeting：介绍段落，每个字符串一段；wechat.title / note：微信卡片文案。
    * avatarSourceId：一个 X 账号信源的 id，头像取它的（选填）。
    * 二维码在后台“设置”里上传，或者放进 industry/brand/contact/；没有二维码就不显示那张卡片。
    */
-  maker: null as null | {
+  maker: {
+    name: "张鹤清，很高兴认识你",
+    greeting: [
+      "希望这个网站能帮到从事科研工作和心理学业界的每一位老师～",
+      "本人目前仍是英本心理学系准大一，距离入学还有半年时间。希望借着这半年做一些我热爱的、有价值的事情，也想认识更多厉害的人～",
+      "如果您愿意提些反馈，或是加入我共同为这个网站做贡献，又或者只是想日常交流，都欢迎添加我的微信🫶",
+      "（网站制作者才疏学浅，因此需要您的专业知识来帮网站提升信息筛选质量！）"
+    ],
+    wechat: { kind: "微信", title: "我的个人微信", note: "想认识更多厉害的老师～" },
+  } as null | {
     name: string;
     greeting: string[];
     avatarSourceId?: string | null;
-    wechat?: { title: string; note: string };
+    wechat?: { kind?: string; title: string; note: string };
     feishu?: { title: string; note: string };
   },
   /** 页面底部的版权与下架说明（结尾会接“反馈页”的链接）。 */

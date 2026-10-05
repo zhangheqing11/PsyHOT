@@ -124,8 +124,10 @@ function MakerFace({ src }: { src: string }) {
 
 function QrCard({ src, kind, title, note }: { src: string; kind: string; title: string; note: string }) {
   return (
-    <figure className="card flex items-center gap-5 p-5">
-      <img src={src} alt={`${kind}二维码`} width={112} height={112} loading="lazy" className="size-[104px] shrink-0 rounded-tile border border-line bg-white object-contain p-1.5 sm:size-[112px]" />
+    <figure className="card flex flex-col items-start gap-5 p-5 sm:flex-row sm:items-center">
+      <a href={src} target="_blank" rel="noopener noreferrer" aria-label={`查看${kind}二维码原图`} className="block shrink-0 rounded-tile focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+        <img src={src} alt={`${kind}二维码`} width={240} height={240} loading="lazy" className="size-[208px] max-w-full rounded-tile border border-line bg-white object-contain p-1.5 sm:size-[240px]" />
+      </a>
       <figcaption className="min-w-0">
         <div className="text-[12px] text-ink-4">{kind}</div>
         <div className="mt-1 text-[16px] font-semibold leading-snug text-ink">{title}</div>
@@ -137,22 +139,30 @@ function QrCard({ src, kind, title, note }: { src: string; kind: string; title: 
 
 /** The optional maker block (ABOUT.maker): a greeting on the left, the contact codes that are set on the right. */
 function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; contact: ContactSettings }) {
+  const greetingAt = maker.name.indexOf("，");
+  const name = greetingAt < 0 ? maker.name : maker.name.slice(0, greetingAt);
+  const greeting = greetingAt < 0 ? "" : maker.name.slice(greetingAt);
   const codes = [
-    contact.wechatQr && maker.wechat ? <QrCard key="wechat" src={contact.wechatQr} kind="微信公众号" title={maker.wechat.title} note={maker.wechat.note} /> : null,
+    contact.wechatQr && maker.wechat ? <QrCard key="wechat" src={contact.wechatQr} kind={maker.wechat.kind ?? "微信公众号"} title={maker.wechat.title} note={maker.wechat.note} /> : null,
     contact.feishuQr && maker.feishu ? <QrCard key="feishu" src={contact.feishuQr} kind="飞书群" title={maker.feishu.title} note={maker.feishu.note} /> : null,
   ].filter(Boolean);
   return (
     <section aria-labelledby="maker" className="mt-20 grid gap-10 xl:mt-28 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
       <div>
-        <Kicker>做这个站的人</Kicker>
+        <Kicker>{maker.name.trim() ? "做这个站的人" : "关于作者"}</Kicker>
         <h2 id="maker" className="mt-4 flex items-center gap-3.5 text-[26px] font-black leading-[1.3] tracking-[-0.02em] text-ink xl:gap-4 xl:text-[34px]">
           {contact.makerAvatar && <MakerFace src={contact.makerAvatar} />}
-          <span>
-            嗨，我是 <span className="whitespace-nowrap text-accent">{maker.name}</span>
-          </span>
+          {maker.name.trim() ? (
+            <span>
+              嗨，我是 <span className="whitespace-nowrap text-accent">{name}</span>
+              {greeting && <span className="text-ink dark:text-white">{greeting}</span>}
+            </span>
+          ) : (
+            <span>做这个站的人</span>
+          )}
         </h2>
         <div className="mt-5 space-y-4 text-[15.5px] leading-[1.9] text-ink-2 xl:text-[16.5px]">
-          {maker.greeting.map((line) => (
+          {maker.greeting.filter((line) => line.trim()).map((line) => (
             <p key={line}>{line}</p>
           ))}
           <p className="text-ink-3">
@@ -164,13 +174,13 @@ function Maker({ maker, contact }: { maker: NonNullable<typeof ABOUT.maker>; con
             <Link to="/feedback" className="text-accent hover:underline">
               反馈页
             </Link>
-            告诉我。
+            ，或直接添加微信告诉我。
           </p>
         </div>
       </div>
       {codes.length > 0 && (
         <div className="grid content-start gap-3">
-          <h3 className="text-[15px] font-semibold text-ink">如果觉得有点用，欢迎加入</h3>
+          <h3 className="text-[15px] font-semibold text-ink">如果觉得有点用，欢迎和我交流</h3>
           {codes}
         </div>
       )}

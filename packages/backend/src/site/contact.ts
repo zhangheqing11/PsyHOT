@@ -2,6 +2,7 @@
 // hash), or shipped in the industry pack (industry/brand/contact/). The page shows a code only when set.
 // The maker block can show the avatar of an X account the site follows as a source (ABOUT.maker).
 import { ABOUT } from "@aihot/industry/site";
+import { CONTACT } from "@aihot/industry/contact";
 import { sql } from "../db.ts";
 import { proxiedImage } from "../media/imgproxy.ts";
 
@@ -10,7 +11,7 @@ export interface ContactSettings {
   feishuQr: string | null;
 }
 
-const DEFAULTS: ContactSettings = { wechatQr: null, feishuQr: null };
+const DEFAULTS: ContactSettings = { wechatQr: CONTACT.wechatQr, feishuQr: null };
 
 export async function loadContact(): Promise<ContactSettings> {
   const [row] = await sql<{ value: Partial<ContactSettings> }[]>`SELECT value FROM settings WHERE key = 'contact_qr'`;

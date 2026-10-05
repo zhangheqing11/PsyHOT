@@ -1,4 +1,4 @@
-import { SITE } from "@aihot/industry/site";
+import { ABOUT, SITE } from "@aihot/industry/site";
 import { useRef, useState } from "react";
 import type { Route } from "./+types/settings";
 import { adminGet } from "../../lib/admin.server";
@@ -109,7 +109,7 @@ export default function SettingsAdmin({ loaderData: s }: Route.ComponentProps) {
       <div className="grid gap-5 xl:grid-cols-2">
         <Card title="关于页二维码">
           <div className="space-y-5">
-            <QrSlot slot="wechatQr" label="微信公众号二维码" src={s.contact.wechatQr} />
+            <QrSlot slot="wechatQr" label={`${ABOUT.maker?.wechat?.kind ?? "微信公众号"}二维码`} src={s.contact.wechatQr} />
             <QrSlot slot="feishuQr" label="飞书群二维码" src={s.contact.feishuQr} />
           </div>
         </Card>

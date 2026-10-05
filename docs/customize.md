@@ -24,6 +24,16 @@
 
 站点地址不写在这里，部署时用环境变量 `SITE_URL` 设置。
 
+### PsyHOT 的“做这个站的人”
+
+作者块已启用，内容在 `industry/site.ts` 的 `ABOUT.maker` 中：
+
+- `name`：你的姓名或昵称。留空时显示“做这个站的人”，不会出现缺少姓名的问候。
+- `greeting`：个人介绍段落，每个字符串一段，空字符串会被跳过。
+- `wechat.title`、`wechat.note`：微信卡片的标题和说明。`wechat.kind` 是卡片上的类型名，不填时显示“微信公众号”。
+
+微信二维码已原样保存于 `industry/brand/contact/qr-wechat-a562e81d.jpg`，`industry/contact.ts` 指向对应的 `/contact/` 路径，随下次部署一起上线。后台“设置”中的微信二维码上传可以覆盖这个默认图片。卡片显示在个人介绍旁，手机上排到介绍下方；点击图片可查看原图。修改个人文字后重新构建网站即可生效。设 `ABOUT.maker` 为 `null` 可隐藏整块。
+
 ## 2. 分类、标签和主题：`industry/taxonomy.ts`、`industry/topics.json`
 
 - `CATEGORIES`：首页和“全部动态”的筛选类别。`key` 会出现在网址和接口里（`/all?category=`、`/feed/category/<key>.xml`），上线后不要改；`label` 是显示名；`section` 是日报里的分节；`guide` 告诉模型怎么归类。

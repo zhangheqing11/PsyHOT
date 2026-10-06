@@ -6,6 +6,7 @@ import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { siteUrl } from "./links.ts";
 import { sql } from "../db.ts";
 import { MCP_TOOLS } from "@aihot/contracts/mcp";
+import { SKILL_PATH, SKILL_VERSION } from "@aihot/contracts/skill";
 
 /** Discovery only needs to know whether an entry exists, not count its entire history. */
 export async function loadLlmsAvailability() {
@@ -30,6 +31,8 @@ export function llmsTxt(opts: { hasDailies: boolean; hasWeekly: boolean; hasMont
   lines.push(`> ${SITE.description}`, "");
   lines.push("## 给 Agent 的数据接口", "");
   lines.push("所有接口匿名只读、无需 API Key。", "");
+  lines.push(`- [Agent 使用说明](${u("/api/v1/agent")}): 先读这一页：按问题选地址，返回整理好的中文 Markdown 与回答提示；新能力会先加在这里`);
+  lines.push(`- [Agent Skill](${u(`${SKILL_PATH}/README.md`)}): 给 Claude Code、Codex 等支持 Agent Skills 的工具，装一次不用再更新，版本 ${SKILL_VERSION}`);
   lines.push(`- [MCP Server](${u("/api/mcp")}): 远程 Streamable HTTP，版本 ${PUBLIC_VERSIONS.mcp}；提供 ${MCP_TOOLS.map((t) => t.name).join("、")} ${MCP_TOOLS.length} 个只读工具`);
   lines.push(`- [精选摘要 RSS](${u("/feed.xml")}): 最新 50 条精选摘要，保留标题、站内阅读与原文入口`);
   lines.push(`- [精选全文 RSS](${u("/feed/full.xml")}): 与精选摘要相同的最新 50 条；只对明确允许再分发的来源内联正文`);
@@ -50,7 +53,7 @@ export function llmsTxt(opts: { hasDailies: boolean; hasWeekly: boolean; hasMont
   lines.push(`- [公开 API v1 · 当前全部精选](${u("/api/v1/selected/snapshot")}): 首次完整快照；后续使用响应 cursor 调 selected/changes`);
   lines.push(`- [公开 API v1 · 精选增量](${u("/api/v1/selected/changes")}): 只返回新增、修改和撤选`);
   lines.push(`- [OpenAPI v1 规范](${u("/openapi-v1.json")}): 上述 API 的机器可读规范`);
-  lines.push(`- [Agent 接入指南](${u("/agent")}): MCP / RSS / REST API 接入说明`);
+  lines.push(`- [Agent 接入指南](${u("/agent")}): Agent Skill / MCP / RSS / REST API 接入说明`);
   lines.push(`- [使用规则](${u("/terms")})`);
   lines.push(`- [隐私说明](${u("/privacy")})`, "");
   lines.push("## 网站主要页面", "");

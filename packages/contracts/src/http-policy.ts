@@ -1,5 +1,6 @@
 // Outward HTTP behaviour, defined once: CORS, cache lifetimes, redirects and which process owns a path.
 // The API server and the web server both read this module.
+import { SKILL_PATH } from "./skill.ts";
 
 /** CORS for /api/v1/* and /openapi-v1.json. */
 export const PUBLIC_API_CORS: Record<string, string> = {
@@ -119,6 +120,8 @@ export const API_OWNED_PATTERNS: RegExp[] = [
   /^\/(model-providers|leaderboard-sources|og|contact)\//,
   /^\/[0-9a-f]{32}\.txt$/,
   /^\/items\/[^/]+\/markdown$/,
+  // The Agent Skill package (packages/backend/src/publication/skill.ts).
+  new RegExp(`^${SKILL_PATH}(/|$)`),
 ];
 
 export function isApiOwned(pathname: string): boolean {

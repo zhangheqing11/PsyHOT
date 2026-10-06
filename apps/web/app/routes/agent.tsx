@@ -5,6 +5,7 @@ import { SITE, withSubject } from "@aihot/industry/site";
 import { FEATURES } from "@aihot/industry/features";
 import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { MCP_TOOL_NAMES as T } from "@aihot/contracts/mcp";
+import { SKILL_NAME, SKILL_PATH, SKILL_VERSION } from "@aihot/contracts/skill";
 import { listPath, pageMeta, siteUrl } from "../lib/seo";
 import { CodeBlock, CopyButton } from "../components/CodeBlock";
 import { IconArrowUpRight, IconChevronRight } from "../components/icons";
@@ -20,16 +21,21 @@ const MCP_VERSION = "2.0.0";
 /** The machine-readable entry points, with what each one is for. */
 const RESOURCES: Array<[label: string, href: string, note: string]> = [
   ["llms.txt", "/llms.txt", "给大模型读的站点说明"],
+  ["Agent 使用说明", "/api/v1/agent", "Agent 读了就能查，Skill 用的也是它"],
+  ["Skill 完整包", `${SKILL_PATH}/README.md`, `安装说明与全部文件 · ${SKILL_VERSION}`],
   ["MCP Server", "/api/mcp", "MCP 客户端的连接地址"],
   ["OpenAPI 3.1", "/openapi-v1.json", "REST API v1 的完整定义"],
 ];
 
 const TABS = [
+  { key: "skill", label: "Agent Skill" },
   { key: "mcp", label: "MCP" },
   { key: "rss", label: "RSS" },
   { key: "api", label: "REST API" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
+/** The first tab is the default and is not written in the address. */
+const DEFAULT_TAB: TabKey = "skill";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const tab = new URL(request.url).searchParams.get("tab");
@@ -41,13 +47,13 @@ export async function loader({ request }: Route.LoaderArgs) {
     healthy = false;
   }
   // The public address the examples show is the configured one, the same on the server and in the browser.
-  return { tab: (TABS.some((t) => t.key === tab) ? tab : "mcp") as TabKey, healthy, base: siteUrl() };
+  return { tab: (TABS.some((t) => t.key === tab) ? tab : DEFAULT_TAB) as TabKey, healthy, base: siteUrl() };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
-  // Only the tab is part of the address (mcp is the default and not written).
-  const path = listPath("/agent", { tab: loaderData && loaderData.tab !== "mcp" ? loaderData.tab : null });
-  return pageMeta({ title: "Agent 接入", description: `让 Agent 直接使用 ${SITE.name}：MCP、RSS、REST API v1，匿名只读。`, path, image: "/og/pages/agent.png" });
+  // Only the tab is part of the address (the default is not written).
+  const path = listPath("/agent", { tab: loaderData && loaderData.tab !== DEFAULT_TAB ? loaderData.tab : null });
+  return pageMeta({ title: "Agent 接入", description: `把 ${SITE.name} 接进你的 Agent：Agent Skill、MCP、RSS、REST API 四种方式，匿名只读，无需 API Key。`, path, image: "/og/pages/agent.png" });
 }
 
 function Section({ title, children, id }: { title: string; children: ReactNode; id?: string }) {
@@ -73,6 +79,102 @@ function Mono({ children }: { children: ReactNode }) {
   return <code className="mono rounded-mark bg-bg-sunk px-1.5 py-0.5 text-[0.88em] text-ink">{children}</code>;
 }
 
+/** Questions the Skill should answer well; each can be copied as is. */
+const ASK = [
+  "最近一周最值得关注的 5 项心理学研究是什么？",
+  "现在心理学界最受关注的研究是哪些？",
+  "给我今天的心理学日报。",
+  "这周心理学有哪些重要进展？",
+  "抑郁症最近有什么新研究？",
+  "AI 心理咨询最近有什么进展？",
+  "热点榜第一的那项研究，来龙去脉是什么？",
+];
+
+function Step({ no, title, children }: { no: number; title: string; children: ReactNode }) {
+  return (
+    <li className="flex gap-3.5">
+      <span className="num mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent">{no}</span>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
+        <div className="mt-1.5 text-[13.5px] leading-[1.8] text-ink-3">{children}</div>
+      </div>
+    </li>
+  );
+}
+
+function SkillTab({ base }: { base: string }) {
+  const pkg = `${base}${SKILL_PATH}`;
+  const install = `请安装 ${SITE.name} Skill：${pkg}/README.md\n装完告诉我是否需要开启新会话。`;
+  const update = `请把我已安装的 ${SITE.name} Skill 更新到最新版：${pkg}/README.md\n先告诉我它现在装在哪个目录、是否存在重复副本，再替换同一目录。`;
+  return (
+    <>
+      <h2 className="text-[20px] font-bold text-ink">装一次，以后不用再更新</h2>
+      <p className="mt-2 text-[14.5px] text-ink-3">
+        不用记接口，也不用写代码。适合 Claude Code、Codex、Gemini CLI、OpenCode 这类支持 Agent Skills 的工具。查什么、怎么整理都在 {SITE.name} 这边完成，Skill 只负责提问和转述；{SITE.name} 以后新增的能力，装好的 Skill 会自动用上。
+      </p>
+
+      <ol className="mt-7 space-y-6">
+        <Step no={1} title="把这段话发给你的 Agent">
+          <p>它会先审阅安装说明，再逐个文件核对校验值；目录里是别的 Skill 时不会覆盖。</p>
+          <CodeBlock title="安装提示词" lang="text" code={install} />
+        </Step>
+        <Step no={2} title="开一个新会话">
+          多数 Agent 只在会话开始时读取 Skill，当前对话里不一定看得到。
+        </Step>
+        <Step no={3} title="问一句试试">
+          <div className="mt-2 flex items-center gap-2 rounded-card border border-line bg-surface p-3">
+            <span className="min-w-0 flex-1 text-[14px] text-ink">过去 24 小时心理学领域最重要的 5 件事是什么？</span>
+            <CopyButton text="过去 24 小时心理学领域最重要的 5 件事是什么？" className="!text-ink-3" />
+          </div>
+          <p className="mt-2">回答注明了时间范围、给出中文摘要、标题链到 {SITE.name}，就是装好了。</p>
+        </Step>
+      </ol>
+
+      <Section title="装好后可以这样问">
+        <div className="space-y-2">
+          {ASK.map((q) => (
+            <div key={q} className="flex items-center gap-2 rounded-card border border-line bg-surface px-3 py-2">
+              <span className="min-w-0 flex-1 text-[13.5px] text-ink-2">{q}</span>
+              <CopyButton text={q} className="!text-ink-3" />
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      <Section title="用命令行安装" id="agent-skill-cli">
+        <p>适用于 macOS、Linux 与 WSL。安装器先下载完整包、逐个文件核对 SHA-256，全部通过才替换目标目录；再运行一次就是更新。</p>
+        <CodeBlock lang="bash" code={`# Claude Code（装到通用目录，再建一个 ~/.claude/skills/${SKILL_NAME} 软链）\nbash <(curl -fsSL ${pkg}/install.sh) --target claude\n# Codex、Gemini CLI、OpenCode 等（~/.agents/skills/${SKILL_NAME}）\nbash <(curl -fsSL ${pkg}/install.sh) --target agents`} />
+        <p>Windows 原生环境不要粘贴 Bash 命令：按 <a href={`${SKILL_PATH}/manifest.sha256`} className="text-accent hover:underline">安装包清单</a> 下载 3 个文件，核对校验值后放进 skills 目录下的 <Mono>{SKILL_NAME}</Mono> 文件夹。安装前可以先看 <a href={`${SKILL_PATH}/SKILL.md`} className="text-accent hover:underline">SKILL.md</a> 和 <a href={`${SKILL_PATH}/install.sh`} className="text-accent hover:underline">install.sh</a>。</p>
+      </Section>
+
+      <Section title="没触发？按这个顺序查">
+        <Bullets items={[
+          "开一个新会话再问；问题里带上“心理学”“研究”“日报”这类词更容易触发。",
+          <>让 Agent 列出它发现的 skills，确认有、且只有一份 <Mono>{SKILL_NAME}</Mono>。</>,
+          "Agent 说不能联网时，打开它的联网或命令行权限；查询只会访问本站。",
+          <>想重装或更新，把这段话发给它：</>,
+        ]} />
+        <CodeBlock title="更新提示词" lang="text" code={update} />
+      </Section>
+
+      <Section title="不装 Skill 也能用">
+        <Bullets items={[
+          <>让 Agent 读 <a href="/api/v1/agent" className="text-accent hover:underline">{base}/api/v1/agent</a>，按里面的说明查询，结果和 Skill 一样。</>,
+          <>支持远程 MCP 的客户端，接 <Mono>{`${base}/api/mcp`}</Mono>（见 MCP 页签）。</>,
+        ]} />
+      </Section>
+
+      <Section title="目前做不到的">
+        <Bullets items={[
+          "超过 7 天的历史搜索。",
+          "单篇文章全文：回答给出站内阅读页和原文链接，重要数字和结论请回原文核对。",
+          "心理评估、诊断或用药建议：这里只有研究与行业资讯。遇到危机，请拨打 120／110 或全国心理援助热线 12356。",
+        ]} />
+      </Section>
+    </>
+  );
+}
+
 function McpTab({ base }: { base: string }) {
   const url = `${base}/api/mcp`;
   const name = SITE.mcpPrefix;
@@ -89,7 +191,7 @@ function McpTab({ base }: { base: string }) {
       <Section title="连上后应看到这五个工具">
         <Bullets items={[
           <><Mono>{T.latest}</Mono>：过去 24 小时或最近 7 天的精选／全部资讯</>,
-          <><Mono>{T.search}</Mono>：搜索最近 7 天的公司、产品、人物或话题</>,
+          <><Mono>{T.search}</Mono>：搜索最近 7 天的疾病、疗法、话题、期刊或研究者</>,
           <><Mono>{T.hot}</Mono>：当前热点榜与事件排名</>,
           <><Mono>{T.story}</Mono>：一个热点事件的时间线与持续更新的综述</>,
           <><Mono>{T.daily}</Mono>：最新或指定日期的{withSubject("日报")}</>,
@@ -210,11 +312,11 @@ export default function AgentPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabKey>(initialTab);
 
-  useEffect(() => setTab((params.get("tab") as TabKey) || "mcp"), [params]);
+  useEffect(() => setTab((params.get("tab") as TabKey) || DEFAULT_TAB), [params]);
 
   const select = (key: TabKey) => {
     setTab(key);
-    navigate(key === "mcp" ? "/agent" : `/agent?tab=${key}`, { replace: true, preventScrollReset: true });
+    navigate(key === DEFAULT_TAB ? "/agent" : `/agent?tab=${key}`, { replace: true, preventScrollReset: true });
   };
 
   const pill = "inline-flex h-6 items-center rounded-mark border border-line bg-surface px-2 text-[11.5px] text-ink-3";
@@ -245,10 +347,11 @@ export default function AgentPage() {
     <ReadingLayout aside={aside}>
       <header>
         <h1 className="text-[24px] font-semibold leading-[1.3] text-ink">让 Agent 直接使用 {SITE.name}</h1>
-        <p className="mt-1.5 text-[13px] text-ink-3">三条接入路径都是匿名只读、无需 API Key：MCP、RSS、REST API v1。</p>
+        <p className="mt-1.5 text-[13px] text-ink-3">Agent Skill、MCP、RSS、REST API 四种方式读的是同一份数据：精选、热点、日报、周报和月报，按你用的工具选一种就行。全部匿名只读，不用注册，也不用 API Key。</p>
         <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
           <span className={pill}>匿名只读</span>
           <span className={`${pill} mono`}>API v1</span>
+          <span className={`${pill} mono`}>Skill {SKILL_VERSION}</span>
           <span className={`${pill} mono`}>MCP {MCP_VERSION}</span>
           <span className={`${pill} gap-1.5 ${healthy ? "text-ok" : "text-hot"}`}>
             <span className={`size-1.5 rounded-full ${healthy ? "bg-ok" : "bg-hot"}`} />
@@ -270,6 +373,7 @@ export default function AgentPage() {
       </div>
 
       <div className="mt-7" role="tabpanel">
+        {tab === "skill" && <SkillTab base={base} />}
         {tab === "mcp" && <McpTab base={base} />}
         {tab === "rss" && <RssTab base={base} />}
         {tab === "api" && <ApiTab base={base} />}

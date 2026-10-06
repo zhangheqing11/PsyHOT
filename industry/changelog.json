@@ -1,6 +1,15 @@
 {
-  "latestVersion": "2026-10-06T07:24",
+  "latestVersion": "2026-10-06T20:51",
   "releases": [
+    {
+      "date": "2026-10-06",
+      "time": "20:51",
+      "kind": "更新",
+      "title": "Agent 接入新增 Skill",
+      "body": [
+        "Claude Code、Codex 等工具装一次 PsyHOT Skill，就能直接问最新的心理学研究、热点和日报。"
+      ]
+    },
     {
       "date": "2026-10-06",
       "time": "07:24",

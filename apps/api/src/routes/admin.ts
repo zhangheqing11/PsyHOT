@@ -14,6 +14,7 @@ import { releaseReceipt, requeueFailedArticles, resolveDelivery, runsOverview } 
 import { listBudgets, listTargets, replaceContactQr, setTargetEnabled, updateBudget } from "@aihot/backend/admin/settings";
 import { createSource, fetchNow, listSources, previewSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
 import { sql } from "@aihot/backend/db";
+import { subscriberStats } from "@aihot/backend/notify/subscriptions";
 import { loadContact } from "@aihot/backend/site/contact";
 import { sendProblem } from "../http/respond.ts";
 import { adminHandler } from "./admin-auth.ts";
@@ -134,6 +135,9 @@ export function registerAdmin(app: FastifyInstance) {
     const b = body<{ label: string; report: unknown }>(req);
     return importSelectBenchRun(b.report, String(b.label || "导入的对比运行"), actorOf(admin));
   }));
+
+  // Email subscribers: counts only
+  app.get("/api/admin/subscribers/stats", adminHandler(async () => subscriberStats()));
 
   // Attention counts for the navigation.
   app.get("/api/admin/nav-counts", adminHandler(async () => {

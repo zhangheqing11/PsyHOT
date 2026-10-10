@@ -109,6 +109,16 @@ export async function unsubscribe(token: string): Promise<boolean> {
   return rows.length > 0;
 }
 
+/** Confirmed and not-yet-confirmed address counts, for the admin view (no addresses). */
+export async function subscriberStats(): Promise<{ active: number; pending: number; activeLast7Days: number }> {
+  const [row] = await sql<{ active: number; pending: number; recent: number }[]>`
+    SELECT count(*) FILTER (WHERE status = 'active')::int AS active,
+           count(*) FILTER (WHERE status = 'pending')::int AS pending,
+           count(*) FILTER (WHERE status = 'active' AND confirmed_at > now() - interval '7 days')::int AS recent
+    FROM email_subscribers`;
+  return { active: row!.active, pending: row!.pending, activeLast7Days: row!.recent };
+}
+
 const unsubscribeUrl = (token: string) => `${config.siteUrl}/unsubscribe?t=${encodeURIComponent(token)}`;
 const oneClickUrl = (token: string) => `${config.siteUrl}/api/site/subscriptions/one-click?t=${encodeURIComponent(token)}`;
 

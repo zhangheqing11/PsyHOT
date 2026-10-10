@@ -10,7 +10,7 @@ import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { closeMailer } from "@aihot/backend/notify/email";
-import { maskEmail, normalizeEmail, sendDailyEmails } from "@aihot/backend/notify/subscriptions";
+import { maskEmail, normalizeEmail, sendDailyEmails, subscriberStats } from "@aihot/backend/notify/subscriptions";
 import { publishArticle } from "@aihot/backend/publication/publish";
 import { buildApp } from "../apps/api/src/app.ts";
 
@@ -205,6 +205,23 @@ test("unsubscribing from the page or the mail client deletes the address", async
   assert.equal((await post("/api/site/subscriptions/unsubscribe", { token: `tok-page-${T}` })).statusCode, 200, "twice is fine");
   const left = await sql`SELECT 1 FROM email_subscribers WHERE email IN (${one}, ${page})`;
   assert.equal(left.length, 0);
+});
+
+test("admin stats count confirmed and pending addresses, and the route needs an admin session", async () => {
+  const before = await subscriberStats();
+  await sql`INSERT INTO email_subscribers (email, token, status, confirmed_at) VALUES
+    (${`stats-a-${T}@example.com`}, ${`tok-stats-a-${T}`}, 'active', now()),
+    (${`stats-p-${T}@example.com`}, ${`tok-stats-p-${T}`}, 'pending', NULL)`;
+  try {
+    const after = await subscriberStats();
+    assert.equal(after.active, before.active + 1);
+    assert.equal(after.pending, before.pending + 1);
+    assert.equal(after.activeLast7Days, before.activeLast7Days + 1);
+    const anon = await app.inject({ method: "GET", url: "/api/admin/subscribers/stats" });
+    assert.ok(anon.statusCode === 401 || anon.statusCode === 403);
+  } finally {
+    await sql`DELETE FROM email_subscribers WHERE token IN (${`tok-stats-a-${T}`}, ${`tok-stats-p-${T}`})`;
+  }
 });
 
 test("closed: nobody can subscribe and nothing is sent", async () => {

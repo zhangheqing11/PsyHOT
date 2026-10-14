@@ -21,6 +21,9 @@ interface ItemIn {
   url?: unknown;
   publishedAt?: unknown;
   author?: unknown;
+  bodyText?: unknown;
+  excerpt?: unknown;
+  language?: unknown;
   raw?: { _aihot?: { backfill?: boolean; baseline?: boolean } } & Record<string, unknown>;
 }
 
@@ -38,6 +41,12 @@ export async function ingestItems(body: unknown): Promise<{ ok: true; created: n
   // leave earlier items stored. Objects missing a title or URL still follow the documented skip.
   for (const [index, item] of items.entries()) {
     if (!isObject(item)) throw new IngestError(400, `items[${index}] must be an object`);
+    for (const [field, max] of [["bodyText", 200_000], ["excerpt", 2000], ["language", 30]] as const) {
+      const value = item[field];
+      if (value != null && (typeof value !== "string" || value.length > max)) {
+        throw new IngestError(400, `items[${index}].${field} must be a string of at most ${max} characters`);
+      }
+    }
   }
 
   const [source] = await sql<{ id: string; participation_mode: string; enabled: boolean }[]>`
@@ -69,6 +78,9 @@ export async function ingestItems(body: unknown): Promise<{ ok: true; created: n
       url,
       title,
       author: typeof it.author === "string" ? it.author.slice(0, 200) : null,
+      bodyText: typeof it.bodyText === "string" ? it.bodyText.trim() || null : null,
+      excerpt: typeof it.excerpt === "string" ? it.excerpt.trim() || null : null,
+      language: typeof it.language === "string" ? it.language.trim() || null : null,
       publishedAt: published && Number.isFinite(published.getTime()) ? published : null,
       raw: it.raw ?? null,
       via: "ingest",

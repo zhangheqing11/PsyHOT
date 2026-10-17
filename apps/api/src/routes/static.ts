@@ -6,7 +6,7 @@ import { createHash } from "node:crypto";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { SITE } from "@aihot/industry/site";
 import { FEATURES } from "@aihot/industry/features";
-import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { REPO_ROOT, config } from "@aihot/backend/config";
 import { applyPublicHeaders, sendTextWithEtag } from "../http/respond.ts";
 import { sitemapXml } from "@aihot/backend/publication/sitemap";
@@ -93,13 +93,13 @@ async function openApiJson(): Promise<string> {
   const raw = (await readFile(path.join(REF, "public-v1.openapi.json"), "utf8"))
     .replaceAll("{{siteName}}", SITE.name)
     .replaceAll("{{siteUrl}}", config.siteUrl)
-    .replaceAll("{{categoryList}}", CATEGORY_KEYS.join(", "));
+    .replaceAll("{{categoryList}}", PUBLIC_API_CATEGORY_KEYS.join(", "));
   const doc = JSON.parse(raw) as { paths: Record<string, unknown>; components?: { parameters?: Record<string, { schema?: { enum?: string[] } }> } };
   // Categories follow the industry pack.
   const walk = (node: unknown) => {
     if (!node || typeof node !== "object") return;
     const o = node as Record<string, unknown>;
-    for (const key of ["enum", "examples"]) if (Array.isArray(o[key]) && (o[key] as unknown[]).includes("{{categories}}")) o[key] = [...CATEGORY_KEYS];
+    for (const key of ["enum", "examples"]) if (Array.isArray(o[key]) && (o[key] as unknown[]).includes("{{categories}}")) o[key] = [...PUBLIC_API_CATEGORY_KEYS];
     for (const v of Object.values(o)) walk(v);
   };
   walk(doc);

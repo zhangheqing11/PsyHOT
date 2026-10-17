@@ -3,7 +3,7 @@ import type { PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import { newShortId } from "../lib/ids.ts";
-import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, listedCondition, selectedCondition, type ApiItemRow } from "./items.ts";
+import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, exportedPoolCondition, selectedCondition, type ApiItemRow } from "./items.ts";
 import { publicMatchCondition, searchTerms, withSearchCapacity } from "./pool.ts";
 import { v1Payload, type V1ItemPayload } from "./publish.ts";
 
@@ -46,7 +46,7 @@ export async function v1Items(query: V1ItemsQuery, now = new Date()): Promise<V1
     if (c.a < windowStart.getTime()) throw new InvalidCursorError("the rolling window moved past this cursor");
     after = { a: c.a, i: c.i };
   }
-  const scope = query.mode === "selected" ? selectedCondition(now) : sql`${listedCondition(now)} AND p.eligible`;
+  const scope = query.mode === "selected" ? selectedCondition(now) : exportedPoolCondition(now);
   const terms = query.q ? searchTerms(query.q) : [];
 
   const run = (db: Db) => db<(ApiItemRow & { sort_at: Date })[]>`

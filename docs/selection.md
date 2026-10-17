@@ -39,11 +39,13 @@ export const SELECTION = {
 |---|---|
 | `caseId` | 唯一编号 |
 | `material` | 标题、原标题、发布时间、信源名、正文（中文正文放 `bodyZh`，原文放 `bodyOriginal`，有一个就行） |
-| `sourceFacts` | 信源类型、分级、是否一手、语言。分级决定用哪个门槛 |
+| `sourceFacts` | 信源类型、分级、是否一手、语言，可选的 `track`（`academic` / `industry`，条目属于哪一边）。分级和视角决定用哪个门槛 |
 | `samplingContext` | 可选。`benchmarkSplit` 分开发集和留出集，`samplingStratum` 是你自己的分组（比如“新规”“判决”“营销”），看错在哪一类 |
 | `gold.decision` | `select` 该选，`reject` 不该选，`either` 两可（不计入准确率） |
 
 `industry/gold.example.jsonl` 有两条示例。
+
+也可以在后台标：内容详情页有“该选 / 不该选 / 两可”，“标注”页是待标注队列（`scripts/sample-labels.ts` 从真实条目里抽样放进去，之后每周一自动补一批复核样本：被识别为推广的、预筛拦掉的、分数在门槛附近的）。标注页可以导出成上面的格式，存成 `.data/gold.jsonl` 直接评测。
 
 几条建议：
 

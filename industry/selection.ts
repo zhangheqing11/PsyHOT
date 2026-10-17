@@ -1,6 +1,6 @@
 // 精选的门槛。评分标准本身写在 prompts/selection-score.md；这里只决定“多少分算入选”。
 // 每篇资料由评分模型独立打两次分（0–100），两次之和 ≥ 2 × 门槛才进精选，卡片上显示两次的平均分。
-// 门槛按信源分级区分：官方一手信源的门槛低一些，媒体和个人的高一些。改了门槛或评分提示词，
+// 门槛按信源分级区分：官方一手信源的门槛低一些，媒体和个人的高一些；学界和业界可以各定一套。改了门槛或评分提示词，
 // 用 scripts/eval-selection.ts 在你自己标注的样本上重跑一遍，再决定上线（见 docs/selection.md）。
 
 export const SELECTION = {
@@ -10,6 +10,11 @@ export const SELECTION = {
    * 分级 EXCLUDE_MP 以及这里没有列出的分级，不参与精选评分（只进“全部动态”）。
    */
   thresholds: { T1: 60, T1_5: 65, T2: 76 } as Record<string, number>,
+  /**
+   * 学界、业界各自的门槛，写了的分级覆盖上面的数字。视角看条目的类别（taxonomy.ts 的 track），类别还
+   * 没定时看信源的视角。数字要等标注样本攒够了再校准（docs/selection.md），没校准之前两边都沿用上面的。
+   */
+  trackThresholds: { academic: {}, industry: {} } as Record<string, Record<string, number>>,
   /**
    * 没入选、但平均分高于这个数的资料，也用精选的写法（内容理解：标题、摘要、推荐理由、标签）来写，
    * 其余用更便宜的“标题摘要翻译”。

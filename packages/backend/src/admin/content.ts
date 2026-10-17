@@ -122,6 +122,8 @@ const FieldsSchema = z
     category: z.enum(CATEGORY_KEYS as unknown as [string, ...string[]]),
     tags: z.array(z.string().max(60)).max(20),
     selected: z.boolean(),
+    /** false keeps an item the model took for a promotion in the normal flow; true marks one. */
+    promotion: z.boolean(),
     silent: z.boolean(),
   })
   .partial()

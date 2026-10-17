@@ -37,6 +37,7 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
             <SelectedBadge />
           </span>
         )}
+        {item.promotion && <span className="shrink-0 rounded border border-line px-1 text-[11px] leading-[16px] text-ink-4">推广</span>}
         <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
           <span className="hidden lg:inline-flex">
             <ScoreLabel score={item.score} />

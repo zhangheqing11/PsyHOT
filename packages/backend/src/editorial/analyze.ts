@@ -25,7 +25,10 @@ import {
   needsShortTweetTranslation, parseTranslateOutput, PREFILTER_SYSTEM, prefilterUser, translateInputOf, UNDERSTAND_SYSTEM, understandUser,
   type IdentityGuard,
 } from "./writing.ts";
-import { CATEGORY_BY_ITEM_TYPE, CATEGORY_GUIDE, CATEGORY_TAGS, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS } from "./vocabulary.ts";
+import {
+  CATEGORY_BY_ITEM_TYPE, CATEGORY_GUIDE, CATEGORY_TAGS, categoryForSource, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS, TRACK_CATEGORIES,
+  trackOfCategory,
+} from "./vocabulary.ts";
 import { promptText, promptVersion } from "./prompts.ts";
 
 export { buildMaterial, loadAnalyzeInput, type AnalyzeInputArticle };
@@ -47,11 +50,18 @@ export const ANALYZE_PROMPT_VERSION = Object.values(PROMPT_VERSIONS).join("+");
 export const SCORE_CALLS = 2;
 
 /**
- * The thresholds on the mean score, per source tier (industry/selection.ts): selected when
+ * The thresholds on the mean score, per source tier and track (industry/selection.ts): selected when
  * score1 + score2 >= 2 × threshold. Tiers without a threshold are not scored for 精选.
  */
-export function tierThreshold(tier: string): number | null {
-  return SELECTION.thresholds[tier] ?? null;
+export function tierThreshold(tier: string, track?: string | null): number | null {
+  const base = SELECTION.thresholds[tier];
+  if (base === undefined) return null;
+  return (track ? SELECTION.trackThresholds[track]?.[tier] : undefined) ?? base;
+}
+
+/** The track a threshold is read for: the item's category's, else its source's (mixed has none). */
+function thresholdTrack(category: string | null, sourceTrack: string | undefined): string | null {
+  return trackOfCategory(category) ?? (sourceTrack === "academic" || sourceTrack === "industry" ? sourceTrack : null);
 }
 
 /** Unselected items above this mean are written like selected ones. */
@@ -126,6 +136,7 @@ const StructureSchema = z.object({
   tags: z.array(z.string()).max(12).catch([]),
   subjects: z.array(z.string()).max(6).catch([]),
   fact: FactSchema,
+  promotion: z.boolean().catch(false),
 });
 
 const UnderstandSchema = z.object({
@@ -146,6 +157,8 @@ const STRUCTURE_SYSTEM = promptText("structure", {
   categoryCount: ZH_COUNT[CATEGORIES.length] ?? String(CATEGORIES.length),
   categoryGuide: CATEGORY_GUIDE,
   categoryTags: CATEGORY_TAGS.join("、"),
+  academicCategories: TRACK_CATEGORIES.academic.join("、"),
+  industryCategories: TRACK_CATEGORIES.industry.join("、"),
   topicTags: TOPIC_TAGS.join("、"),
   entityTags: ENTITY_TAGS.join("、"),
   entities: Object.entries(ENTITIES).map(([id, e]) => `${id}（${e.aliases.slice(0, 3).join("/")}）`).join("，"),
@@ -172,7 +185,14 @@ export interface AnalysisRun {
     receiptIds: number[];
     reused: boolean;
   } | null;
-  structure: { model: string; category: string | null; tags: string[]; subjects: string[]; fact: z.infer<typeof FactSchema>; receiptId: number; reused: boolean } | null;
+  /**
+   * `promotion`: the industry's own advertising (apps, courses, exams, conferences, jobs). It is shown
+   * only in the full feed: never selected, grouped or exported, and written the cheap way.
+   */
+  structure: {
+    model: string; category: string | null; tags: string[]; subjects: string[]; fact: z.infer<typeof FactSchema>; promotion: boolean;
+    receiptId: number; reused: boolean;
+  } | null;
 }
 
 const isContentFilter = (error: unknown) => error instanceof ProviderRejectedError && !error.retryable && /contentFilter|"1301"/.test(error.message);
@@ -296,7 +316,13 @@ async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<Non
     attemptTag: tagged(opts.attemptTag, "structure"),
   });
   const subjects = [...new Set(res.data.subjects.map((s) => s.trim().toLowerCase()).filter((s) => s in ENTITIES))];
-  return { model: res.model, category: res.data.category, tags: normalizeTags(res.data.tags), subjects, fact: res.data.fact, receiptId: res.receiptId, reused: res.reused };
+  const promotion = res.data.promotion;
+  // A promotion is filed under the industry's institutions and market; anything else stays on its source's side.
+  const category = promotion ? "industry" : categoryForSource(res.data.category, a.source.track);
+  return {
+    model: res.model, category, tags: normalizeTags(res.data.tags), subjects, fact: promotion ? null : res.data.fact, promotion,
+    receiptId: res.receiptId, reused: res.reused,
+  };
 }
 
 /** The content understanding; null when the model's content filter declines the material. */
@@ -390,15 +416,18 @@ export async function runAnalysis(a: AnalyzeInputArticle, opts: StepOpts & { sta
     const scores = await runSelectionScores(a, opts);
     return { prefilter, scores, writing: null, structure: null };
   }
-  // The structure step needs nothing from the scores: it runs beside them.
+  // The structure step needs nothing from the scores: it runs beside them. The writing waits for both:
+  // the category sets the threshold's track, and a promotion is written the cheap way.
   const structure = runStructure(a, opts).then((value) => ({ value }), (error: unknown) => ({ error }));
   try {
-    const scores = await runSelectionScores(a, opts);
-    const sum = scores && !scores.refused && scores.values.length === SCORE_CALLS ? scores.values.reduce((total, v) => total + v, 0) : null;
-    const near = sum !== null && (sum >= scores!.threshold * SCORE_CALLS || sum > UNDERSTAND_FLOOR * SCORE_CALLS);
-    const writing = (near ? await runUnderstand(a, opts) : null) ?? (await runSummarize(a, opts));
+    const scored = await runSelectionScores(a, opts);
     const s = await structure;
     if ("error" in s) throw s.error;
+    const threshold = scored ? tierThreshold(a.source.tier, thresholdTrack(s.value.category, a.source.track)) : null;
+    const scores = scored && threshold !== null ? { ...scored, threshold } : scored;
+    const sum = scores && !scores.refused && scores.values.length === SCORE_CALLS ? scores.values.reduce((total, v) => total + v, 0) : null;
+    const near = !s.value.promotion && sum !== null && (sum >= scores!.threshold * SCORE_CALLS || sum > UNDERSTAND_FLOOR * SCORE_CALLS);
+    const writing = (near ? await runUnderstand(a, opts) : null) ?? (await runSummarize(a, opts));
     return { prefilter, scores, writing, structure: s.value };
   } finally {
     // A score/writing error or deploy must not let the job finish while a paid structure request
@@ -421,7 +450,8 @@ export function normalizeAnalysis(run: AnalysisRun) {
   const sum = values?.length === SCORE_CALLS ? values.reduce((total, v) => total + v, 0) : null;
   const score = sum === null ? null : Math.floor(sum / SCORE_CALLS);
   const threshold = run.scores?.threshold ?? null;
-  const selected = relevance === "pass" && sum !== null && threshold !== null && sum >= threshold * SCORE_CALLS;
+  const promotion = run.structure?.promotion ?? false;
+  const selected = relevance === "pass" && !promotion && sum !== null && threshold !== null && sum >= threshold * SCORE_CALLS;
   const subjects = run.structure?.subjects ?? [];
   const tags = [...(run.writing?.tags ?? run.structure?.tags ?? [])];
   for (const s of subjects) {
@@ -441,8 +471,9 @@ export function normalizeAnalysis(run: AnalysisRun) {
     subjects,
     titleZh,
     summaryZh,
-    reasonZh: run.writing?.reasonZh ?? null,
+    reasonZh: promotion ? null : run.writing?.reasonZh ?? null,
     fact: run.structure?.fact ?? null,
+    promotion,
   };
 }
 
@@ -477,6 +508,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     ...(w ? { writer: w.kind, writerModel: w.model, itemType: w.itemType ?? null, authorRole: w.authorRole ?? null } : {}),
     ...(w?.identityGuard?.outcome === "fallback" ? { identityGuard: w.identityGuard } : {}),
     fact: out.fact,
+    ...(out.promotion ? { promotion: true } : {}),
   };
   const committed = await sql.begin(async (tx) => {
     const [current] = await tx<{ revision: number }[]>`SELECT revision FROM articles WHERE id = ${articleId} FOR UPDATE`;

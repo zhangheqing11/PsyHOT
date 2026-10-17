@@ -5,6 +5,7 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { actorOf } from "@aihot/backend/admin/auth";
 
 import { importSelectBenchRun, listSelectBenchRuns, selectBenchRun } from "@aihot/backend/admin/selectbench";
+import { exportGold, labelOf, listLabels, setLabel, type LabelListFilters } from "@aihot/backend/admin/labels";
 import { modelsOverview, switchModel } from "@aihot/backend/admin/models";
 
 import { contentChain, detachFromFact, mergeStories, overrideFields, rerun, searchContent, setSeoIndexed, setVisibility } from "@aihot/backend/admin/content";
@@ -36,7 +37,7 @@ export function registerAdmin(app: FastifyInstance) {
   // Sources (F18)
   app.get("/api/admin/sources", adminHandler(async (req) => {
     const f = q(req);
-    return listSources({ q: f.q, kind: f.kind, health: f.health, mode: f.mode, enabled: f.enabled as "true" | "false" | undefined, page: page(req) });
+    return listSources({ q: f.q, kind: f.kind, health: f.health, mode: f.mode, track: f.track, enabled: f.enabled as "true" | "false" | undefined, page: page(req) });
   }));
   app.post("/api/admin/sources", adminHandler(async (req, _reply, admin) => createSource(body(req), actorOf(admin))));
   app.post("/api/admin/sources/preview", adminHandler(async (req) => previewSource(body(req) as never)));
@@ -63,6 +64,17 @@ export function registerAdmin(app: FastifyInstance) {
     return orNotFound(req, reply, await rerun(param(req, "id"), b.step, requestId, actorOf(admin)));
   }));
   app.post("/api/admin/content/:id/detach", adminHandler(async (req, _reply, admin) => detachFromFact(param(req, "id"), String(body(req).reason ?? ""), actorOf(admin))));
+  // Selection labels (docs/selection.md)
+  app.get("/api/admin/labels", adminHandler(async (req) => {
+    const f = q(req);
+    return listLabels({ status: f.status as LabelListFilters["status"], queue: f.queue, track: f.track, page: page(req) });
+  }));
+  app.get("/api/admin/labels/export", adminHandler(async (_req, reply) => {
+    reply.header("content-type", "application/x-ndjson; charset=utf-8").header("content-disposition", 'attachment; filename="gold.jsonl"');
+    return exportGold();
+  }));
+  app.get("/api/admin/labels/:id", adminHandler(async (req) => ({ label: await labelOf(param(req, "id")) })));
+  app.post("/api/admin/labels/:id", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await setLabel(param(req, "id"), body(req), actorOf(admin)))));
   app.post("/api/admin/stories/merge", adminHandler(async (req, _reply, admin) => {
     const b = body<{ from: number; into: number; reason: string }>(req);
     return mergeStories(Number(b.from), Number(b.into), b.reason, actorOf(admin));
@@ -141,6 +153,7 @@ export function registerAdmin(app: FastifyInstance) {
       SELECT (SELECT count(*)::int FROM feedback WHERE status = 'new') AS feedback,
              (SELECT count(*)::int FROM sources WHERE enabled AND health = 'failing') AS sources,
              (SELECT count(*)::int FROM receipts WHERE status = 'unknown') + (SELECT count(*)::int FROM deliveries WHERE status = 'unknown') AS runs,
+             (SELECT count(*)::int FROM selection_labels WHERE decision IS NULL) AS labels,
              (SELECT count(*)::int FROM monitor_posts WHERE (recognition->>'needsReview')::boolean IS TRUE AND (recognition->>'reviewed')::boolean IS NOT TRUE AND processed_at > now() - interval '7 days')
                + (SELECT count(*)::int FROM monitor_posts WHERE processed_at IS NULL AND collected_at < now() - interval '20 minutes') AS monitor`;
     return c;

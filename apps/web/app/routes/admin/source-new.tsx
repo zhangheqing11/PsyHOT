@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/source-new";
 import { useAdminAction } from "../../features/admin/action";
 import { bj } from "../../features/admin/format";
-import { KIND_LABEL, MODE_LABEL, TIER_LABEL } from "../../features/admin/labels";
+import { KIND_LABEL, MODE_LABEL, REGION_LABEL, TIER_LABEL, TRACK_LABEL } from "../../features/admin/labels";
 import { AdminPage, Button, Card, Empty, Field, Input, Select, Textarea } from "../../features/admin/ui";
 
 export const meta: Route.MetaFunction = () => [{ title: `新建信源 · ${SITE.name} 后台` }];
@@ -27,7 +27,7 @@ interface Preview {
 export default function NewSource() {
   const navigate = useNavigate();
   const { run, pending } = useAdminAction();
-  const [form, setForm] = useState({ id: "", name: "", kind: "rss", tier: "T2", participation_mode: "editorial", interval_minutes: 30, first_party: false, site_fulltext: true, syndicate_fulltext: false, tags: "" });
+  const [form, setForm] = useState({ id: "", name: "", kind: "rss", tier: "T2", participation_mode: "editorial", interval_minutes: 30, first_party: false, site_fulltext: true, syndicate_fulltext: false, tags: "", track: "mixed", region: "" });
   const [config, setConfig] = useState(JSON.stringify(TEMPLATES.rss, null, 2));
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -79,6 +79,17 @@ export default function NewSource() {
                 {Object.entries(TIER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </Select>
             </Field>
+            <Field label="视角" hint="学界、业界信源的条目只能归入这一边的类别">
+              <Select value={form.track} onChange={(e) => setForm({ ...form, track: e.target.value })}>
+                {Object.entries(TRACK_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </Select>
+            </Field>
+            <Field label="地区">
+              <Select value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })}>
+                <option value="">未设置</option>
+                {Object.entries(REGION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </Select>
+            </Field>
             <Field label="标签（逗号分隔）">
               <Input value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
             </Field>
@@ -128,7 +139,7 @@ export default function NewSource() {
                 const r = await run<{ created: boolean; duplicate?: { id: string; name: string }; source?: { id: string } }>(
                   "POST",
                   "/api/admin/sources",
-                  { ...form, tags: form.tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean), config: c },
+                  { ...form, region: form.region || null, tags: form.tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean), config: c },
                   { label: "create", revalidate: false },
                 );
                 if (!r) return;

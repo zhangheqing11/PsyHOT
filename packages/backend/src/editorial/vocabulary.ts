@@ -27,3 +27,27 @@ export function normalizeTags(v: unknown, opts: { max?: number; fallbackCategory
 
 /** The category guide the structure step reads: one line per category. */
 export const CATEGORY_GUIDE = CATEGORIES.map((c) => `- ${c.key}（${c.label}）：${c.guide}`).join("\n");
+
+/** Each track's categories, in the pack's order. */
+export const TRACK_CATEGORIES = {
+  academic: CATEGORIES.filter((c) => c.track === "academic").map((c) => c.key),
+  industry: CATEGORIES.filter((c) => c.track === "industry").map((c) => c.key),
+} as Record<"academic" | "industry", string[]>;
+
+/** Where an item of a one-track source lands when the model picks the other side's category. */
+const TRACK_FALLBACK = { academic: "opinion", industry: "industry" } as const;
+
+/**
+ * The category an item keeps, given its source's track: an academic or industry source's items stay on
+ * that side (a mixed source's take any category).
+ */
+export function categoryForSource(category: string | null, sourceTrack: string | undefined): string | null {
+  if (sourceTrack !== "academic" && sourceTrack !== "industry") return category;
+  if (category === null || TRACK_CATEGORIES[sourceTrack].includes(category)) return category;
+  return TRACK_FALLBACK[sourceTrack];
+}
+
+/** The track of a stored category (null when it has none). */
+export function trackOfCategory(category: string | null): "academic" | "industry" | null {
+  return CATEGORIES.find((c) => c.key === category)?.track ?? null;
+}

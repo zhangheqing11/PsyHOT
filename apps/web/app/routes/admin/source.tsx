@@ -5,7 +5,7 @@ import type { Route } from "./+types/source";
 import { adminGet } from "../../lib/admin.server";
 import { useAdminAction } from "../../features/admin/action";
 import { bj, duration, num } from "../../features/admin/format";
-import { HEALTH_LABEL, KIND_LABEL, MODE_LABEL, TIER_LABEL, VISIBILITY_LABEL } from "../../features/admin/labels";
+import { HEALTH_LABEL, KIND_LABEL, MODE_LABEL, TIER_LABEL, VISIBILITY_LABEL, REGION_LABEL, TRACK_LABEL } from "../../features/admin/labels";
 import { AdminPage, Badge, Button, Card, DataTable, Dot, Empty, Field, healthTone, Input, Json, KV, ReasonDialog, Select, Stat, Textarea, Time } from "../../features/admin/ui";
 
 interface Source {
@@ -18,6 +18,8 @@ interface Source {
   owner_entity_id: string | null;
   tier: string;
   participation_mode: string;
+  track: string;
+  region: string | null;
   signal_group_id: string | null;
   interval_minutes: number;
   site_fulltext: boolean;
@@ -61,7 +63,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [{ title: `${loaderData?.source.name ?? "信源"} · ${SITE.name} 后台` }];
 
-type Draft = Pick<Source, "name" | "interval_minutes" | "tier" | "participation_mode" | "signal_group_id" | "first_party" | "owner_entity_id" | "site_fulltext" | "syndicate_fulltext"> & { tags: string; config: string };
+type Draft = Pick<Source, "name" | "interval_minutes" | "tier" | "participation_mode" | "track" | "region" | "signal_group_id" | "first_party" | "owner_entity_id" | "site_fulltext" | "syndicate_fulltext"> & { tags: string; config: string };
 
 function draftOf(s: Source): Draft {
   return {
@@ -69,6 +71,8 @@ function draftOf(s: Source): Draft {
     interval_minutes: s.interval_minutes,
     tier: s.tier,
     participation_mode: s.participation_mode,
+    track: s.track,
+    region: s.region,
     signal_group_id: s.signal_group_id,
     first_party: s.first_party,
     owner_entity_id: s.owner_entity_id,
@@ -109,6 +113,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
       config,
       interval_minutes: Number(draft.interval_minutes),
       signal_group_id: draft.signal_group_id || null,
+      region: draft.region || null,
       owner_entity_id: draft.owner_entity_id || null,
     };
     const before = draftOf(s) as Record<string, unknown>;
@@ -210,6 +215,17 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
               <Field label="等级">
                 <Select value={draft.tier} onChange={(e) => setDraft({ ...draft, tier: e.target.value })}>
                   {Object.entries(TIER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </Select>
+              </Field>
+              <Field label="视角" hint="学界、业界信源的条目只能归入这一边的类别">
+                <Select value={draft.track} onChange={(e) => setDraft({ ...draft, track: e.target.value })}>
+                  {Object.entries(TRACK_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </Select>
+              </Field>
+              <Field label="地区">
+                <Select value={draft.region ?? ""} onChange={(e) => setDraft({ ...draft, region: e.target.value || null })}>
+                  <option value="">未设置</option>
+                  {Object.entries(REGION_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </Select>
               </Field>
               <Field label="讨论分组 ID" hint="同一机构的多个账号共用，热度只算一次">

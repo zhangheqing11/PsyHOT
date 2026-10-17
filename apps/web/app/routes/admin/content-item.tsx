@@ -1,12 +1,13 @@
 import { SITE } from "@aihot/industry/site";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { CATEGORY_KEYS, CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
+import { CATEGORY_KEYS, CATEGORY_NAMES } from "@aihot/contracts/taxonomy";
 import type { Route } from "./+types/content-item";
 import { adminGet } from "../../lib/admin.server";
 import { useAdminAction } from "../../features/admin/action";
 import { bj, money } from "../../features/admin/format";
 import { KIND_LABEL, MODE_LABEL, VISIBILITY_LABEL } from "../../features/admin/labels";
+import { LabelButtons } from "../../features/admin/LabelButtons";
 import { AdminPage, Badge, Button, Card, Empty, Field, Input, Json, KV, ReasonDialog, Select, Textarea } from "../../features/admin/ui";
 
 type Row = Record<string, any>;
@@ -22,10 +23,16 @@ interface Chain {
   decisions: Row[];
   deliveries: Row[];
   history: Row[];
+  label: { queue: string; split: string; decision: string | null; note: string | null; labeled_by: string | null; labeled_at: string | null } | null;
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  return adminGet<Chain>(request, `/api/admin/content/${encodeURIComponent(params.id)}`);
+  const id = encodeURIComponent(params.id);
+  const [chain, { label }] = await Promise.all([
+    adminGet<Omit<Chain, "label">>(request, `/api/admin/content/${id}`),
+    adminGet<{ label: Chain["label"] }>(request, `/api/admin/labels/${id}`),
+  ]);
+  return { ...chain, label } as Chain;
 }
 
 export const meta: Route.MetaFunction = ({ loaderData }) => [{ title: `${loaderData?.publication?.title ?? loaderData?.article.title ?? "内容"} · ${SITE.name} 后台` }];
@@ -54,7 +61,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
   const { run, pending } = useAdminAction();
   const [dialog, setDialog] = useState<Dialog>(null);
   const [visibility, setVisibility] = useState<string>(p?.visibility ?? "public");
-  const [fields, setFields] = useState({ title: "", summary: "", reason: "", category: "", tags: "", selected: "", silent: "" });
+  const [fields, setFields] = useState({ title: "", summary: "", reason: "", category: "", tags: "", selected: "", promotion: "", silent: "" });
   const [mergeInto, setMergeInto] = useState("");
   const version = c.override?.version ?? 0;
   const base = `/api/admin/content/${encodeURIComponent(a.id)}`;
@@ -70,6 +77,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
       category: String(f.category ?? ""),
       tags: Array.isArray(f.tags) ? (f.tags as string[]).join(", ") : "",
       selected: f.selected === undefined ? "" : String(f.selected),
+      promotion: f.promotion === undefined ? "" : String(f.promotion),
       silent: f.silent === undefined ? "" : String(f.silent),
     });
     setDialog("override");
@@ -105,6 +113,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
       <div className="mb-5 flex flex-wrap gap-1.5">
         {p ? <Badge tone={p.visibility === "public" ? "ok" : "warn"}>{VISIBILITY_LABEL[p.visibility] ?? p.visibility}</Badge> : <Badge>未公开</Badge>}
         {p?.selected && <Badge tone="accent">精选</Badge>}
+        {p?.promotion && <Badge tone="warn">推广</Badge>}
         {p?.eligible === false && <Badge>不进公开面</Badge>}
         {a.backfill && <Badge tone="warn">历史回灌</Badge>}
         <Badge>处理 {a.processing_state}</Badge>
@@ -160,7 +169,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                         <Badge tone={an.relevance === "pass" ? "ok" : "muted"}>{an.relevance}</Badge>
                         {an.selected && <Badge tone="accent">入选</Badge>}
                         <Badge tone="info">分数 {an.score}</Badge>
-                        {an.category && <Badge>{CATEGORY_LABELS[an.category as keyof typeof CATEGORY_LABELS] ?? an.category}</Badge>}
+                        {an.category && <Badge>{CATEGORY_NAMES[an.category as keyof typeof CATEGORY_NAMES] ?? an.category}</Badge>}
                         <span className="text-ink-4">{an.model} · {an.prompt_version} · 输入 v{an.input_revision} · {an.origin} · {bj(an.created_at)}</span>
                       </div>
                       {an.title_zh && <div className="mt-2 font-medium text-ink">{an.title_zh}</div>}
@@ -187,7 +196,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                   items={[
                     ["范围", VISIBILITY_LABEL[p.visibility] ?? p.visibility],
                     ["精选", p.selected ? `是 · 可见于 ${p.visible_after ? bj(p.visible_after, true) : "立即"}` : "否"],
-                    ["栏目", p.category ? CATEGORY_LABELS[p.category as keyof typeof CATEGORY_LABELS] ?? p.category : null],
+                    ["栏目", p.category ? CATEGORY_NAMES[p.category as keyof typeof CATEGORY_NAMES] ?? p.category : null],
                     ["标签", (p.tags as string[] | null)?.join("、")],
                     ["摘要", p.summary],
                     ["推荐理由", p.reason],
@@ -274,6 +283,10 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
         </Card>
 
         <div className="space-y-5">
+          <Card title="标注" right={c.label?.decision ? <span>{c.label.labeled_by} · {bj(c.label.labeled_at!)}</span> : c.label ? <span>在待标注队列里</span> : undefined}>
+            <div className="text-[12.5px] text-ink-3">这条该不该进精选？标注用来校准门槛（后台“标注”页可导出）。</div>
+            <div className="mt-2"><LabelButtons id={a.id} decision={c.label?.decision ?? null} /></div>
+          </Card>
           <Card title="原始信息">
             <KV
               items={[
@@ -358,7 +371,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
           else if (c.override?.fields.category !== undefined) clear.push("category");
           if (fields.tags.trim()) next.tags = fields.tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean);
           else if (c.override?.fields.tags !== undefined) clear.push("tags");
-          for (const k of ["selected", "silent"] as const) {
+          for (const k of ["selected", "promotion", "silent"] as const) {
             if (fields[k] === "true" || fields[k] === "false") next[k] = fields[k] === "true";
             else if (c.override?.fields[k] !== undefined) clear.push(k);
           }
@@ -372,7 +385,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
           <Field label="栏目">
             <Select value={fields.category} onChange={(e) => setFields({ ...fields, category: e.target.value })}>
               <option value="">不修正</option>
-              {CATEGORY_KEYS.map((k) => <option key={k} value={k}>{CATEGORY_LABELS[k]}</option>)}
+              {CATEGORY_KEYS.map((k) => <option key={k} value={k}>{CATEGORY_NAMES[k]}</option>)}
             </Select>
           </Field>
           <Field label="标签（逗号分隔）"><Input value={fields.tags} onChange={(e) => setFields({ ...fields, tags: e.target.value })} /></Field>
@@ -381,6 +394,13 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
               <option value="">按模型</option>
               <option value="true">强制入选</option>
               <option value="false">强制不选</option>
+            </Select>
+          </Field>
+          <Field label="推广" hint="推广只出现在全部动态，不进精选和对外出口">
+            <Select value={fields.promotion} onChange={(e) => setFields({ ...fields, promotion: e.target.value })}>
+              <option value="">按模型</option>
+              <option value="true">是推广</option>
+              <option value="false">不是推广</option>
             </Select>
           </Field>
           <Field label="推送">

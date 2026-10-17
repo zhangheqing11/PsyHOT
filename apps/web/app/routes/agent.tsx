@@ -3,7 +3,7 @@ import { Link, useLoaderData, useNavigate, useSearchParams } from "react-router"
 import type { Route } from "./+types/agent";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { FEATURES } from "@aihot/industry/features";
-import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { MCP_TOOL_NAMES as T } from "@aihot/contracts/mcp";
 import { SKILL_NAME, SKILL_PATH, SKILL_VERSION } from "@aihot/contracts/skill";
 import { listPath, pageMeta, siteUrl } from "../lib/seo";
@@ -216,7 +216,7 @@ function RssTab({ base }: { base: string }) {
     ["最近 7 天全部动态", "最近 7 天公开动态，按真实发布时间倒序。", "/feed/all.xml"],
     [withSubject("日报"), `每天 08:00 北京时间发布的${withSubject("日报")}，保留最近 30 期。`, "/feed/daily.xml"],
   ];
-  const categories = CATEGORY_KEYS.join("|");
+  const categories = PUBLIC_API_CATEGORY_KEYS.join("|");
   return (
     <>
       <h2 className="text-[20px] font-bold text-ink">复制地址即可订阅</h2>

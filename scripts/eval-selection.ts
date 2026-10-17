@@ -43,7 +43,8 @@ await waitForOffPeak("eval-selection");
 interface GoldRow {
   caseId: string;
   material: { title: string; originalTitle: string | null; publishedAt: string | null; sourceName: string; bodyZh: string | null; bodyOriginal: string | null };
-  sourceFacts: { sourceKind: string; sourceTier?: string; firstParty?: boolean; language?: string | null };
+  /** track: the item's side (academic / industry), which picks the threshold when the two sides have their own. */
+  sourceFacts: { sourceKind: string; sourceTier?: string; firstParty?: boolean; language?: string | null; track?: string | null };
   /** Optional: a split (e.g. development / holdout) and a stratum for reading the mistakes. */
   samplingContext?: { benchmarkSplit?: string; samplingStratum?: string };
   gold: { decision: "select" | "reject" | "either" };
@@ -78,7 +79,10 @@ function toInput(r: GoldRow): AnalyzeInputArticle {
     excerpt: null,
     xPost: isX ? { authorName: m.sourceName, handle: "", text: body ?? m.title } : null,
     media: [],
-    source: { name: m.sourceName, kind: r.sourceFacts.sourceKind, tier: r.sourceFacts.sourceTier ?? "T2", firstParty: r.sourceFacts.firstParty ?? false },
+    source: {
+      name: m.sourceName, kind: r.sourceFacts.sourceKind, tier: r.sourceFacts.sourceTier ?? "T2", firstParty: r.sourceFacts.firstParty ?? false,
+      track: r.sourceFacts.track ?? undefined,
+    },
   };
 }
 
@@ -136,7 +140,7 @@ for (const model of models) {
         return { r, out: normalizeAnalysis(run), receiptIds, error: null as string | null };
       }
 
-      const threshold = tierThreshold(input.source.tier);
+      const threshold = tierThreshold(input.source.tier, input.source.track);
       if (threshold === null) {
         const run: AnalysisRun = { prefilter, scores: null, writing: null, structure: null };
         return { r, out: normalizeAnalysis(run), receiptIds, error: null as string | null };

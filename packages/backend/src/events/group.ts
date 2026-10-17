@@ -24,6 +24,7 @@ import { isHistorical, STALE_ON_DISCOVERY_MS } from "../content/materials.ts";
 import { doiFromUrl, identityKeyForUrl } from "../lib/url.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { publishArticle } from "../publication/publish.ts";
+import { isPromotion } from "../publication/rules.ts";
 import { mergeStoryInto } from "./merge.ts";
 import {
   BATCH_SYSTEM, BatchSchema, PAIR_SYSTEM, PairSchema, RELATE_PROMPT_VERSION, SIGNAL_SYSTEM, STORY_REVIEW_MIN_CONFIDENCE, SignalSchema, TIE_MIN_CONFIDENCE,
@@ -667,6 +668,17 @@ async function decide(articleId: string, opts: GroupOptions): Promise<GroupResul
   }
 
   if (opts.signalOnly || a.participation_mode !== "editorial") return groupSignal(a, source, observedAt);
+
+  // A promotion joins no event (and leaves one it was in before it was told apart).
+  const [promo] = await sql<{ judged: boolean | null; override: boolean | null }[]>`
+    SELECT (SELECT (output->>'promotion')::boolean FROM analyses WHERE article_id = ${articleId} ORDER BY input_revision DESC, id DESC LIMIT 1) AS judged,
+           (SELECT (fields->>'promotion')::boolean FROM editorial_overrides WHERE article_id = ${articleId}) AS override`;
+  if (isPromotion(promo?.override, promo?.judged)) {
+    if (!left.length) await resetAutomatic(articleId);
+    await markGrouped(articleId);
+    await publishArticle(articleId);
+    return { verdict: "standalone" };
+  }
 
   const kept = await currentMembership(articleId);
   if (kept) {

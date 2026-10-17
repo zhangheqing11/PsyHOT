@@ -34,9 +34,20 @@ export function hasItemPage(p: { visibility: string; sourceMode: string }): bool
   return p.visibility !== "withdrawn" && p.sourceMode === "editorial";
 }
 
-/** Selected: pool eligible, judged selected, and the source tier may enter the selection. */
-export function isSelectable(eligible: boolean, judgedSelected: boolean | null, tier: string): boolean {
-  return eligible && judgedSelected === true && tier !== "EXCLUDE_MP";
+/**
+ * Selected: pool eligible, judged selected, the source tier may enter the selection, and not a
+ * promotion (which never is, whatever the score or an override of `selected` says).
+ */
+export function isSelectable(eligible: boolean, judgedSelected: boolean | null, tier: string, promotion = false): boolean {
+  return eligible && judgedSelected === true && tier !== "EXCLUDE_MP" && !promotion;
+}
+
+/**
+ * A promotion (the industry's own advertising): the editor's override wins over the structure step.
+ * It is listed in the full feed only, never selected, grouped into events or exported (API, RSS, MCP).
+ */
+export function isPromotion(override: unknown, judged: unknown): boolean {
+  return typeof override === "boolean" ? override : judged === true;
 }
 
 /**

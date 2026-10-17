@@ -2,31 +2,45 @@
 // 模型按这里的词表打标签，主题页（topics.json）按标签归类，筛选栏按类别分组。
 // 换行业时：类别的 key 会出现在网址里（/all?category=…），上线后就不要再改；标签和名录可以随时增减。
 
+/** 两个视角。每个类别属于其中一个；读者可以只看一边（开关是 features.ts 的 tracks，关着时网站上不出现）。 */
+export const TRACKS = [
+  { key: "academic", label: "学界" },
+  { key: "industry", label: "业界" },
+] as const;
+
 /**
  * 网页上的类别（筛选栏、卡片角标、RSS 分类订阅）。key 是网址和接口里的身份，上线后不要改。
+ * track 是类别所属的视角：判断一条内容归哪边，看它回答的是“我们知道了什么”（学界），还是“谁在用这些
+ * 知识做什么、在什么规则下做”（业界）。心理咨询和精神医学属于业界，但它们的研究结果（比如治疗的随机
+ * 对照试验）属于学界。
+ * 顺序就是筛选栏和日报分节的顺序。后加的三个业界类别排在最后，日报里和 industry 共用“行业与政策”一节，
+ * 视角开关关着时在网站上合并显示为“行业”（packages/contracts/src/taxonomy.ts）。
  * section 是日报里的分节标题（几个类别可以共用一节，按这里的顺序排）；guide 告诉模型怎么归类。
  * 没归上类的资料在日报里放进第一个 key 为 industry 的类别所在的节（没有就放最后一节）。
  */
 export const CATEGORIES = [
-  { key: "research", label: "研究", section: "研究发现", guide: "新的实证研究：实验、调查、队列、脑影像等原创研究结果，包括预印本；不含综述和元分析" },
-  { key: "review", label: "综述", section: "综述与元分析", guide: "元分析、系统综述、伞形综述、领域综述，以及大规模重复验证项目和多实验室合作研究的结果" },
-  { key: "clinical", label: "临床", section: "临床与治疗", guide: "心理治疗与干预、精神科药物与神经调控、临床试验结果、诊断标准（DSM、ICD）、临床指南与循证建议" },
-  { key: "industry", label: "行业", section: "行业与政策", guide: "心理健康政策法规与监管、学会与机构动态、从业资质与伦理事件、科研诚信与撤稿、数字心理健康产品与市场" },
-  { key: "method", label: "方法", section: "方法与工具", guide: "研究方法与统计、测量工具与量表、实验范式与数据集、开放科学与预注册实践" },
-  { key: "opinion", label: "观点", section: "观点与解读", guide: "学者评论与学术争鸣、理论文章、访谈、科普解读、现象与趋势讨论" },
+  { key: "research", track: "academic", label: "研究", section: "研究发现", guide: "新的实证研究：实验、调查、队列、脑影像等原创研究结果，包括预印本；不含综述和元分析" },
+  { key: "review", track: "academic", label: "综述", section: "综述与元分析", guide: "元分析、系统综述、伞形综述、领域综述，以及大规模重复验证项目和多实验室合作研究的结果" },
+  { key: "clinical", track: "academic", label: "临床", section: "临床与治疗", guide: "治疗与干预的研究证据和临床知识：心理治疗、精神科药物与神经调控的临床试验结果、疗效与安全性比较、诊断标准（DSM、ICD）和临床指南的内容与证据" },
+  { key: "industry", track: "industry", label: "机构与市场", section: "行业与政策", guide: "心理健康服务机构、医院和企业的动态与市场：服务机构与医院的业务变化，企业融资、并购、经营与人事，保险和支付方的动作，诉讼与商业纠纷，行业报告与市场数据，以及心理行业机构自己发的推广（平台和 App 宣传、课程招生、证书考试、会议招商、招聘）。主角是 AI 或数字产品的归 digital" },
+  { key: "method", track: "academic", label: "方法", section: "方法与工具", guide: "研究方法与统计、测量工具与量表、实验范式与数据集、开放科学与预注册实践，以及科研诚信：撤稿、数据造假调查与学术不端" },
+  { key: "opinion", track: "academic", label: "观点", section: "观点与解读", guide: "只收学术性的评论：学术争鸣、理论文章、学者访谈、对研究的科普解读。评论行业、政策、执业或 AI 产品的文章不归这里，按它谈的话题归入对应的业界类别" },
+  { key: "policy", track: "industry", label: "政策监管", section: "行业与政策", guide: "政府、监管机构和国际组织的规则与决定：法律法规与政策文件、药物和器械的审批与警示、医保与支付政策、心理健康服务体系的规划、公共心理健康项目、监管执法与处罚。主角是 AI 或数字产品的归 digital" },
+  { key: "profession", track: "industry", label: "执业与学会", section: "行业与政策", guide: "心理咨询、心理治疗和精神科这个职业本身：从业资质、注册与考试制度，执业伦理与投诉惩戒，学会和专业组织的决定、声明与伦理守则，培训认证与继续教育体系，从业者人力、待遇与执业状况调查" },
+  { key: "digital", track: "industry", label: "AI 与数字心理", section: "行业与政策", guide: "主角是 AI 或数字产品的业界内容：AI 心理陪伴与聊天机器人的产品、安全事件与监管，心理健康 App、数字疗法和远程服务的上市、审批、商业动态与合规，科技公司与心理健康相关的政策和做法。只要主角是 AI 或数字产品就归这里，不归 policy 或 industry；研究 AI 或数字干预效果的论文归学界" },
 ] as const;
 
 /**
  * 内容理解一步给每篇资料判的“内容类型”（写在 prompts/content-understanding.md 里，改了类型要同步改那份提示词）。
  * 评分提示词（prompts/selection-score.md）按类型给五个维度不同的权重。
  */
-export const ITEM_TYPES = ["research_finding", "meta_review", "replication", "clinical_practice", "policy_event", "method_tool", "opinion_explainer"] as const;
+export const ITEM_TYPES = ["research_finding", "meta_review", "replication", "clinical_practice", "policy_event", "industry_event", "method_tool", "opinion_explainer"] as const;
 
 // ── 标签词表 ────────────────────────────────────────────────────────────────────────────
 
 /** 每篇资料的第一个标签必须是这些“分类标签”之一。 */
 export const CATEGORY_TAGS = [
-  "研究发现", "元分析/综述", "重复验证", "临床/治疗", "诊断/评估", "政策/监管", "行业动态", "科研诚信", "方法/统计", "测量/量表", "学者观点", "科普解读",
+  "研究发现", "元分析/综述", "重复验证", "临床/治疗", "诊断/评估", "政策/监管", "执业/学会", "行业动态", "科研诚信", "方法/统计", "测量/量表", "学者观点", "科普解读",
   "其他",
 ] as const;
 
@@ -50,7 +64,8 @@ export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
   治疗: "临床/治疗", 临床试验: "临床/治疗", 干预: "临床/治疗", 疗法: "临床/治疗",
   诊断: "诊断/评估", 评估: "诊断/评估", 筛查: "诊断/评估",
   政策: "政策/监管", 监管: "政策/监管", 法规: "政策/监管", 法律: "政策/监管",
-  行业: "行业动态", 机构动态: "行业动态", 学会动态: "行业动态", 融资: "行业动态", 收购: "行业动态",
+  行业: "行业动态", 机构动态: "行业动态", 融资: "行业动态", 收购: "行业动态",
+  学会动态: "执业/学会", 执业: "执业/学会", 从业资质: "执业/学会", 执业伦理: "执业/学会",
   撤稿: "科研诚信", 学术不端: "科研诚信", 数据造假: "科研诚信",
   方法: "方法/统计", 统计: "方法/统计", 研究方法: "方法/统计", 量表: "测量/量表", 测量: "测量/量表", 问卷: "测量/量表",
   观点: "学者观点", 评论: "学者观点", 访谈: "学者观点", 科普: "科普解读", 解读: "科普解读",
@@ -73,7 +88,7 @@ export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
 /** 模型漏了分类标签时，按内容类型补一个。 */
 export const CATEGORY_BY_ITEM_TYPE: Readonly<Record<string, string>> = {
   research_finding: "研究发现", meta_review: "元分析/综述", replication: "重复验证", clinical_practice: "临床/治疗",
-  policy_event: "行业动态", method_tool: "方法/统计", opinion_explainer: "学者观点",
+  policy_event: "政策/监管", industry_event: "行业动态", method_tool: "方法/统计", opinion_explainer: "学者观点",
 };
 
 // ── 机构与主体 ──────────────────────────────────────────────────────────────────────────

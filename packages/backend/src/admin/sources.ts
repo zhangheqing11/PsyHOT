@@ -23,6 +23,7 @@ export interface SourceListFilters {
   health?: string;
   enabled?: "true" | "false";
   mode?: string;
+  track?: string;
   page?: number;
 }
 
@@ -30,7 +31,7 @@ export async function listSources(f: SourceListFilters) {
   const page = Math.max(1, f.page ?? 1);
   const q = f.q?.trim() ? `%${f.q.trim()}%` : null;
   const rows = await sql`
-    SELECT s.id, s.name, s.kind, s.tier, s.participation_mode, s.enabled, s.health, s.fail_count, s.interval_minutes,
+    SELECT s.id, s.name, s.kind, s.tier, s.participation_mode, s.track, s.region, s.enabled, s.health, s.fail_count, s.interval_minutes,
            s.last_ok_at, s.last_fetch_at, s.last_error, s.first_party, s.next_fetch_at,
            (SELECT count(*)::int FROM articles a WHERE a.source_id = s.id AND a.discovered_at > now() - interval '7 days') AS items_7d,
            (SELECT count(*)::int FROM publications p WHERE p.source_id = s.id AND p.selected AND p.discovered_at > now() - interval '30 days') AS selected_30d
@@ -39,6 +40,7 @@ export async function listSources(f: SourceListFilters) {
       AND (${f.kind ?? null}::text IS NULL OR s.kind = ${f.kind ?? null})
       AND (${f.health ?? null}::text IS NULL OR s.health = ${f.health ?? null})
       AND (${f.mode ?? null}::text IS NULL OR s.participation_mode = ${f.mode ?? null})
+      AND (${f.track ?? null}::text IS NULL OR s.track = ${f.track ?? null})
       AND (${f.enabled ?? null}::text IS NULL OR s.enabled = (${f.enabled ?? null} = 'true'))
     ORDER BY s.enabled DESC, CASE s.health WHEN 'failing' THEN 0 WHEN 'degraded' THEN 1 ELSE 2 END, s.name
     LIMIT 100 OFFSET ${(page - 1) * 100}`;
@@ -83,6 +85,10 @@ export async function previewSource(draft: Pick<SourceRow, "id" | "kind" | "conf
   };
 }
 
+/** A source's track limits its items' categories (editorial/analyze.ts); mixed sources take any. */
+export const SOURCE_TRACKS = ["academic", "industry", "mixed"] as const;
+export const SOURCE_REGIONS = ["domestic", "international"] as const;
+
 const EDITABLE = z
   .object({
     name: z.string().min(1).max(200),
@@ -96,6 +102,8 @@ const EDITABLE = z
     site_fulltext: z.boolean(),
     syndicate_fulltext: z.boolean(),
     tags: z.array(z.string().max(60)).max(30),
+    track: z.enum(SOURCE_TRACKS),
+    region: z.enum(SOURCE_REGIONS).nullable(),
     config: z.record(z.string(), z.unknown()),
   })
   .partial()
@@ -143,6 +151,8 @@ const CreateSchema = z
     tags: z.array(z.string()).default([]),
     site_fulltext: z.boolean().default(false),
     syndicate_fulltext: z.boolean().default(false),
+    track: z.enum(SOURCE_TRACKS).default("mixed"),
+    region: z.enum(SOURCE_REGIONS).nullable().default(null),
   })
   .strict();
 
@@ -174,9 +184,9 @@ export async function createSource(input: unknown, actor: string) {
   const dup = await findDuplicateSource(s.kind, s.config);
   if (dup) return { created: false as const, duplicate: dup };
   const [row] = await sql`
-    INSERT INTO sources (id, name, kind, config, tier, participation_mode, interval_minutes, first_party, tags, site_fulltext, syndicate_fulltext, next_fetch_at)
+    INSERT INTO sources (id, name, kind, config, tier, participation_mode, interval_minutes, first_party, tags, site_fulltext, syndicate_fulltext, track, region, next_fetch_at)
     VALUES (${s.id}, ${s.name}, ${s.kind}, ${sql.json(s.config as never)}, ${s.tier}, ${s.participation_mode}, ${s.interval_minutes}, ${s.first_party}, ${s.tags},
-            ${s.site_fulltext}, ${s.syndicate_fulltext}, now())
+            ${s.site_fulltext}, ${s.syndicate_fulltext}, ${s.track}, ${s.region}, now())
     ON CONFLICT (id) DO NOTHING RETURNING *`;
   if (!row) throw new Conflict(`信源 ID ${s.id} 已存在`);
   await audit(actor, "source.create", `source:${s.id}`, null, null, s);

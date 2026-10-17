@@ -1,6 +1,6 @@
 // Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
 // items through these functions; visibility, release gate and body licences are applied here.
-import type { CategoryKey, ChannelKey } from "@aihot/contracts/taxonomy";
+import { categoryMembers, toPublicApiCategory, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
 import { sql, type Db } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -18,6 +18,7 @@ export interface ItemRow {
   score: number | null;
   selected: boolean;
   eligible: boolean;
+  promotion: boolean;
   channel: "news" | "x";
   url: string;
   published_at: Date | null;
@@ -53,7 +54,7 @@ export interface ItemRow {
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
 export const ITEM_COLUMNS = sql`
   p.article_id AS id, p.revision, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.score,
-  p.selected, p.eligible, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
+  p.selected, p.eligible, p.promotion, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
   p.body_mode, p.syndicate, p.indexable, p.visible_after, p.backfill, p.fact_id, p.story_id,
   s.id AS source_id, s.name AS source_name, s.kind AS source_kind, s.participation_mode AS source_mode, s.icon_url AS source_icon,
   a.x_post, a.author, a.language,
@@ -81,6 +82,14 @@ export function listedCondition(now: Date) {
   return sql`p.visibility = 'public' AND (NOT p.selected OR p.visible_after <= ${now})`;
 }
 
+/**
+ * Items an outside reader gets (v1 API, MCP, Agent, RSS): promotions stay on the site's full feed.
+ * Selected items never are promotions (rules.ts isSelectable), so selected scopes need no extra term.
+ */
+export function exportedPoolCondition(now: Date) {
+  return sql`${listedCondition(now)} AND p.eligible AND NOT p.promotion`;
+}
+
 /** Selected set as shown on the home timeline, v1 selected mode and RSS. */
 export function selectedCondition(now: Date) {
   return sql`p.visibility = 'public' AND p.selected AND p.visible_after <= ${now}`;
@@ -92,9 +101,11 @@ export function channelCondition(channel: ChannelKey | null | undefined) {
   return sql`AND p.channel = ${channel}`;
 }
 
+/** A reader's category, which may stand for several stored ones (contracts/taxonomy.ts). */
 export function categoryCondition(category: CategoryKey | null | undefined) {
   if (!category) return sql``;
-  return sql`AND p.category = ${category}`;
+  const members = categoryMembers(category);
+  return members.length === 1 ? sql`AND p.category = ${members[0]!}` : sql`AND p.category = ANY(${members}::text[])`;
 }
 
 export function tagCondition(tag: string | null | undefined) {
@@ -169,7 +180,7 @@ export function toItemSummary(row: ItemRow): ItemSummary {
     publishedAt: row.published_at?.toISOString() ?? null,
     discoveredAt: row.discovered_at.toISOString(),
     timelineAt: row.timeline_at.toISOString(),
-    category: (row.category as CategoryKey | null) ?? null,
+    category: toPublicApiCategory(row.category),
     tags: displayTags(row.tags),
     score: row.score === null ? null : Math.round(Number(row.score)),
     selected: row.selected,
@@ -186,6 +197,7 @@ export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
     id: item.id, title: item.title, summary: item.summary, reason: item.reason,
     source: { name: item.source.name }, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
     category: item.category, tags: item.tags, score: item.score, selected: item.selected, channel: item.channel,
+    ...(row.promotion ? { promotion: true as const } : {}),
     x: item.x ? {
       authorName: item.x.authorName, handle: item.x.handle, avatarUrl: item.x.avatarUrl,
       ...(item.x.avatarSrcSet ? { avatarSrcSet: item.x.avatarSrcSet } : {}), media: item.x.media,

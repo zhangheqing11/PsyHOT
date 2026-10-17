@@ -3,7 +3,7 @@ import { Form, Link, useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/sources";
 import { adminGet } from "../../lib/admin.server";
 import { num } from "../../features/admin/format";
-import { HEALTH_LABEL, KIND_LABEL, MODE_LABEL } from "../../features/admin/labels";
+import { HEALTH_LABEL, KIND_LABEL, MODE_LABEL, REGION_LABEL, TRACK_LABEL } from "../../features/admin/labels";
 import { AdminPage, Badge, ButtonLink, Card, DataTable, Dot, FilterChips, healthTone, Input, Pager, Select, Stat, Time } from "../../features/admin/ui";
 
 interface SourceRow {
@@ -12,6 +12,8 @@ interface SourceRow {
   kind: string;
   tier: string;
   participation_mode: string;
+  track: string;
+  region: string | null;
   enabled: boolean;
   health: string;
   fail_count: number;
@@ -57,10 +59,11 @@ export default function Sources({ loaderData }: Route.ComponentProps) {
       <Card pad={false}>
         <div className="flex flex-col gap-3 border-b border-line p-3 lg:flex-row lg:items-center lg:justify-between">
           <Form method="get" className="flex w-full max-w-md gap-2" preventScrollReset>
-            {["kind", "health", "mode"].map((k) => sp.get(k) && <input key={k} type="hidden" name={k} value={sp.get(k)!} />)}
+            {["kind", "health", "mode", "track"].map((k) => sp.get(k) && <input key={k} type="hidden" name={k} value={sp.get(k)!} />)}
             <Input name="q" defaultValue={sp.get("q") ?? ""} placeholder="名称、ID 或地址" aria-label="搜索信源" />
           </Form>
           <div className="flex flex-wrap items-center gap-3">
+            <FilterChips param="track" options={[{ value: "", label: "全部视角" }, ...Object.entries(TRACK_LABEL).map(([value, label]) => ({ value, label }))]} />
             <FilterChips param="health" options={[{ value: "", label: "全部" }, { value: "failing", label: "失败" }, { value: "degraded", label: "不稳定" }, { value: "paused", label: "暂停" }]} />
             <Select
               aria-label="类型"
@@ -108,6 +111,8 @@ export default function Sources({ loaderData }: Route.ComponentProps) {
                   <Badge tone={r.participation_mode === "editorial" ? "accent" : "muted"}>{MODE_LABEL[r.participation_mode] ?? r.participation_mode}</Badge>
                   <Badge tone="info">{r.tier.replace("_", ".")}</Badge>
                   {r.first_party && <Badge tone="ok">一手</Badge>}
+                  <Badge>{TRACK_LABEL[r.track] ?? r.track}</Badge>
+                  {r.region && <Badge tone="muted">{REGION_LABEL[r.region]}</Badge>}
                 </div>
               ),
             },

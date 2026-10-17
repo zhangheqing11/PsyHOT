@@ -27,6 +27,7 @@ import { sourceHealthWeekly } from "@aihot/backend/operations/reports";
 import { markStalePendingReceipts } from "@aihot/backend/providers/receipts";
 import { markStaleDeliveries } from "@aihot/backend/notify/deliver";
 import { sendDailyEmails } from "@aihot/backend/notify/subscriptions";
+import { weeklyReviewBatch } from "@aihot/backend/admin/labels";
 
 interface Scheduled {
   name: string;
@@ -78,6 +79,8 @@ export const SCHEDULES: Scheduled[] = [
   { name: "feedback.forward", cron: "*/10 * * * *", run: () => forwardPendingFeedback() },
   ...(backupConfigured() ? [{ name: "ops.backup", cron: "10 4 * * *", missed: "once" as const, run: () => runBackup() }] : []),
   { name: "reports.source-health", cron: "0 9 * * 1", missed: "once", run: () => sourceHealthWeekly() },
+  // A review batch for the labelling queue (promotions, prefilter blocks, scores near the threshold); no model calls.
+  { name: "labels.review", cron: "0 7 * * 1", missed: "once", run: () => weeklyReviewBatch() },
   // Four upstream checks a day; a new run is published only when the evidence changed. With collection
   // off only the computation runs, over the snapshots already stored.
   ...(FEATURES.leaderboard

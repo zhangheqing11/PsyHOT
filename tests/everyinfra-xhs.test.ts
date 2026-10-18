@@ -8,6 +8,7 @@ import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { fetchJsonList } from "@aihot/backend/sources/json-list";
+import { collectSource } from "@aihot/backend/sources/collect";
 
 const T = tag();
 const calls: Array<{ platform: string; action: string; params: Record<string, unknown> }> = [];
@@ -27,6 +28,7 @@ process.env.EVERYINFRA_API_KEY = "test-key";
 config.allowPrivateNetworkFetch = true; // the stub listens on 127.0.0.1
 
 after(async () => {
+  await sql`UPDATE budgets SET per_minute = 10 WHERE service = 'everyinfra'`;
   await provider.close();
   await stopBoss();
   await closeDb();
@@ -46,4 +48,18 @@ test("a keyword search becomes candidates with their counts, through one receipt
   const [receipt] = await sql<{ status: string; cost: string }[]>`SELECT status, cost FROM receipts WHERE service = 'everyinfra' AND subject = ${source.id}`;
   assert.equal(receipt!.status, "received");
   assert.equal(Number(receipt!.cost), 0.005556);
+});
+
+test("a budget that runs out during note details keeps the paid listing's notes with their excerpts", async () => {
+  const id = `test-xhs-budget-${T}`;
+  await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, next_fetch_at) VALUES (${id}, 'XHS budget test', 'json_list',
+    ${sql.json({ adapter: "everyinfra_xhs", everyinfraAction: "search", everyinfraParams: { keyword: `预算 ${T}` }, everyinfraDetail: true, summaryIsBody: true } as never)}, 'T2', 'editorial', '2100-01-01')`;
+  // Room for the listing only: the note detail that follows hits the minute budget.
+  const [{ n }] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM receipt_attempts WHERE service = 'everyinfra' AND origin = 'live' AND started_at > now() - interval '1 minute'`;
+  await sql`UPDATE budgets SET per_minute = ${n + 1} WHERE service = 'everyinfra'`;
+  const result = await collectSource(id, { force: true });
+  assert.equal(result.created, 1, "the note is stored");
+  const [stored] = await sql<{ body_text: string; like_count: number }[]>`SELECT body_text, (raw->>'like_count')::int AS like_count FROM articles WHERE source_id = ${id}`;
+  assert.equal(stored!.body_text, "一项纵向研究……", "with the listing's excerpt as its body");
+  assert.equal(stored!.like_count, 120);
 });

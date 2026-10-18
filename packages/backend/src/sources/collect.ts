@@ -162,7 +162,9 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
           }
           c.raw = { ...(c.raw && typeof c.raw === "object" ? c.raw : {}), everyinfra: { noteReceiptId: note.receiptId } };
         } catch (error) {
-          if (error instanceof BudgetExceededError) throw error;
+          // The listing is paid for already: when the budget runs out, the rest keep their excerpts
+          // (failing the run would pay for the listing again on the retry).
+          if (error instanceof BudgetExceededError) break;
           // The listing is still useful when a detail call is temporarily unavailable.
         }
       }

@@ -8,11 +8,12 @@ import { beijingDate } from "../lib/format";
 import { EmptyState } from "../components/ui/Page";
 import { ReportLayout } from "../features/report/ReportLayout";
 import { ReportPaper } from "../features/report/ReportPaper";
-import { KIND_LABEL, kindFromPath } from "../features/report/format";
+import { KIND_LABEL, kindFromPath, trackOfSearch, trackQuery } from "../features/report/format";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const kind = kindFromPath(new URL(request.url).pathname);
-  const { index, report } = await loadOr404<{ index: ReportNavigationEntry[]; report: ReportDetail | null }>(`/api/site/reports/${kind}/latest-page`, { signal: request.signal });
+  const url = new URL(request.url);
+  const kind = kindFromPath(url.pathname);
+  const { index, report } = await loadOr404<{ index: ReportNavigationEntry[]; report: ReportDetail | null }>(`/api/site/reports/${kind}/latest-page${trackQuery(trackOfSearch(url.searchParams))}`, { signal: request.signal });
   return { kind, report, index, today: beijingDate(Date.now()) };
 }
 

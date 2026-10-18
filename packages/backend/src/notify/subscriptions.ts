@@ -1,9 +1,13 @@
 // Daily report subscriptions by email, with double opt-in: an address gets nothing but one
 // confirmation email until its owner confirms, and unsubscribing deletes it. The same answer is given
 // whether or not an address was already subscribed, so the form does not reveal who reads the site.
-// The daily send runs after the morning report: each issue goes once to each confirmed address.
+// The daily send runs after the morning report: each issue goes once to each confirmed address, the
+// whole report or one track's side of it as the subscriber chose.
 import { randomBytes } from "node:crypto";
+import type { ReportDetail } from "@aihot/contracts/site";
+import { isSubscriptionTrack, type SubscriptionTrack } from "@aihot/contracts/taxonomy";
 import { beijingDate } from "@aihot/contracts/time";
+import { FEATURES } from "@aihot/industry/features";
 import { config } from "../config.ts";
 import { sql } from "../db.ts";
 import { shutdownSignal } from "../jobs/queue.ts";
@@ -61,12 +65,16 @@ function rateLimit(ip: string, perHour = 5): void {
 
 /**
  * Starts a subscription: a new address is stored unconfirmed and sent the confirmation; an unconfirmed
- * one is sent it again (not more than once in ten minutes); a confirmed one is left as it is.
+ * one is sent it again (not more than once in ten minutes) with the track chosen now; a confirmed one is
+ * left as it is (its owner changes the track from the link in any email).
  */
-export async function subscribe(rawEmail: string, ip: string): Promise<void> {
+export async function subscribe(rawEmail: string, ip: string, rawTrack: unknown = "combined"): Promise<void> {
   if (!emailReady()) throw new SubscriptionRejected(503, "unavailable", "邮件订阅暂未开放。");
   const email = normalizeEmail(rawEmail);
   if (!email) throw new SubscriptionRejected(400, "invalid_email", "邮箱地址格式不对，请检查一下。");
+  if (!isSubscriptionTrack(rawTrack)) throw new SubscriptionRejected(400, "invalid_track", "订阅内容的选择不对，请重新选择。");
+  // Until the tracks switch is on there is only the whole report.
+  const track: SubscriptionTrack = FEATURES.tracks ? rawTrack : "combined";
   rateLimit(ip || "unknown");
 
   const [existing] = await sql<{ id: number; token: string; status: string; resend: boolean }[]>`
@@ -79,13 +87,13 @@ export async function subscribe(rawEmail: string, ip: string): Promise<void> {
 
   const token = existing?.token ?? randomBytes(24).toString("base64url");
   const [row] = existing
-    ? await sql<{ id: number }[]>`UPDATE email_subscribers SET confirm_sent_at = now(), updated_at = now() WHERE id = ${existing.id} RETURNING id`
+    ? await sql<{ id: number }[]>`UPDATE email_subscribers SET confirm_sent_at = now(), track = ${track}, updated_at = now() WHERE id = ${existing.id} RETURNING id`
     : await sql<{ id: number }[]>`
-        INSERT INTO email_subscribers (email, token, status, confirm_sent_at) VALUES (${email}, ${token}, 'pending', now())
+        INSERT INTO email_subscribers (email, token, status, track, confirm_sent_at) VALUES (${email}, ${token}, 'pending', ${track}, now())
         ON CONFLICT (lower(email)) DO NOTHING RETURNING id`;
   if (!row) return; // the same address submitted twice at once: the other request sends
   try {
-    await sendMail({ to: email, ...confirmationEmail(token) });
+    await sendMail({ to: email, ...confirmationEmail(token, track) });
   } catch (error) {
     // Nothing reached the reader: forget a new address, and let an old one be sent again at once.
     if (existing) await sql`UPDATE email_subscribers SET confirm_sent_at = NULL WHERE id = ${row.id}`;
@@ -95,12 +103,24 @@ export async function subscribe(rawEmail: string, ip: string): Promise<void> {
   }
 }
 
-/** Confirms the address the token was sent to; returns it masked, or null for an unknown token. */
-export async function confirmSubscription(token: string): Promise<string | null> {
-  const [row] = await sql<{ email: string }[]>`
+/** Confirms the address the token was sent to; returns it masked with its track, or null for an unknown token. */
+export async function confirmSubscription(token: string): Promise<{ email: string; track: SubscriptionTrack } | null> {
+  const [row] = await sql<{ email: string; track: SubscriptionTrack }[]>`
     UPDATE email_subscribers SET status = 'active', confirmed_at = coalesce(confirmed_at, now()), updated_at = now()
-    WHERE token = ${token} RETURNING email`;
-  return row ? maskEmail(row.email) : null;
+    WHERE token = ${token} RETURNING email, track`;
+  return row ? { email: maskEmail(row.email), track: row.track } : null;
+}
+
+/** The address behind a token (masked) and what it reads, for the page that changes it; null for an unknown token. */
+export async function subscriptionPreference(token: string): Promise<{ email: string; track: SubscriptionTrack } | null> {
+  const [row] = await sql<{ email: string; track: SubscriptionTrack }[]>`SELECT email, track FROM email_subscribers WHERE token = ${token}`;
+  return row ? { email: maskEmail(row.email), track: row.track } : null;
+}
+
+/** Changes what the address reads from the next issue on; false for an unknown token. */
+export async function setSubscriptionTrack(token: string, track: SubscriptionTrack): Promise<boolean> {
+  const rows = await sql`UPDATE email_subscribers SET track = ${track}, updated_at = now() WHERE token = ${token} RETURNING id`;
+  return rows.length > 0;
 }
 
 /** Deletes the address the token belongs to (and its delivery records); true when there was one. */
@@ -125,10 +145,15 @@ export async function sendDailyEmails(now = new Date()): Promise<{ key: string; 
   await sql`DELETE FROM email_subscribers WHERE status = 'pending' AND created_at < now() - make_interval(days => ${PENDING_DAYS})`;
   if (!emailReady()) return null;
   const key = beijingDate(now);
-  const report = await loadReport("daily", key);
-  if (!report) return null;
-  const due = await sql<{ id: number; email: string; token: string }[]>`
-    SELECT s.id, s.email, s.token FROM email_subscribers s
+  // The whole report, and each track's side of it as subscribers ask for them (loaded once per run).
+  const reports = new Map<SubscriptionTrack, ReportDetail | null>();
+  const reportFor = async (track: SubscriptionTrack) => {
+    if (!reports.has(track)) reports.set(track, await loadReport("daily", key, track === "combined" ? null : track));
+    return reports.get(track)!;
+  };
+  if (!(await reportFor("combined"))) return null;
+  const due = await sql<{ id: number; email: string; token: string; track: SubscriptionTrack }[]>`
+    SELECT s.id, s.email, s.token, s.track FROM email_subscribers s
     LEFT JOIN email_deliveries d ON d.subscriber_id = s.id AND d.report_key = ${key}
     WHERE s.status = 'active' AND (d.subscriber_id IS NULL OR (d.status = 'failed' AND d.attempts < ${MAX_ATTEMPTS}))
     ORDER BY s.id`;
@@ -138,8 +163,10 @@ export async function sendDailyEmails(now = new Date()): Promise<{ key: string; 
   let notices = 0;
   for (const s of due) {
     if (shutdownSignal.signal.aborted) break; // the next run continues
+    const report = (await reportFor(FEATURES.tracks ? s.track : "combined"))!;
     const mail = dailyEmail(report, unsubscribeUrl(s.token));
-    if (!mail) return { key, sent, failed, notices };
+    // An issue with nothing in it for this subscriber's track is not sent to them.
+    if (!mail) continue;
     // Claim the (address, issue) pair; a pair left "sending" by a crash is in doubt and is not sent again.
     const [claim] = await sql`
       INSERT INTO email_deliveries (subscriber_id, report_key, status) VALUES (${s.id}, ${key}, 'sending')

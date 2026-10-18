@@ -13,7 +13,7 @@ const T = tag();
 const SOURCE = `test-report-boundary-${T}`;
 const provider = await stub((hit) => ({
   id: `report-boundary-${T}-${hit}`,
-  choices: [{ message: { content: JSON.stringify({ title: "测试导语", leadParagraph: "测试摘要", highlights: [1] }) } }],
+  choices: [{ message: { content: JSON.stringify({ academic: { title: "测试导语", leadParagraph: "测试摘要", highlights: [1] }, industry: null }) } }],
   usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 },
 }));
 process.env.DEEPSEEK_BASE_URL = `${provider.url}/v1`;

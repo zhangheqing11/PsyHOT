@@ -201,10 +201,15 @@ export function registerSite(app: FastifyInstance) {
   registerFeedback(app);
 
 
-  app.get("/api/site/hot", siteHandler(async (req, reply) => {
-    const q = looseQuery(req);
-    const track = q.track?.trim() || null;
+  /** The optional `track` query parameter. */
+  const trackOf = (req: FastifyRequest): TrackKey | null => {
+    const track = looseQuery(req).track?.trim() || null;
     if (track !== null && !isTrackKey(track)) throw new BadRequest("invalid track");
+    return track;
+  };
+
+  app.get("/api/site/hot", siteHandler(async (req, reply) => {
+    const track = trackOf(req);
     const data = await loadHot(track);
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "hot", cacheControl: "public, max-age=30, s-maxage=30" });
   }));
@@ -233,7 +238,7 @@ export function registerSite(app: FastifyInstance) {
     const kind = (req.params as { kind: string }).kind;
     if (!["daily", "weekly", "monthly"].includes(kind)) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "unknown report kind" });
     const index = await listReports(kind as ReportKind);
-    const report = index[0] ? await loadReport(kind as ReportKind, index[0].key) : null;
+    const report = index[0] ? await loadReport(kind as ReportKind, index[0].key, trackOf(req)) : null;
     return sendJsonWithEtag(req, reply, { index: reportNavigation(kind as ReportKind, index, report?.key ?? ""), report }, { etagPrefix: "report-latest", cacheControl: "public, max-age=60, s-maxage=60" });
   }));
 
@@ -254,7 +259,7 @@ export function registerSite(app: FastifyInstance) {
     if (!["daily", "weekly", "monthly"].includes(kind) || !/^\d{4}-(\d{2}(-\d{2})?|W\d{2})$/.test(key)) {
       return sendProblem(req, reply, { status: 404, code: "not_found", detail: "report not found" });
     }
-    const data = await loadReport(kind as ReportKind, key);
+    const data = await loadReport(kind as ReportKind, key, trackOf(req));
     if (!data) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "report not found", cacheControl: "public, max-age=60" });
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "report", cacheControl: "public, max-age=120, s-maxage=120" });
   }));

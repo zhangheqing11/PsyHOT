@@ -1,5 +1,6 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { SubscriptionRejected, confirmSubscription, subscribe, unsubscribe } from "@aihot/backend/notify/subscriptions";
+import { isSubscriptionTrack } from "@aihot/contracts/taxonomy";
+import { SubscriptionRejected, confirmSubscription, setSubscriptionTrack, subscribe, subscriptionPreference, unsubscribe } from "@aihot/backend/notify/subscriptions";
 import { sendProblem } from "../http/respond.ts";
 
 const tokenOf = (v: unknown) => (typeof v === "string" && /^[A-Za-z0-9_-]{16,64}$/.test(v) ? v : null);
@@ -14,8 +15,9 @@ function failed(req: FastifyRequest, reply: FastifyReply, error: unknown) {
 export function registerSubscriptions(app: FastifyInstance) {
   app.post("/api/site/subscriptions", async (req, reply) => {
     try {
-      const email = String((req.body as { email?: unknown } | null)?.email ?? "");
-      await subscribe(email, String(req.headers["x-real-ip"] ?? req.ip ?? ""));
+      const body = req.body as { email?: unknown; track?: unknown } | null;
+      // No track is the whole report, as before tracks.
+      await subscribe(String(body?.email ?? ""), String(req.headers["x-real-ip"] ?? req.ip ?? ""), body?.track ?? "combined");
       // The same answer for a new, an unconfirmed and an already confirmed address.
       return reply.header("Cache-Control", "no-store").code(202).send({ ok: true });
     } catch (error) {
@@ -26,9 +28,33 @@ export function registerSubscriptions(app: FastifyInstance) {
   app.post("/api/site/subscriptions/confirm", async (req, reply) => {
     const token = tokenOf((req.body as { token?: unknown } | null)?.token);
     try {
-      const email = token ? await confirmSubscription(token) : null;
-      if (!email) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "这个确认链接已失效，请重新订阅。" });
-      return reply.header("Cache-Control", "no-store").send({ email });
+      const confirmed = token ? await confirmSubscription(token) : null;
+      if (!confirmed) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "这个确认链接已失效，请重新订阅。" });
+      return reply.header("Cache-Control", "no-store").send(confirmed);
+    } catch (error) {
+      return failed(req, reply, error);
+    }
+  });
+
+  // What the address behind a link reads, and a change of it (from the page the unsubscribe link opens).
+  app.post("/api/site/subscriptions/preferences", async (req, reply) => {
+    const token = tokenOf((req.body as { token?: unknown } | null)?.token);
+    try {
+      const preference = token ? await subscriptionPreference(token) : null;
+      if (!preference) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "这个链接已失效。" });
+      return reply.header("Cache-Control", "no-store").send(preference);
+    } catch (error) {
+      return failed(req, reply, error);
+    }
+  });
+
+  app.post("/api/site/subscriptions/track", async (req, reply) => {
+    const body = req.body as { token?: unknown; track?: unknown } | null;
+    const token = tokenOf(body?.token);
+    try {
+      if (!isSubscriptionTrack(body?.track)) return sendProblem(req, reply, { status: 400, code: "invalid_track", detail: "订阅内容的选择不对，请重新选择。" });
+      if (!token || !(await setSubscriptionTrack(token, body.track))) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "这个链接已失效。" });
+      return reply.header("Cache-Control", "no-store").send({ track: body.track });
     } catch (error) {
       return failed(req, reply, error);
     }

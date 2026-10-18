@@ -2,6 +2,8 @@
 // sheets, so the layout is one table with inline styles in the site's colours; every email also has a
 // plain-text part.
 import type { ReportCitation, ReportDetail } from "@aihot/contracts/site";
+import { SUBSCRIPTION_TRACK_LABELS, TRACK_LABELS, type SubscriptionTrack } from "@aihot/contracts/taxonomy";
+import { FEATURES } from "@aihot/industry/features";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { config, credential } from "../config.ts";
 import { escapeHtml } from "../lib/text.ts";
@@ -40,20 +42,25 @@ const button = (href: string, label: string) =>
 
 const link = (href: string, label: string, color = C.ink) => `<a href="${e(href)}" style="color:${color};text-decoration:none;">${e(label)}</a>`;
 
+/** The page the unsubscribe link opens also changes which track the address reads. */
+const changeLink = (unsubscribeUrl: string) => (FEATURES.tracks ? ` · ${link(unsubscribeUrl, "修改订阅视角", C.accent)}` : "");
+
 /** The email that asks the address's owner to confirm; nothing else is sent until they do. */
-export function confirmationEmail(token: string): RenderedMail {
+export function confirmationEmail(token: string, track: SubscriptionTrack = "combined"): RenderedMail {
   const url = `${config.siteUrl}/subscribe/confirm?t=${encodeURIComponent(token)}`;
   const daily = withSubject("日报");
+  // What was chosen: nothing is said when the whole report was (as before tracks).
+  const side = FEATURES.tracks && track !== "combined" ? `（${SUBSCRIPTION_TRACK_LABELS[track]}版）` : "";
   const body = `
-<h1 style="font-size:20px;line-height:1.5;margin:18px 0 10px;">确认订阅 ${e(SITE.name)} ${e(daily)}</h1>
-<p style="font-size:15px;line-height:1.8;color:${C.ink2};margin:0 0 20px;">有人（希望是你）用这个邮箱订阅了 ${e(SITE.name)} ${e(daily)}。确认后，每天早上日报出炉就会发到这里。</p>
+<h1 style="font-size:20px;line-height:1.5;margin:18px 0 10px;">确认订阅 ${e(SITE.name)} ${e(daily)}${e(side)}</h1>
+<p style="font-size:15px;line-height:1.8;color:${C.ink2};margin:0 0 20px;">有人（希望是你）用这个邮箱订阅了 ${e(SITE.name)} ${e(daily)}${e(side)}。确认后，每天早上日报出炉就会发到这里。</p>
 <p style="margin:0 0 22px;">${button(url, "确认订阅")}</p>
 <p style="font-size:13px;line-height:1.8;color:${C.muted};margin:0;">按钮打不开的话，把这个地址复制到浏览器：<br><span style="word-break:break-all;">${e(url)}</span></p>`;
   const footer = `如果不是你本人订阅的，忽略这封邮件即可：不确认，就不会再收到我们的邮件，这个地址会在 7 天后删除。`;
   return {
     subject: `确认订阅 ${SITE.name} ${daily}`,
     html: layout({ preheader: `点一下确认，每天早上收到${daily}。`, body, footer }),
-    text: `确认订阅 ${SITE.name} ${daily}\n\n有人（希望是你）用这个邮箱订阅了 ${SITE.name} ${daily}。确认后，每天早上日报出炉就会发到这里。\n\n确认订阅：${url}\n\n如果不是你本人订阅的，忽略这封邮件即可：不确认，就不会再收到我们的邮件，这个地址会在 7 天后删除。\n`,
+    text: `确认订阅 ${SITE.name} ${daily}${side}\n\n有人（希望是你）用这个邮箱订阅了 ${SITE.name} ${daily}${side}。确认后，每天早上日报出炉就会发到这里。\n\n确认订阅：${url}\n\n如果不是你本人订阅的，忽略这封邮件即可：不确认，就不会再收到我们的邮件，这个地址会在 7 天后删除。\n`,
   };
 }
 
@@ -64,22 +71,23 @@ export function confirmationEmail(token: string): RenderedMail {
  */
 export function dailyNotice(report: ReportDetail, unsubscribeUrl: string): RenderedMail {
   const daily = withSubject("日报");
-  const issueUrl = `${config.siteUrl}/daily/${report.key}`;
+  const edition = report.track ? `${daily}·${TRACK_LABELS[report.track]}` : daily;
+  const issueUrl = `${config.siteUrl}/daily/${report.key}${report.track ? `?track=${report.track}` : ""}`;
   const count = report.sections.reduce((n, s) => n + s.items.length, 0) + report.flashes.length;
-  const line = `今天的${daily}已经出炉，共 ${count} 条，汇集了期刊、预印本和学会的最新研究与动态。完整内容请到网站阅读。`;
+  const line = `今天的${edition}已经出炉，共 ${count} 条，汇集了期刊、预印本和学会的最新研究与动态。完整内容请到网站阅读。`;
   // Readers are told why the issue came as a link (EMAIL_PROVIDER_NAME names the service).
   const provider = credential("integrations", "EMAIL_PROVIDER_NAME");
   const why = `受邮件服务商${provider ? `（${provider}）` : ""}的内容政策限制，今天的完整${daily}无法通过邮件发送，所以这次只附上阅读链接。`;
   const body = `
-<p style="font-size:13px;color:${C.muted};margin:14px 0 4px;">${e(daily)} · ${e(report.key)}</p>
+<p style="font-size:13px;color:${C.muted};margin:14px 0 4px;">${e(edition)} · ${e(report.key)}</p>
 <p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:8px 0 10px;">${e(line)}</p>
 <p style="font-size:13px;line-height:1.8;color:${C.muted};margin:0 0 22px;">${e(why)}</p>
 <p style="margin:0 0 6px;text-align:center;">${button(issueUrl, "阅读本期")}</p>`;
-  const footer = `你收到这封邮件，是因为订阅了 ${e(SITE.name)} ${e(daily)}。不想再收到？${link(unsubscribeUrl, "一键退订", C.accent)}`;
+  const footer = `你收到这封邮件，是因为订阅了 ${e(SITE.name)} ${e(daily)}。不想再收到？${link(unsubscribeUrl, "一键退订", C.accent)}${changeLink(unsubscribeUrl)}`;
   return {
-    subject: `${SITE.name} ${daily} · ${dayLabel(report.key)}`,
+    subject: `${SITE.name} ${edition} · ${dayLabel(report.key)}`,
     html: layout({ preheader: line, body, footer }),
-    text: `${SITE.name} ${daily} · ${report.key}\n\n${line}\n\n${why}\n\n阅读本期：${issueUrl}\n\n——\n你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订：${unsubscribeUrl}\n`,
+    text: `${SITE.name} ${edition} · ${report.key}\n\n${line}\n\n${why}\n\n阅读本期：${issueUrl}\n\n——\n你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订${FEATURES.tracks ? "或修改订阅视角" : ""}：${unsubscribeUrl}\n`,
   };
 }
 
@@ -94,30 +102,50 @@ const dayLabel = (key: string) => {
   return `${m}月${d}日`;
 };
 
-/** One daily report as an email; null when the issue has nothing to send. */
+/** One daily report as an email (the whole report, or one track's side of it); null when the issue has nothing to send. */
 export function dailyEmail(report: ReportDetail, unsubscribeUrl: string): RenderedMail | null {
   const sections = report.sections
-    .map((s) => ({ label: s.label, items: s.items.filter((c) => hrefOf(c)) }))
+    .map((s) => ({ label: s.label, track: s.track, items: s.items.filter((c) => hrefOf(c)) }))
     .filter((s) => s.items.length > 0);
   const flashes = report.flashes.filter((c) => hrefOf(c));
   if (sections.length === 0 && flashes.length === 0) return null;
 
   const daily = withSubject("日报");
-  const issueUrl = `${config.siteUrl}/daily/${report.key}`;
-  const subject = report.lead ? `${daily} ${dayLabel(report.key)}｜${report.lead.title}` : `${SITE.name} ${daily} · ${dayLabel(report.key)}`;
+  const edition = report.track ? `${daily}·${TRACK_LABELS[report.track]}` : daily;
+  const issueUrl = `${config.siteUrl}/daily/${report.key}${report.track ? `?track=${report.track}` : ""}`;
+  const subject = report.lead ? `${edition} ${dayLabel(report.key)}｜${report.lead.title}` : `${SITE.name} ${edition} · ${dayLabel(report.key)}`;
   const count = sections.reduce((n, s) => n + s.items.length, 0) + flashes.length;
 
   const html: string[] = [];
-  const text: string[] = [`${SITE.name} ${daily} · ${report.key}`, ""];
-  html.push(`<p style="font-size:13px;color:${C.muted};margin:14px 0 4px;">${e(daily)} · ${e(report.key)} · 共 ${count} 条</p>`);
+  const text: string[] = [`${SITE.name} ${edition} · ${report.key}`, ""];
+  html.push(`<p style="font-size:13px;color:${C.muted};margin:14px 0 4px;">${e(edition)} · ${e(report.key)} · 共 ${count} 条</p>`);
   if (report.lead) {
     html.push(`<h1 style="font-size:22px;line-height:1.45;margin:4px 0 10px;">${e(report.lead.title)}</h1>`);
-    html.push(`<p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:0 0 6px;">${e(report.lead.leadParagraph)}</p>`);
-    text.push(report.lead.title, "", report.lead.leadParagraph, "");
+    text.push(report.lead.title, "");
   }
+  if (report.leadParts.length > 0) {
+    // The whole report: a paragraph for each side, labelled; a side's own headline when it is not the one above.
+    for (const part of report.leadParts) {
+      const own = part.title && part.title !== report.lead?.title ? part.title : null;
+      html.push(`<p style="font-size:13px;font-weight:700;color:${C.accent};margin:14px 0 2px;">${e(part.label)}</p>`);
+      if (own) html.push(`<p style="font-size:16px;font-weight:700;line-height:1.55;margin:0 0 2px;">${e(own)}</p>`);
+      html.push(`<p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:0 0 6px;">${e(part.leadParagraph)}</p>`);
+      text.push(`【${part.label}】`, ...(own ? [own] : []), part.leadParagraph, "");
+    }
+  } else if (report.lead) {
+    html.push(`<p style="font-size:15px;line-height:1.85;color:${C.ink2};margin:0 0 6px;">${e(report.lead.leadParagraph)}</p>`);
+    text.push(report.lead.leadParagraph, "");
+  }
+  // A banner where the whole report moves from one side to the other.
+  const bySide = FEATURES.tracks && !report.track;
+  let side: string | null = null;
   for (const s of sections) {
+    if (bySide && s.track && s.track !== side) {
+      side = s.track;
+      html.push(`<p style="font-size:13px;font-weight:700;letter-spacing:0.2em;color:${C.muted};margin:30px 0 0;">${e(TRACK_LABELS[s.track])}</p>`);
+    }
     html.push(`<h2 style="font-size:16px;margin:26px 0 4px;padding-bottom:6px;border-bottom:1px solid ${C.ink};color:${C.accent};">${e(s.label)}</h2>`);
-    text.push(`【${s.label}】`, "");
+    text.push(`【${bySide && s.track ? `${TRACK_LABELS[s.track]}·` : ""}${s.label}】`, "");
     for (const c of s.items) {
       const href = hrefOf(c)!;
       html.push(`<div style="padding:12px 0;border-bottom:1px solid ${C.line};">
@@ -142,10 +170,10 @@ ${c.summary ? `<div style="font-size:14px;line-height:1.8;color:${C.ink2};margin
   text.push(`在网站上阅读本期：${issueUrl}`, "");
 
   const footer = [
-    `你收到这封邮件，是因为订阅了 ${e(SITE.name)} ${e(daily)}。不想再收到？${link(unsubscribeUrl, "一键退订", C.accent)}`,
+    `你收到这封邮件，是因为订阅了 ${e(SITE.name)} ${e(daily)}。不想再收到？${link(unsubscribeUrl, "一键退订", C.accent)}${changeLink(unsubscribeUrl)}`,
     SITE.footerNote ? e(SITE.footerNote) : "",
   ].filter(Boolean).join("<br>");
-  text.push("——", `你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订：${unsubscribeUrl}`, ...(SITE.footerNote ? [SITE.footerNote] : []));
+  text.push("——", `你收到这封邮件，是因为订阅了 ${SITE.name} ${daily}。退订${FEATURES.tracks ? "或修改订阅视角" : ""}：${unsubscribeUrl}`, ...(SITE.footerNote ? [SITE.footerNote] : []));
 
   return {
     subject,

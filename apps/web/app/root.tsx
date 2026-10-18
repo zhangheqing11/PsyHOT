@@ -89,13 +89,16 @@ function SiteShell({ changelogVersion, children }: { changelogVersion: string | 
   );
 }
 
-/** A remembered view is opt-in and only redirects unqualified list pages in this browser. */
+/** The list pages and the report pages (not the daily archive) that show a track when asked to. */
+const TRACK_PAGE = /^(\/|\/all|\/(daily|weekly|monthly)(\/(\d{4}-\d{2}(-\d{2})?|\d{4}-W\d{2}))?)$/;
+
+/** A remembered view is opt-in and only redirects unqualified list and report pages in this browser. */
 function TrackPreferenceRedirect() {
   const preference = useTrackPreference();
   const location = useLocation();
   const navigate = useNavigate();
   useEffect(() => {
-    if (!FEATURES.tracks || !preference || (location.pathname !== "/" && location.pathname !== "/all")) return;
+    if (!FEATURES.tracks || !preference || !TRACK_PAGE.test(location.pathname)) return;
     const params = new URLSearchParams(location.search);
     if (params.has("track")) return;
     params.set("track", preference);

@@ -19,6 +19,8 @@ const SOURCE = `test-subscriptions-${T}`;
 const REPORT_KEY = `2099-11-${String(10 + Math.floor(Math.random() * 19))}`;
 const REFUSED = `refused-${T}@example.com`;
 const NOTICE_KEY = `2099-12-${String(10 + Math.floor(Math.random() * 19))}`;
+const TRACK_KEY = `2099-10-${String(10 + Math.floor(Math.random() * 19))}`;
+const ONE_SIDED_KEY = `2099-09-${String(10 + Math.floor(Math.random() * 19))}`;
 /** Content the local server refuses, as Alibaba Cloud's screening refuses some issues. */
 const SCREENED = "SCREENED-CONTENT";
 
@@ -93,7 +95,7 @@ before(async () => {
 });
 after(async () => {
   await sql`DELETE FROM email_subscribers WHERE email LIKE ${`%${T}%`}`;
-  await sql`DELETE FROM reports WHERE kind = 'daily' AND key IN (${REPORT_KEY}, ${NOTICE_KEY})`;
+  await sql`DELETE FROM reports WHERE kind = 'daily' AND key IN (${REPORT_KEY}, ${NOTICE_KEY}, ${TRACK_KEY}, ${ONE_SIDED_KEY})`;
   closeMailer();
   await app.close();
   smtp.close();
@@ -205,6 +207,71 @@ test("unsubscribing from the page or the mail client deletes the address", async
   assert.equal((await post("/api/site/subscriptions/unsubscribe", { token: `tok-page-${T}` })).statusCode, 200, "twice is fine");
   const left = await sql`SELECT 1 FROM email_subscribers WHERE email IN (${one}, ${page})`;
   assert.equal(left.length, 0);
+});
+
+test("the track chosen at subscribing is kept, confirmed and changed from the link in the mail", async () => {
+  const addr = `track-${T}@example.com`;
+  assert.equal((await post("/api/site/subscriptions", { email: addr, track: "sideways" })).statusCode, 400, "only 综合, 学界 and 业界");
+  assert.equal((await post("/api/site/subscriptions", { email: addr, track: "industry" })).statusCode, 202);
+  assert.match(bodyOf(mailsTo(addr)[0]!.data), /业界版/, "the confirmation says which");
+  const [row] = await sql<{ track: string }[]>`SELECT track FROM email_subscribers WHERE lower(email) = lower(${addr})`;
+  assert.equal(row!.track, "industry");
+
+  const token = tokenIn(mailsTo(addr)[0]!, "/subscribe/confirm")!;
+  assert.deepEqual(JSON.parse((await post("/api/site/subscriptions/confirm", { token })).body), { email: maskEmail(addr), track: "industry" });
+  assert.deepEqual(JSON.parse((await post("/api/site/subscriptions/preferences", { token })).body), { email: maskEmail(addr), track: "industry" });
+  assert.equal((await post("/api/site/subscriptions/preferences", { token: "y".repeat(32) })).statusCode, 404);
+
+  assert.equal((await post("/api/site/subscriptions/track", { token, track: "sideways" })).statusCode, 400);
+  assert.equal((await post("/api/site/subscriptions/track", { token: "y".repeat(32), track: "academic" })).statusCode, 404);
+  assert.equal((await post("/api/site/subscriptions/track", { token, track: "academic" })).statusCode, 200);
+  const [after] = await sql<{ track: string; status: string }[]>`SELECT track, status FROM email_subscribers WHERE lower(email) = lower(${addr})`;
+  assert.deepEqual([after!.track, after!.status], ["academic", "active"], "changed, and still subscribed");
+
+  // Asked for without a track, a subscription is the whole report, as it was before tracks.
+  const plain = `plain-${T}@example.com`;
+  assert.equal((await post("/api/site/subscriptions", { email: plain })).statusCode, 202);
+  assert.equal((await sql<{ track: string }[]>`SELECT track FROM email_subscribers WHERE email = ${plain}`)[0]!.track, "combined");
+});
+
+test("each subscriber gets the issue for their track; a track with nothing that day gets nothing", async () => {
+  const citation = (title: string) => ({ itemId: null, title: `${title}-${T}`, summary: "摘要。", sourceName: "Test", sourceUrl: "https://example.com/x", sourceId: null, firstParty: false, role: null, storyPublicId: null, publishedAt: null });
+  const lead = (title: string) => ({ lead: { title, leadParagraph: `${title}的导语。` }, highlights: [] });
+  const store = (key: string, content: Record<string, unknown>) => sql`
+    INSERT INTO reports (kind, key, window_start, window_end, content, generated_at, model, origin)
+    VALUES ('daily', ${key}, now() - interval '1 day', now(), ${sql.json(content as never)}, now(), 'test', 'model')`;
+  await store(TRACK_KEY, {
+    date: TRACK_KEY, lead: { title: "业界头条", leadParagraph: "业界的导语。" }, highlights: [],
+    tracks: { academic: lead("学界头条"), industry: lead("业界头条") },
+    sections: [{ label: "研究发现", track: "academic", items: [citation("学界条目")] }, { label: "行业与政策", track: "industry", items: [citation("业界条目")] }],
+    flashes: [], metrics: {},
+  });
+  await store(ONE_SIDED_KEY, {
+    date: ONE_SIDED_KEY, lead: { title: "只有学界", leadParagraph: "导语。" }, highlights: [], tracks: { academic: lead("只有学界") },
+    sections: [{ label: "研究发现", track: "academic", items: [citation("学界条目")] }], flashes: [], metrics: {},
+  });
+  const who = { combined: `both-${T}@example.com`, academic: `acad-${T}@example.com`, industry: `ind-${T}@example.com` };
+  for (const [track, email] of Object.entries(who)) {
+    await sql`INSERT INTO email_subscribers (email, token, status, confirmed_at, track) VALUES (${email}, ${`tok-${track}-${T}`}, 'active', now(), ${track})`;
+  }
+  await sendDailyEmails(new Date(`${TRACK_KEY}T03:00:00Z`));
+  const read = (email: string) => { const m = mailsTo(email); assert.equal(m.length, 1, email); return bodyOf(m[0]!.data); };
+  const both = read(who.combined);
+  assert.ok(both.includes(`学界条目-${T}`) && both.includes(`业界条目-${T}`) && both.includes("学界头条") && both.includes("业界的导语。"), "the whole report");
+  const acad = read(who.academic);
+  assert.ok(acad.includes(`学界条目-${T}`) && !acad.includes(`业界条目-${T}`) && !acad.includes("业界的导语。"), "only the academic side");
+  assert.ok(acad.includes(`/daily/${TRACK_KEY}?track=academic`) && acad.includes(`/unsubscribe?t=tok-academic-${T}`));
+  const ind = read(who.industry);
+  assert.ok(ind.includes(`业界条目-${T}`) && !ind.includes(`学界条目-${T}`) && !ind.includes("学界头条"), "only the industry side");
+
+  // A day with nothing on one side: that side's subscribers get no mail and no delivery record; the rest do.
+  await sendDailyEmails(new Date(`${ONE_SIDED_KEY}T03:00:00Z`));
+  assert.equal(mailsTo(who.combined).length, 2);
+  assert.equal(mailsTo(who.academic).length, 2);
+  assert.equal(mailsTo(who.industry).length, 1, "nothing for the industry track that day");
+  const [none] = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM email_deliveries d JOIN email_subscribers s ON s.id = d.subscriber_id WHERE s.email = ${who.industry} AND d.report_key = ${ONE_SIDED_KEY}`;
+  assert.equal(none!.n, 0);
 });
 
 test("closed: nobody can subscribe and nothing is sent", async () => {

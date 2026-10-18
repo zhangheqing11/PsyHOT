@@ -7,7 +7,7 @@ import { pageMeta, titled } from "../lib/seo";
 import { beijingDate } from "../lib/format";
 import { ReportLayout } from "../features/report/ReportLayout";
 import { ReportPaper } from "../features/report/ReportPaper";
-import { KIND_LABEL, kindFromPath } from "../features/report/format";
+import { KIND_LABEL, kindFromPath, trackOfSearch, trackQuery } from "../features/report/format";
 
 const PATTERN: Record<ReportKind, RegExp> = {
   daily: /^\d{4}-\d{2}-\d{2}$/,
@@ -19,8 +19,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const kind = kindFromPath(new URL(request.url).pathname);
   const key = params.key ?? "";
   if (!PATTERN[kind].test(key)) throw data({ message: "not_found" }, { status: 404 });
+  const query = trackQuery(trackOfSearch(new URL(request.url).searchParams));
   const [report, { items: index }] = await Promise.all([
-    loadOr404<ReportDetail>(`/api/site/reports/${kind}/${key}`, { signal: request.signal }),
+    loadOr404<ReportDetail>(`/api/site/reports/${kind}/${key}${query}`, { signal: request.signal }),
     apiGet<{ items: ReportNavigationEntry[] }>(`/api/site/reports/${kind}/navigation/${key}`, { signal: request.signal }),
   ]);
   return { report, index, today: beijingDate(Date.now()) };

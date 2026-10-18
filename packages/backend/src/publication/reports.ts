@@ -1,6 +1,9 @@
 // Reports through the public read layer: website DTOs and the v1 shapes. Only real reports are
 // listed; a missing date is a 404, never another day. Withdrawn citations are marked, not shown.
-import type { ReportCitation, ReportDetail, ReportIndexEntry, ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
+import type { ReportCitation, ReportDetail, ReportIndexEntry, ReportLeadPart, ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
+import { TRACK_KEYS, TRACK_LABELS, isTrackKey, type TrackKey } from "@aihot/contracts/taxonomy";
+import { FEATURES } from "@aihot/industry/features";
+import { CATEGORIES } from "@aihot/industry/taxonomy";
 import { sql } from "../db.ts";
 import { cached, type Cached } from "../lib/cache.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -195,21 +198,35 @@ async function neighbors(kind: ReportKind, key: string): Promise<{ prev: string 
   return { prev: row?.prev ?? null, next: row?.next ?? null };
 }
 
-export async function loadReport(kind: ReportKind, key: string): Promise<ReportDetail | null> {
+/** The track of a daily's section: as recorded, else by its name (dailies written before tracks recorded none). */
+const SECTION_TRACK = new Map<string, TrackKey>(CATEGORIES.map((c) => [c.section, c.track]));
+const trackOfSection = (s: Record<string, any>): TrackKey | null => (isTrackKey(s.track) ? s.track : (SECTION_TRACK.get(String(s.label)) ?? null));
+
+/**
+ * One report. With `track` (while the tracks switch is on) only that side is shown: its sections or
+ * themes, its lead and highlights, and figures counted over what is shown. Weekly and monthly reports
+ * written before tracks have no sides to pick from and show whole (`trackSplit` false).
+ */
+export async function loadReport(kind: ReportKind, key: string, trackFilter: TrackKey | null = null): Promise<ReportDetail | null> {
   const [r] = await sql<ReportRow[]>`SELECT kind, key, window_start, window_end, content, generated_at, revision FROM reports WHERE kind = ${kind} AND key = ${key}`;
   if (!r) return null;
   const c = r.content;
-  const rawItems: Array<Record<string, any>> = [
-    ...(c.sections ?? []).flatMap((s: any) => s.items ?? []),
-    ...(c.flashes ?? []),
-    ...(c.themes ?? []).flatMap((t: any) => t.storyRefs ?? []),
-  ];
+  const daily = kind === "daily";
+  const themesAll: Array<Record<string, any>> = c.themes ?? [];
+  const trackSplit = daily || (themesAll.length > 0 && themesAll.every((t) => isTrackKey(t.track)));
+  const track = FEATURES.tracks && trackSplit ? trackFilter : null;
+  const sectionsAll: Array<Record<string, any>> = daily ? (c.sections ?? []) : themesAll;
+  const sectionsShown = track ? sectionsAll.filter((s) => (daily ? trackOfSection(s) : s.track) === track) : sectionsAll;
+  // Flashes record their side from the start; an older one has none and is left out of a track's view.
+  const flashesShown: Array<Record<string, any>> = track ? (c.flashes ?? []).filter((f: any) => f.track === track) : (c.flashes ?? []);
+  const itemsOf = (s: Record<string, any>): Array<Record<string, any>> => (daily ? s.items : s.storyRefs) ?? [];
+  const rawItems = [...sectionsShown.flatMap(itemsOf), ...flashesShown];
   const avail = await availability([...new Set(rawItems.map((i) => i.itemId).filter(Boolean))]);
   const cite = (raw: Record<string, any>) => citationFrom(raw, avail);
 
-  const sections = kind === "daily"
-    ? (c.sections ?? []).map((s: any) => ({ label: String(s.label), summary: null, items: (s.items ?? []).map(cite) }))
-    : (c.themes ?? []).map((t: any) => ({ label: String(t.heading), summary: t.summary ?? null, items: (t.storyRefs ?? []).map(cite) }));
+  const sections = daily
+    ? sectionsShown.map((s) => ({ label: String(s.label), summary: null, track: trackOfSection(s), items: itemsOf(s).map(cite) }))
+    : sectionsShown.map((t) => ({ label: String(t.heading), summary: t.summary ?? null, track: isTrackKey(t.track) ? t.track : null, items: itemsOf(t).map(cite) }));
   const labelled: Array<ReportCitation & { label: string }> = sections.flatMap((s: { label: string; items: ReportCitation[] }) => s.items.map((i) => ({ ...i, label: s.label })));
   // Weekly and monthly reports carry the editor's reading order across themes.
   const order: string[] = Array.isArray(c.storyOrder) ? c.storyOrder : [];
@@ -218,17 +235,45 @@ export async function loadReport(kind: ReportKind, key: string): Promise<ReportD
     ? [...labelled].sort((a, b) => (rank.get(a.itemId ?? "") ?? order.length) - (rank.get(b.itemId ?? "") ?? order.length))
     : labelled;
   const all: ReportCitation[] = labelled;
-  const highlightIds: string[] = c.highlights ?? [];
-  const highlights = highlightIds.length
-    ? highlightIds.map((id) => all.find((x: ReportCitation) => x.itemId === id)).filter((x): x is ReportCitation => !!x)
-    : all.slice(0, 3);
-  const text = [c.lead?.leadParagraph ?? "", c.overview ?? "", ...all.map((i: ReportCitation) => `${i.title}${i.summary ?? ""}`)].join("");
+  // A track's own highlights, else the report's that fall in it (an older daily has only the whole day's).
+  const highlightIds: string[] = (track ? c.tracks?.[track]?.highlights : null) ?? c.highlights ?? [];
+  const cited = highlightIds.map((id) => all.find((x: ReportCitation) => x.itemId === id)).filter((x): x is ReportCitation => !!x);
+  const highlights = cited.length > 0 || (highlightIds.length > 0 && !track) ? cited : all.slice(0, 3);
+
+  // The lead: the whole report's, or one track's. Both tracks' parts are given when the whole report is shown.
+  let lead: ReportDetail["lead"];
+  let overview: string | null;
+  let leadParts: ReportLeadPart[] = [];
+  if (daily) {
+    lead = track ? (c.tracks?.[track]?.lead ?? null) : (c.lead ?? null);
+    overview = c.overview ?? null;
+    if (!track && FEATURES.tracks) {
+      leadParts = TRACK_KEYS.flatMap((t) => (c.tracks?.[t]?.lead ? [{ track: t, label: TRACK_LABELS[t], title: String(c.tracks[t].lead.title), leadParagraph: String(c.tracks[t].lead.leadParagraph) }] : []));
+      // A lead in one part is no two-part lead: the page reads it as the report's own.
+      if (leadParts.length < 2) leadParts = [];
+    }
+  } else {
+    const parts: Partial<Record<TrackKey, string>> = trackSplit ? (c.trackOverviews ?? {}) : {};
+    overview = track ? (parts[track] ?? null) : (c.overview ?? null);
+    const headline = periodicHeadline(c);
+    lead = headline ? { title: headline, leadParagraph: overview ?? "" } : null;
+    if (!track && FEATURES.tracks) {
+      leadParts = TRACK_KEYS.flatMap((t) => (parts[t] ? [{ track: t, label: TRACK_LABELS[t], title: null, leadParagraph: parts[t]! }] : []));
+      if (leadParts.length < 2) leadParts = [];
+    }
+  }
+  const text = [lead?.leadParagraph ?? "", ...leadParts.map((p) => p.leadParagraph), overview ?? "", ...all.map((i: ReportCitation) => `${i.title}${i.summary ?? ""}`)].join("");
   // A weekly or monthly's picture comes from its first highlight and is captioned with that story.
-  const leadItem = kind === "daily" ? leadItemOf(c.lead?.title, highlights, all) : (highlights[0] ?? all[0]);
+  const leadItem = daily ? leadItemOf(lead?.title, highlights, all) : (highlights[0] ?? all[0]);
   const [{ prev, next }, picture] = await Promise.all([neighbors(kind, key), leadItem?.itemId && leadItem.available ? leadCover(leadItem.itemId) : null]);
-  const cover = picture && leadItem ? { ...picture, caption: kind === "daily" ? null : leadItem.title } : null;
-  const headline = kind === "daily" ? null : periodicHeadline(c);
-  const title = kind === "daily" ? `${withSubject("日报")} · ${key}` : String(c.title ?? (kind === "weekly" ? `${SITE.name} 周报 · ${key}` : `${SITE.name} 月报 · ${key}`));
+  const cover = picture && leadItem ? { ...picture, caption: daily ? null : leadItem.title } : null;
+  const title = daily ? `${withSubject("日报")} · ${key}` : String(c.title ?? (kind === "weekly" ? `${SITE.name} 周报 · ${key}` : `${SITE.name} 月报 · ${key}`));
+  // Figures over what is shown (the stored ones count the whole report).
+  const metrics: Record<string, number> = track
+    ? daily
+      ? { totalEvents: sectionsShown.flatMap(itemsOf).length, sourcesCount: new Set(sectionsShown.flatMap(itemsOf).map((i) => i.sourceId).filter(Boolean)).size, firstPartyEvents: sectionsShown.flatMap(itemsOf).filter((i) => i.firstParty).length }
+      : { totalStories: sectionsShown.flatMap(itemsOf).length, reportsCovered: c.metrics?.reportsCovered ?? 0 }
+    : (c.metrics ?? {});
   return {
     kind,
     key,
@@ -237,14 +282,17 @@ export async function loadReport(kind: ReportKind, key: string): Promise<ReportD
     windowEnd: r.window_end.toISOString(),
     generatedAt: r.generated_at.toISOString(),
     revision: r.revision,
-    lead: c.lead ?? (headline ? { title: headline, leadParagraph: String(c.overview ?? "") } : null),
-    overview: c.overview ?? null,
+    lead,
+    leadParts,
+    overview,
     highlights,
+    track,
+    trackSplit,
     sections,
     stories,
-    flashes: (c.flashes ?? []).map(cite),
+    flashes: flashesShown.map(cite),
     cover,
-    metrics: c.metrics ?? {},
+    metrics,
     readingMinutes: readingMinutes(text),
     prev,
     next,

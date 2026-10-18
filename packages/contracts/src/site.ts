@@ -1,6 +1,6 @@
 // First-party site API (/api/site/*). Not a public API: it may evolve with the website,
 // but it is served from the same public read layer as v1, RSS and MCP.
-import type { CategoryKey, ChannelKey } from "./taxonomy.ts";
+import type { CategoryKey, ChannelKey, RegionKey, TrackKey } from "./taxonomy.ts";
 
 export type SourceKind = "rss" | "web_list" | "json_list" | "x_search" | "mp_account" | "external";
 
@@ -109,6 +109,10 @@ export interface TimelineFilters {
   category: CategoryKey | null;
   tag: string | null;
   topic?: string | null;
+  /** Optional reader-facing view; omitted preserves the unfiltered response shape. */
+  track?: TrackKey | null;
+  /** Optional source region, primarily used with the industry view. */
+  region?: RegionKey | null;
 }
 
 export interface TimelineResponse {

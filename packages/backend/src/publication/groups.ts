@@ -1,18 +1,20 @@
 // Reading-group expansions: the reports behind "另有 N 家信源报道" and the developments behind
 // "展开 N 条进展". Members must pass the same visibility, pool eligibility and parent-page filters.
-import type { CategoryKey, ChannelKey } from "@aihot/contracts/taxonomy";
+import type { CategoryKey, ChannelKey, RegionKey, TrackKey } from "@aihot/contracts/taxonomy";
 import type { DevelopmentsResponse, GroupReportsResponse } from "@aihot/contracts/site";
 import { sql } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import { shortHash } from "../lib/ids.ts";
 import { proxiedImage } from "../media/imgproxy.ts";
-import { ITEM_COLUMNS, ITEM_FROM, categoryCondition, channelCondition, selectedCondition, tagCondition, toItemSummary, topicCondition, type ItemRow } from "./items.ts";
+import { ITEM_COLUMNS, ITEM_FROM, categoryCondition, channelCondition, regionCondition, selectedCondition, tagCondition, toItemSummary, topicCondition, trackCondition, type ItemRow } from "./items.ts";
 import { pickRepresentative } from "./timeline.ts";
 
 export interface GroupReportsQuery {
   factPublicId: string;
   channel: ChannelKey;
   category: CategoryKey | null;
+  track?: TrackKey | null;
+  region?: RegionKey | null;
   tag: string | null;
   topicTags: string[] | null;
   cursor: string | null;
@@ -28,7 +30,7 @@ export type GroupReportsResult =
 export async function loadGroupReports(q: GroupReportsQuery, now = new Date()): Promise<GroupReportsResult> {
   const [fact] = await sql<{ id: number }[]>`SELECT id FROM facts WHERE public_id = ${q.factPublicId}`;
   if (!fact) return { kind: "not_found" };
-  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
   const members = await sql<{
     id: string; title: string; summary: string | null; timeline_at: Date; url: string; selected: boolean;
     source_id: string; source_name: string; source_kind: string; first_party: boolean; icon_url: string | null;
@@ -43,7 +45,7 @@ export async function loadGroupReports(q: GroupReportsQuery, now = new Date()): 
 
   // The revision covers the actual member set; a cursor from another revision means "reload".
   const revision = shortHash(members.map((m) => m.id).join(","), 10);
-  const binding = queryBinding({ f: q.factPublicId, c: q.channel, k: q.category, t: q.tag, p: q.topicTags });
+  const binding = queryBinding({ f: q.factPublicId, c: q.channel, k: q.category, x: q.track ?? null, r: q.region ?? null, t: q.tag, p: q.topicTags });
   let offset = 0;
   if (q.cursor) {
     const c = decodeCursor<{ o: number; r: string; b: string }>("gr1", q.cursor);
@@ -78,6 +80,8 @@ export interface DevelopmentsQuery {
   storyPublicId: string;
   channel: ChannelKey;
   category: CategoryKey | null;
+  track?: TrackKey | null;
+  region?: RegionKey | null;
   tag: string | null;
   topicTags: string[] | null;
   cursor: string | null;
@@ -96,7 +100,7 @@ export async function loadDevelopments(q: DevelopmentsQuery, now = new Date()): 
   const [story] = await sql<{ id: number; public_id: string; title: string }[]>`
     SELECT id, public_id::text, title FROM stories WHERE public_id = ${q.storyPublicId} AND merged_into IS NULL`;
   if (!story) return { kind: "not_found" };
-  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
   type Member = Pick<ItemRow, "id" | "fact_id" | "first_party" | "body_mode" | "score" | "timeline_at" | "sort_at">;
   const selected = await sql<Member[]>`
     SELECT p.article_id AS id, p.fact_id, p.first_party, p.body_mode, p.score, p.timeline_at, p.sort_at
@@ -127,7 +131,7 @@ export async function loadDevelopments(q: DevelopmentsQuery, now = new Date()): 
     .map((d) => d.development);
 
   const revision = shortHash(list.map((d) => `${d.factId}:${d.representativeId}:${d.reportCount}`).join(","), 10);
-  const binding = queryBinding({ s: q.storyPublicId, c: q.channel, k: q.category, t: q.tag, p: q.topicTags });
+  const binding = queryBinding({ s: q.storyPublicId, c: q.channel, k: q.category, x: q.track ?? null, r: q.region ?? null, t: q.tag, p: q.topicTags });
   let offset = 0;
   if (q.cursor) {
     const c = decodeCursor<{ o: number; r: string; b: string }>("dv1", q.cursor);

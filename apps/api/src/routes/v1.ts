@@ -2,7 +2,7 @@
 import { FEATURES } from "@aihot/industry/features";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { V1_CACHE_CONTROL } from "@aihot/contracts/http-policy";
-import { PUBLIC_API_CATEGORY_KEYS, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
+import { isRegionKey, isTrackKey, PUBLIC_API_CATEGORY_KEYS, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import { InvalidCursorError } from "@aihot/backend/lib/cursor";
 import { SearchBusyError } from "@aihot/backend/publication/pool";
 import { selectedChanges, selectedSnapshot, SnapshotRequiredError, v1Items } from "@aihot/backend/publication/v1";
@@ -58,11 +58,13 @@ export function publicHandler(fn: Handler): Handler {
 
 export function registerV1(app: FastifyInstance) {
   app.get("/api/v1/items", publicHandler(async (req, reply) => {
-    const q = strictQuery(req, ["mode", "category", "window", "by", "q", "limit", "cursor"]);
+    const q = strictQuery(req, ["mode", "category", "track", "region", "window", "by", "q", "limit", "cursor"]);
     const mode = enumParam(q.mode, "mode", ["selected", "all"] as const, "selected");
     const window = enumParam(q.window, "window", ["24h", "7d"] as const, "7d");
     const by = enumParam(q.by, "by", ["timeline", "published"] as const, "timeline");
     const category = q.category === undefined ? null : enumParam<PublicApiCategoryKey>(q.category, "category", PUBLIC_API_CATEGORY_KEYS, PUBLIC_API_CATEGORY_KEYS[0]);
+    if (q.track !== undefined && !isTrackKey(q.track)) throw new QueryError("track must be 'academic' or 'industry'.");
+    if (q.region !== undefined && !isRegionKey(q.region)) throw new QueryError("region must be 'domestic' or 'international'.");
     let search: string | null = null;
     if (q.q !== undefined) {
       search = q.q.trim();
@@ -71,7 +73,7 @@ export function registerV1(app: FastifyInstance) {
     }
     const limit = intParam(q.limit, "limit", 1, 100, 50);
     if (q.cursor !== undefined && q.cursor.length === 0) throw new InvalidCursorError("empty cursor");
-    const body = await v1Items({ mode, window, by, category, q: search, limit, cursor: q.cursor ?? null });
+    const body = await v1Items({ mode, window, by, category, track: q.track as "academic" | "industry" | undefined, region: q.region as "domestic" | "international" | undefined, q: search, limit, cursor: q.cursor ?? null });
     return sendJsonWithEtag(req, reply, body, { etagPrefix: "v1-items", cacheControl: V1_CACHE_CONTROL.items });
   }));
 

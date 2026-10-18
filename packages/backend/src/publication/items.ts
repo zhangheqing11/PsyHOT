@@ -1,6 +1,6 @@
 // Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
 // items through these functions; visibility, release gate and body licences are applied here.
-import { categoryMembers, toPublicApiCategory, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
+import { categoryMembers, toPublicApiCategory, TRACK_CATEGORIES, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
 import { sql, type Db } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -106,6 +106,18 @@ export function categoryCondition(category: CategoryKey | null | undefined) {
   if (!category) return sql``;
   const members = categoryMembers(category);
   return members.length === 1 ? sql`AND p.category = ${members[0]!}` : sql`AND p.category = ANY(${members}::text[])`;
+}
+
+/** Stored categories belonging to a reader-facing academic or industry view. */
+export function trackCondition(track: TrackKey | null | undefined) {
+  if (!track) return sql``;
+  return sql`AND p.category = ANY(${TRACK_CATEGORIES[track]}::text[])`;
+}
+
+/** Source region filter. Region is a source property, so it is applied to the joined source row. */
+export function regionCondition(region: RegionKey | null | undefined) {
+  if (!region) return sql``;
+  return sql`AND s.region = ${region}`;
 }
 
 export function tagCondition(tag: string | null | undefined) {

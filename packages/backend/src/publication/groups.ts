@@ -30,7 +30,7 @@ export type GroupReportsResult =
 export async function loadGroupReports(q: GroupReportsQuery, now = new Date()): Promise<GroupReportsResult> {
   const [fact] = await sql<{ id: number }[]>`SELECT id FROM facts WHERE public_id = ${q.factPublicId}`;
   if (!fact) return { kind: "not_found" };
-  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
   const members = await sql<{
     id: string; title: string; summary: string | null; timeline_at: Date; url: string; selected: boolean;
     source_id: string; source_name: string; source_kind: string; first_party: boolean; icon_url: string | null;
@@ -100,7 +100,7 @@ export async function loadDevelopments(q: DevelopmentsQuery, now = new Date()): 
   const [story] = await sql<{ id: number; public_id: string; title: string }[]>`
     SELECT id, public_id::text, title FROM stories WHERE public_id = ${q.storyPublicId} AND merged_into IS NULL`;
   if (!story) return { kind: "not_found" };
-  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
   type Member = Pick<ItemRow, "id" | "fact_id" | "first_party" | "body_mode" | "score" | "timeline_at" | "sort_at">;
   const selected = await sql<Member[]>`
     SELECT p.article_id AS id, p.fact_id, p.first_party, p.body_mode, p.score, p.timeline_at, p.sort_at

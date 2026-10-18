@@ -117,7 +117,9 @@ export function trackCondition(track: TrackKey | null | undefined) {
 /** Source region filter. Region is a source property, so it is applied to the joined source row. */
 export function regionCondition(region: RegionKey | null | undefined) {
   if (!region) return sql``;
-  return sql`AND s.region = ${region}`;
+  // Keep this condition usable in every publication query, including timeline CTEs that do not join
+  // sources until hydration. The source table remains the single owner of the region attribute.
+  return sql`AND p.source_id IN (SELECT id FROM sources WHERE region = ${region})`;
 }
 
 export function tagCondition(tag: string | null | undefined) {

@@ -24,7 +24,7 @@ interface GroupRow {
 }
 
 function filterSql(q: TimelineQuery) {
-  return sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  return sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
 }
 
 function binding(q: TimelineQuery): string {

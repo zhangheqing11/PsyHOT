@@ -128,11 +128,22 @@ test("the structure step reads the source's track, and the category it picks is 
   assert.equal(await category(regulator), "industry");
   assert.equal(await category(news), "policy");
   // Stored as itself, shown as 行业 while the switch is off.
+  await publishArticle(journal);
+  await publishArticle(regulator);
   await publishArticle(news);
   assert.equal((await publication(news)).category, "policy");
   // Selected (two scores of 90), so it is listed once its release gate opens.
-  const pool = await loadPool({ channel: "all", category: "industry", tag: null, now: new Date(Date.now() + 3600_000) });
+  const now = new Date(Date.now() + 3600_000);
+  const pool = await loadPool({ channel: "all", category: "industry", tag: null, now });
   assert.ok(pool.items.some((i) => i.id === news && i.category === "industry"));
+  const domesticIndustry = await loadPool({ channel: "all", category: null, track: "industry", region: "domestic", tag: null, now });
+  assert.ok(domesticIndustry.items.some((i) => i.id === regulator));
+  assert.ok(!domesticIndustry.items.some((i) => i.id === news), "international mixed source is excluded from domestic industry");
+  const internationalAcademic = await loadPool({ channel: "all", category: null, track: "academic", region: "international", tag: null, now });
+  assert.ok(internationalAcademic.items.some((i) => i.id === journal));
+  assert.ok(!internationalAcademic.items.some((i) => i.id === regulator));
+  const categoryWins = await loadPool({ channel: "all", category: "industry", track: "academic", tag: null, now });
+  assert.ok(categoryWins.items.some((i) => i.id === regulator), "category takes precedence over a conflicting track");
 });
 
 test("a promotion: scored but never selected, written the cheap way, in the full feed only", async () => {

@@ -11,6 +11,8 @@ import { credential } from "../config.ts";
 import { mpArticle as dajialaArticle, mpHistory as dajialaHistory, type MpArticle } from "../providers/dajiala.ts";
 import { everyInfraMpArticle, everyInfraMpHistory } from "../providers/everyinfra.ts";
 import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
+import { noiseFiltered } from "./collect.ts";
+import type { Candidate, SourceRow } from "./types.ts";
 
 const MAX_NEW_PER_CHECK = 8;
 /** Posts older than this on the first check of an account are history, not news. */
@@ -46,7 +48,7 @@ async function fetchBody(url: string, sourceId: string, identity: string): Promi
 interface MpSource {
   id: string;
   name: string;
-  config: { wxid?: string; ghid?: string; nickname?: string };
+  config: { wxid?: string; ghid?: string; nickname?: string; ingestNoiseFilter?: Record<string, string[]> };
   cursor: Record<string, unknown> | null;
   enabled: boolean;
   participation_mode: string;
@@ -71,6 +73,8 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       if (!p.url || !p.title || fetched >= MAX_NEW_PER_CHECK) continue;
       const publishedAt = p.post_time ? new Date(p.post_time * 1000) : null;
       if (firstCheck && publishedAt && Date.now() - publishedAt.getTime() > FIRST_CHECK_WINDOW_MS) continue;
+      // A broad account (a government health account) keeps only what is on topic; the paid body is not fetched for the rest.
+      if (noiseFiltered({ title: p.title, excerpt: p.digest ?? null, url: p.url } as Candidate, source as unknown as SourceRow)) continue;
       // Same identity rule as every entrance: the long link without tracking parameters. A known post is
       // skipped, unless its body failed for a passing reason: then it is tried again a few times.
       const key = p.identityKey ?? identityKeyForUrl(p.url);

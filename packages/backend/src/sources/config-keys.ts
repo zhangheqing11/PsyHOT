@@ -19,14 +19,14 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   ],
   // X accounts are mostly read in shards, which apply only these.
   x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType"],
-  mp_account: ["wxid", "ghid", "nickname"],
+  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter"],
   external: [],
 };
 
 // Objects with fixed keys (headers and bodyJson are request data, free-form).
 const NESTED: Record<string, string[]> = {
   _aihot: ["initialBackfillLimit", "initialBackfillMonths"],
-  ingestNoiseFilter: ["dropMarkers", "dropMarkersTitleOnly", "keepIfMatches"],
+  ingestNoiseFilter: ["dropMarkers", "dropMarkersTitleOnly", "keepIfMatches", "requireMarkers"],
   itemUrlPrefixRewrite: ["from", "to"],
   requireBoolean: ["path", "equals"],
   minNumeric: ["path", "min"],

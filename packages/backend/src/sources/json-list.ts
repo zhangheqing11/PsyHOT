@@ -135,6 +135,16 @@ function unmark(s: string): string {
   return s.replace(/<\/?em>/gi, "");
 }
 
+const ENGAGEMENT_KEYS = ["like_count", "collect_count", "comment_count", "share_count"] as const;
+function engagementOf(item: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const k of ENGAGEMENT_KEYS) {
+    const v = getPath(item, k);
+    if (typeof v === "number" && Number.isFinite(v)) out[k] = v;
+  }
+  return out;
+}
+
 export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
   const c = source.config;
   let everyInfraData: unknown = null;
@@ -200,7 +210,8 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       excerpt: summary ? collapseWhitespace(stripTags(unmark(summary))).slice(0, 2000) : null,
       bodyText: summaryIsBody ? stripTags(unmark(summary!)) : null,
       bodyStatus: summaryIsBody ? "ok" : "pending",
-      raw: { externalId: externalId ?? null },
+      // Xiaohongshu's public counts at listing time: the hot ranking weighs a participant by them.
+      raw: { externalId: externalId ?? null, ...(c.adapter === "everyinfra_xhs" ? engagementOf(item) : {}) },
     });
   }
   if (items.length > 0 && out.length === 0 && !c.requireBoolean && !c.minNumeric) throw new FetchError("no items mapped (check title/url paths)");

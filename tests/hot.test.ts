@@ -26,7 +26,7 @@ after(async () => {
 
 let n = 0;
 /** A story whose reports come from `participants` independent participants, last seen `hoursAgo`. */
-async function story(o: { participants: number; score: number; selected: boolean; hoursAgo: number }): Promise<number> {
+async function story(o: { participants: number; score: number; selected: boolean; hoursAgo: number; raw?: Record<string, unknown> }): Promise<number> {
   const [st] = await sql<{ id: number }[]>`
     INSERT INTO stories (public_id, title, first_report_at, latest_at) VALUES (${randomUUID()}, ${`HOT-${T}`}, now() - make_interval(hours => ${o.hoursAgo}), now()) RETURNING id`;
   const [fact] = await sql<{ id: number }[]>`INSERT INTO facts (public_id, story_id, title) VALUES (${`fact-${randomUUID()}`}, ${st!.id}, ${`HOT-${T}`}) RETURNING id`;
@@ -37,6 +37,7 @@ async function story(o: { participants: number; score: number; selected: boolean
     } as never);
     await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
               VALUES (${articleId}, 1, 'rule', 'pass', 'research', ${`热点${n}-${T}`}, ${`摘要${n}`}, '理由', ${o.score}, ${o.selected})`;
+    if (o.raw) await sql`UPDATE articles SET raw = ${sql.json(o.raw as never)} WHERE id = ${articleId}`;
     await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
     await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${fact!.id}, ${articleId}, 'report')`;
     await sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
@@ -60,4 +61,19 @@ test("one selected report enters, an unselected one needs a second participant; 
   for (const id of [best, covered, good, older]) assert.ok(at(id) >= 0, `story ${id} is a candidate`);
   assert.ok(at(best) < at(covered) && at(covered) < at(good), "two sources outweigh a lower score; a higher score outranks a lower one");
   assert.ok(at(good) < at(older), "heat decays with age");
+});
+
+test("likes, saves, comments and shares weigh a participant up to a cap, never in place of a second one", async () => {
+  const plain = await story({ participants: 1, score: 80, selected: true, hoursAgo: 2 });
+  const liked = await story({ participants: 1, score: 80, selected: true, hoursAgo: 2, raw: { like_count: 120, collect_count: 40, comment_count: 10, share_count: 5 } });
+  const viral = await story({ participants: 1, score: 80, selected: true, hoursAgo: 2, raw: { like_count: 5_000_000, collect_count: 900_000 } });
+  const junk = await story({ participants: 1, score: 80, selected: true, hoursAgo: 2, raw: { like_count: "很多", share_count: -3 } });
+  const lonely = await story({ participants: 1, score: 40, selected: false, hoursAgo: 2, raw: { like_count: 100_000 } });
+  const rows = new Map((await hotCandidates(new Date())).map((r) => [Number(r.story_id), Number(r.heat)]));
+  const heat = (id: number) => rows.get(id)!;
+  // 120 + 2×40 + 3×10 + 3×5 = 245 → weight 1 + log10(246) / scale.
+  assert.ok(Math.abs(heat(liked) / heat(plain) - (1 + Math.log10(246) / HOT.engagement.scale)) < 1e-6);
+  assert.ok(Math.abs(heat(viral) / heat(plain) - HOT.engagement.maxWeight) < 1e-6, "capped");
+  assert.ok(Math.abs(heat(junk) / heat(plain) - 1) < 1e-6, "counts that are not numbers, or below zero, add nothing");
+  assert.equal(rows.has(lonely), false, "engagement does not stand in for a second participant");
 });

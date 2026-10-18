@@ -2,7 +2,8 @@
 // weighted by the story's quality. Each participant counts once per window (repeat collection does
 // not add heat) and decays with the half-life; the source time (not collection time) places evidence
 // in the window. Quality is the story's best selection score / 100 (50 when unscored). A story enters
-// with two participants, or with one when it was selected.
+// with two participants, or with one when it was selected. A participant whose report carries public
+// engagement (likes, saves, comments, shares on Xiaohongshu or WeChat) weighs up to HOT.engagement.maxWeight.
 import { HOT } from "@aihot/industry/selection";
 import { CATEGORY_TRACK, isCategoryKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { sql } from "../db.ts";
@@ -11,7 +12,12 @@ import { tierRank, type HotEntry } from "./hot-read.ts";
 const WINDOW_HOURS = HOT.windowHours;
 const HALF_LIFE_HOURS = HOT.halfLifeHours;
 const MIN_PARTICIPANTS = 2;
-export const HOT_RULE_VERSION = `heat-v3-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality-tracks`;
+export const HOT_RULE_VERSION = `heat-v4-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality-tracks-engagement`;
+
+/** A count in the stored listing item (EveryInfra names them like_count, collect_count…); 0 when absent. */
+const count = (key: string) => sql`(CASE WHEN jsonb_typeof(a.raw->${key}) = 'number' THEN greatest((a.raw->>${key})::numeric, 0) ELSE 0 END)`;
+/** A participant's weight from its report's engagement: 1 without any, at most HOT.engagement.maxWeight. */
+const ENGAGEMENT_WEIGHT = sql`least(${HOT.engagement.maxWeight}::numeric, 1 + log(1 + ${count("like_count")} + 2 * ${count("collect_count")} + 3 * ${count("comment_count")} + 3 * ${count("share_count")}) / ${HOT.engagement.scale})`;
 /** Quality of a story nobody scored (title-only material, unscored sources). */
 const UNSCORED = 50;
 
@@ -66,20 +72,21 @@ async function heatRows(at: Date, behind: string[] = []): Promise<HeatRow[]> {
   const inPrevWindow = sql`last_prev IS NOT NULL AND last_prev > ${prev}::timestamptz - make_interval(hours => ${WINDOW_HOURS})`;
   return sql<HeatRow[]>`
     WITH obs AS (
-      SELECT story_id, participant_key, max(observed_at) AS last_at, min(observed_at) AS first_at,
-             bool_or(kind = 'editorial') AS editorial,
-             max(observed_at) FILTER (WHERE observed_at <= ${prev}) AS last_prev,
-             bool_or(source_id = ANY(${behind}::text[])) AS behind
-      FROM story_signals
-      WHERE observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND observed_at <= ${at}
-      GROUP BY story_id, participant_key
+      SELECT ss.story_id, ss.participant_key, max(ss.observed_at) AS last_at, min(ss.observed_at) AS first_at,
+             bool_or(ss.kind = 'editorial') AS editorial,
+             max(ss.observed_at) FILTER (WHERE ss.observed_at <= ${prev}) AS last_prev,
+             bool_or(ss.source_id = ANY(${behind}::text[])) AS behind,
+             max(${ENGAGEMENT_WEIGHT}) AS w
+      FROM story_signals ss LEFT JOIN articles a ON a.id = ss.article_id
+      WHERE ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
+      GROUP BY ss.story_id, ss.participant_key
     ), agg AS (
       SELECT story_id,
         count(*) AS participants,
-        sum(${decayNow}) AS heat,
-        coalesce(sum(${decayPrev}) FILTER (WHERE ${inPrevWindow}), 0) AS heat_prev,
-        coalesce(sum(${decayNow}) FILTER (WHERE NOT behind), 0) AS heat_obs,
-        coalesce(sum(${decayPrev}) FILTER (WHERE ${inPrevWindow} AND NOT behind), 0) AS heat_prev_obs,
+        sum(w * ${decayNow}) AS heat,
+        coalesce(sum(w * ${decayPrev}) FILTER (WHERE ${inPrevWindow}), 0) AS heat_prev,
+        coalesce(sum(w * ${decayNow}) FILTER (WHERE NOT behind), 0) AS heat_obs,
+        coalesce(sum(w * ${decayPrev}) FILTER (WHERE ${inPrevWindow} AND NOT behind), 0) AS heat_prev_obs,
         count(*) FILTER (WHERE behind) AS behind_participants,
         count(*) FILTER (WHERE first_at > ${prev}) AS recent6h,
         count(*) FILTER (WHERE editorial) AS editorial_participants,

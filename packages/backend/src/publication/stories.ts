@@ -1,6 +1,7 @@
 // Stories (events) and the hot ranking through the public read layer. The website sees heat values;
 // v1 / MCP / Skill only see ranks and counts.
 import type { HeatPoint, HotResponse, StoryDetail, StoryReportView } from "@aihot/contracts/site";
+import type { TrackKey } from "@aihot/contracts/taxonomy";
 import { HOT } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -223,28 +224,32 @@ async function queryHotCovers(entries: Array<{ storyId: number; representativeIt
   return covers;
 }
 
-export async function loadHot(): Promise<HotResponse> {
+export async function loadHot(track: TrackKey | null = null): Promise<HotResponse> {
   const ranking = await latestHotRanking();
-  if (!ranking) return { computedAt: null, ruleVersion: null, windowHours: HOT.windowHours, entries: [] };
+  if (!ranking) return { computedAt: null, ruleVersion: null, windowHours: HOT.windowHours, ...(track ? { track } : {}), entries: [] };
+  const entries = ranking.entries.filter((e) => e.track === (track ?? "combined") || (!e.track && !track));
   const at = new Date(ranking.computedAt);
   const [sparks, covers, extras] = await Promise.all([
     sparklines(
-      ranking.entries.map((e) => e.storyId),
+      entries.map((e) => e.storyId),
       at,
     ),
-    hotCovers(ranking.id, ranking.entries, at),
+    hotCovers(ranking.id, entries, at),
     rankingExtras(ranking),
   ]);
   return {
     computedAt: ranking.computedAt,
     ruleVersion: ranking.ruleVersion,
     windowHours: HOT.windowHours,
-    entries: ranking.entries.map((e) => {
+    ...(track ? { track } : {}),
+    entries: entries.map((e) => {
       const picture = covers.get(e.storyId);
       const coverUrl = picture ? proxiedImage(picture.url, "full") : null;
       const text = extras.text(e);
       return {
-        rank: e.rank,
+        rank: e.rankInTrack ?? e.rank,
+        ...(e.track ? { track: e.track } : {}),
+        ...(e.rankInTrack ? { rankInTrack: e.rankInTrack } : {}),
         story: { publicId: e.storyPublicId, title: e.title },
         heat: e.heat,
         trend: e.trend,
@@ -272,10 +277,11 @@ export async function loadHot(): Promise<HotResponse> {
 // v1 shapes (ranks and counts only; no heat values)
 // ---------------------------------------------------------------------------
 
-export async function v1HotTopics() {
+export async function v1HotTopics(track: TrackKey | null = null) {
   const ranking = await latestHotRanking();
-  const items = (ranking?.entries ?? []).map((e) => ({
-    rank: e.rank,
+  const entries = ranking?.entries.filter((e) => e.track === (track ?? "combined") || (!e.track && !track)) ?? [];
+  const items = entries.map((e) => ({
+    rank: e.rankInTrack ?? e.rank,
     id: e.representativeItemId ?? e.storyPublicId,
     title: e.title,
     source: { name: e.representativeSource ?? e.sourceNames[0] ?? SITE.name },

@@ -100,10 +100,10 @@ export function registerSite(app: FastifyInstance) {
     const q = looseQuery(req);
     const filters = await parseFilters(q);
     const limit = Math.min(Math.max(Number(q.limit) || 20, 1), 40);
-    const unfiltered = filters.channel === "all" && !filters.category && !filters.track && !filters.region && !filters.tag && !filters.topic && !q.cursor;
+    const unfiltered = filters.channel === "all" && !filters.category && !filters.region && !filters.tag && !filters.topic && !q.cursor;
     const [data, hot] = await Promise.all([
       loadTimeline({ ...filters, cursor: q.cursor || null, limit }),
-      unfiltered ? loadHotStrip() : null,
+      unfiltered ? loadHotStrip(filters.track ?? null) : null,
     ]);
     const body = { ...data, hot, generatedAt: new Date().toISOString() };
     const cc = cacheUntil(reply, 60, data.refreshAt);
@@ -190,8 +190,10 @@ export function registerSite(app: FastifyInstance) {
 
   app.get("/api/site/topics/:slug", siteHandler(async (req, reply) => {
     const slug = (req.params as { slug: string }).slug;
-    const page = Number(looseQuery(req).page ?? 1);
-    const data = Number.isInteger(page) ? await loadTopicPage(slug, page) : null;
+    const q = looseQuery(req);
+    const page = Number(q.page ?? 1);
+    const filters = await parseFilters(q);
+    const data = Number.isInteger(page) ? await loadTopicPage(slug, page, { track: filters.track, region: filters.region }) : null;
     if (!data) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "topic page not found", cacheControl: "public, max-age=60" });
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "topic", cacheControl: "public, max-age=60, s-maxage=60" });
   }));
@@ -200,7 +202,10 @@ export function registerSite(app: FastifyInstance) {
 
 
   app.get("/api/site/hot", siteHandler(async (req, reply) => {
-    const data = await loadHot();
+    const q = looseQuery(req);
+    const track = q.track?.trim() || null;
+    if (track !== null && !isTrackKey(track)) throw new BadRequest("invalid track");
+    const data = await loadHot(track);
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "hot", cacheControl: "public, max-age=30, s-maxage=30" });
   }));
 

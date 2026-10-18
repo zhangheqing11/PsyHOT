@@ -3,7 +3,7 @@
 // the guide, which agents read without updating.
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { V1_CACHE_CONTROL } from "@aihot/contracts/http-policy";
-import { PUBLIC_API_CATEGORY_KEYS, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
+import { isRegionKey, isTrackKey, PUBLIC_API_CATEGORY_KEYS, type PublicApiCategoryKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { isValidDate } from "@aihot/contracts/time";
 import { agentGuide, dailyAnswer, hotAnswer, latestAnswer, periodAnswer, searchAnswer, searchItems, storyAnswer, type DailyReport } from "@aihot/backend/publication/agent";
 import { v1Items } from "@aihot/backend/publication/v1";
@@ -20,9 +20,13 @@ function markdown(req: FastifyRequest, reply: FastifyReply, text: string, etagPr
 }
 
 function listParams(q: Record<string, string>) {
+  if (q.track !== undefined && !isTrackKey(q.track)) throw new QueryError("track must be 'academic' or 'industry'.");
+  if (q.region !== undefined && !isRegionKey(q.region)) throw new QueryError("region must be 'domestic' or 'international'.");
   return {
     window: enumParam(q.window, "window", ["24h", "7d"] as const, "24h"),
     category: q.category === undefined ? null : enumParam<PublicApiCategoryKey>(q.category, "category", PUBLIC_API_CATEGORY_KEYS, PUBLIC_API_CATEGORY_KEYS[0]),
+    track: (q.track as TrackKey | undefined) ?? null,
+    region: (q.region as RegionKey | undefined) ?? null,
     limit: intParam(q.limit, "limit", 1, 30, 10),
   };
 }
@@ -35,24 +39,25 @@ export function registerAgent(app: FastifyInstance) {
   }));
 
   app.get("/api/v1/agent/latest", publicHandler(async (req, reply) => {
-    const q = strictQuery(req, ["window", "mode", "category", "limit"]);
+    const q = strictQuery(req, ["window", "mode", "category", "track", "region", "limit"]);
     const p = { ...listParams(q), mode: enumParam(q.mode, "mode", ["selected", "all"] as const, "selected") };
     const res = await v1Items({ ...p, by: "timeline", q: null, cursor: null });
     return markdown(req, reply, latestAnswer(res, p), "agent-latest", V1_CACHE_CONTROL.items);
   }));
 
   app.get("/api/v1/agent/search", publicHandler(async (req, reply) => {
-    const q = strictQuery(req, ["q", "window", "category", "limit"]);
+    const q = strictQuery(req, ["q", "window", "category", "track", "region", "limit"]);
     const text = (q.q ?? "").trim();
     if ([...text].length < 2 || [...text].length > 200) throw new QueryError("q must contain 2 to 200 characters.");
     const p = { ...listParams(q), window: enumParam(q.window, "window", ["24h", "7d"] as const, "7d") };
-    const found = await searchItems(text, p.window, p.category, p.limit);
-    return markdown(req, reply, searchAnswer(found, { q: text, window: p.window, category: p.category }), "agent-search", V1_CACHE_CONTROL.items);
+    const found = await searchItems(text, p.window, p.category, p.limit, p.track, p.region);
+    return markdown(req, reply, searchAnswer(found, { q: text, window: p.window, category: p.category, track: p.track, region: p.region }), "agent-search", V1_CACHE_CONTROL.items);
   }));
 
   app.get("/api/v1/agent/hot", publicHandler(async (req, reply) => {
-    const q = strictQuery(req, ["limit"]);
-    return markdown(req, reply, hotAnswer(await v1HotTopics(), intParam(q.limit, "limit", 1, 10, 10)), "agent-hot", V1_CACHE_CONTROL.hotTopics);
+    const q = strictQuery(req, ["track", "limit"]);
+    if (q.track !== undefined && !isTrackKey(q.track)) throw new QueryError("track must be 'academic' or 'industry'.");
+    return markdown(req, reply, hotAnswer(await v1HotTopics((q.track as TrackKey | undefined) ?? null), intParam(q.limit, "limit", 1, 10, 10)), "agent-hot", V1_CACHE_CONTROL.hotTopics);
   }));
 
   app.get("/api/v1/agent/stories/:publicId", publicHandler(async (req, reply) => {

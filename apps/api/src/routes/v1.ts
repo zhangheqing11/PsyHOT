@@ -80,8 +80,9 @@ export function registerV1(app: FastifyInstance) {
   if (FEATURES.codexResetMonitor) registerCodexResets(app);
 
   app.get("/api/v1/hot-topics", publicHandler(async (req, reply) => {
-    strictQuery(req, []);
-    const body = await v1HotTopics();
+    const q = strictQuery(req, ["track"]);
+    if (q.track !== undefined && !isTrackKey(q.track)) throw new QueryError("track must be 'academic' or 'industry'.");
+    const body = await v1HotTopics((q.track as "academic" | "industry" | undefined) ?? null);
     return sendJsonWithEtag(req, reply, body, { etagPrefix: "v1-hot", cacheControl: V1_CACHE_CONTROL.hotTopics });
   }));
 

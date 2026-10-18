@@ -213,6 +213,9 @@ export interface HotParticipant {
 
 export interface HotEntryView {
   rank: number;
+  /** The view this entry belongs to; old rankings omit it and are treated as combined. */
+  track?: TrackKey | "combined";
+  rankInTrack?: number;
   story: StoryRef;
   heat: number;
   trend: "up" | "down" | "flat" | "new" | "unknown";
@@ -241,6 +244,7 @@ export interface HotResponse {
   computedAt: string | null;
   ruleVersion: string | null;
   windowHours: number;
+  track?: TrackKey | null;
   entries: HotEntryView[];
 }
 

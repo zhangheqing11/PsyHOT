@@ -1,10 +1,11 @@
 import type { FeedItemSummary } from "@aihot/contracts/site";
+import type { RegionKey, TrackKey } from "@aihot/contracts/taxonomy";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { REPO_ROOT } from "../config.ts";
 import { sql } from "../db.ts";
 import { cached } from "../lib/cache.ts";
-import { ITEM_COLUMNS, ITEM_FROM, selectedCondition, toFeedItemSummary, type ItemRow } from "./items.ts";
+import { ITEM_COLUMNS, ITEM_FROM, regionCondition, selectedCondition, toFeedItemSummary, trackCondition, type ItemRow } from "./items.ts";
 
 export interface TopicRow {
   slug: string;
@@ -126,23 +127,28 @@ export interface TopicPage {
   pageCount: number;
 }
 
-export async function loadTopicPage(slug: string, page: number, now = new Date()): Promise<TopicPage | null> {
+export async function loadTopicPage(slug: string, page: number, filters: { track?: TrackKey | null; region?: RegionKey | null } = {}, now = new Date()): Promise<TopicPage | null> {
   const row = await loadTopic(slug);
   if (!row || page < 1) return null;
   const topics = await listTopicSummaries();
   const topic = topics.find((t) => t.slug === slug);
   if (!topic) return null;
-  const pageCount = Math.max(1, Math.ceil(topic.total / TOPIC_PAGE_SIZE));
+  const filterSql = sql`${trackCondition(filters.track)} ${regionCondition(filters.region)}`;
+  const [{ total }] = await sql<{ total: number }[]>`
+    SELECT count(*)::int AS total FROM publications p
+    WHERE ${selectedCondition(now)} AND p.tags && ${topicMatchTags(row)}::text[] ${filterSql}`;
+  const totalCount = filters.track || filters.region ? Number(total) : topic.total;
+  const pageCount = Math.max(1, Math.ceil(totalCount / TOPIC_PAGE_SIZE));
   if (page < 1 || page > pageCount) return null;
   // Page ids from the selected set first, then the joins for those rows only.
   const rows = await sql<ItemRow[]>`
     WITH page AS (
       SELECT p.article_id FROM publications p
-      WHERE ${selectedCondition(now)} AND p.tags && ${topicMatchTags(row)}::text[]
+      WHERE ${selectedCondition(now)} AND p.tags && ${topicMatchTags(row)}::text[] ${filterSql}
       ORDER BY p.timeline_at DESC, p.article_id DESC
       LIMIT ${TOPIC_PAGE_SIZE} OFFSET ${(page - 1) * TOPIC_PAGE_SIZE})
     SELECT ${ITEM_COLUMNS} ${ITEM_FROM} WHERE p.article_id IN (SELECT article_id FROM page)
     ORDER BY p.timeline_at DESC, p.article_id DESC`;
   const related = row.related.map((r) => topics.find((t) => t.slug === r)).filter((t): t is TopicSummary => !!t).map((t) => ({ slug: t.slug, name: t.name }));
-  return { topic: { ...topic, related }, items: rows.map(toFeedItemSummary), page, pageCount };
+  return { topic: { ...topic, total: totalCount, related }, items: rows.map(toFeedItemSummary), page, pageCount };
 }

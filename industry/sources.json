@@ -2293,6 +2293,71 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "web-aca-news",
+   "name": "美国咨询协会（ACA）· 新闻",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.counseling.org/publications/media-center/news-archive",
+    "itemSelector": "li.py-4",
+    "linkSelector": "a.h4",
+    "titleSelector": "a.h4",
+    "publishedAtRegex": "media-center/article/(\\d{4}/\\d{2}/\\d{2})/",
+    "publishedAtUtcOffset": "-04:00",
+    "allowUrlPrefixes": [
+     "https://www.counseling.org/publications/media-center/article/"
+    ],
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 180,
+   "tags": [
+    "学会",
+    "心理咨询",
+    "美国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-ukcp-policy",
+   "name": "英国心理治疗委员会（UKCP）· 政策与研究",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.psychotherapy.org.uk/policy-and-research/",
+    "itemSelector": "a.news-listing",
+    "titleSelector": "h3",
+    "publishedAtRegex": "\\|\\s*(\\d{1,2} [A-Z][a-z]+ \\d{4})",
+    "publishedAtUtcOffset": "+01:00",
+    "allowUrlPrefixes": [
+     "https://www.psychotherapy.org.uk/news/"
+    ],
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "心理治疗",
+    "英国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "rss-openai-news",
    "name": "OpenAI · 新闻",
    "kind": "rss",

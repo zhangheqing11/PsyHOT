@@ -7,7 +7,9 @@ import { queueProcessing } from "../jobs/content.ts";
 import { stripTags } from "../lib/text.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
-import { mpArticle, mpHistory, type MpArticle } from "../providers/dajiala.ts";
+import { credential } from "../config.ts";
+import { mpArticle as dajialaArticle, mpHistory as dajialaHistory, type MpArticle } from "../providers/dajiala.ts";
+import { everyInfraMpArticle, everyInfraMpHistory } from "../providers/everyinfra.ts";
 import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
 
 const MAX_NEW_PER_CHECK = 8;
@@ -16,6 +18,19 @@ const FIRST_CHECK_WINDOW_MS = 7 * 86400_000;
 /** A body missing for a passing reason is fetched again on later checks: this often, while the post is this recent. */
 const BODY_RETRIES = 3;
 const BODY_RETRY_WINDOW_MS = 3 * 86400_000;
+
+/** EveryInfra is selected as soon as its key is present; Dajiala remains a backwards-compatible fallback. */
+async function mpHistory(account: string, opts: { subject: string; window: string }) {
+  return credential("collectors", "EVERYINFRA_API_KEY")
+    ? everyInfraMpHistory(account, opts)
+    : dajialaHistory(account, opts);
+}
+
+async function mpArticle(url: string, opts: { subject: string; identity: string }) {
+  return credential("collectors", "EVERYINFRA_API_KEY")
+    ? everyInfraMpArticle(url, opts)
+    : dajialaArticle(url, opts);
+}
 
 /** The article body, and when it is missing for a reason that may pass (rate limit, server error, lost answer), that reason. */
 async function fetchBody(url: string, sourceId: string, identity: string): Promise<{ body: MpArticle | null; passing: string | null }> {

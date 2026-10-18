@@ -10,7 +10,7 @@
 | `web_list` | 没有 RSS 的网页列表（新闻页、博客列表、更新日志） | 写选择器；抓不到时可以经 Jina Reader 渲染（按次计费） |
 | `json_list` | 返回 JSON 的接口（GitHub Releases 等） | 写字段路径 |
 | `x_search` | X（推特）账号 | SocialData 的 key，按请求计费 |
-| `mp_account` | 微信公众号 | 极致了（Dajiala）的 key，按请求计费 |
+| `mp_account` | 微信公众号 | EveryInfra 的 `EVERYINFRA_API_KEY`（优先）；未填时兼容极致了（Dajiala） |
 | `external` | 你自己的脚本推送进来的内容 | `INGEST_TOKEN`，见下文 |
 
 每种信源认哪些配置项写在 `packages/backend/src/sources/config-keys.ts`。填了不认识的配置项，保存会被拒绝、抓取会直接失败并在后台显示原因，不会悄悄退回通用解析。
@@ -52,6 +52,32 @@
 ```json
 { "ghid": "gh_xxxxxxxx", "nickname": "公众号名称" }
 ```
+
+填好 `EVERYINFRA_API_KEY` 后，`mp_account` 会调用 EveryInfra 的 `wechat_oa/account_articles` 和
+`wechat_oa/article_detail`，每次列表查询最多取 160 篇，正文按文章单独取回。没有 key 时仍保留
+Dajiala 兼容路径，避免旧部署启动失败。
+
+### 小红书（EveryInfra）
+
+小红书使用 `json_list` 的 EveryInfra 适配器。配置示例：
+
+```json
+{
+  "adapter": "everyinfra_xhs",
+  "everyinfraAction": "search",
+  "everyinfraParams": {
+    "keyword": "心理健康 AI",
+    "date_range": "last_7_days",
+    "sort": "newest"
+  },
+  "everyinfraDetail": true
+}
+```
+
+`everyinfraAction` 目前可用 `search`、`user_posts`、`hashtag` 或 `trending`；不同 action 的
+参数按 EveryInfra 当前接口契约填写。`everyinfraDetail: true` 会对新发现的笔记追加一次 `note` 调用，
+保存正文；关闭时只保存搜索结果的摘要，避免为每条笔记付详情费用。
+API key、计费回执和失败重试由后端统一处理。
 
 每个公众号按它的抓取间隔检查一次（查列表按次计费），新文章的正文一并取回。
 

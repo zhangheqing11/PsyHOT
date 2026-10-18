@@ -15,7 +15,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   json_list: [
     ...COLLECTED, "url", "adapter", "mode", "method", "headers", "bodyJson", "jsonKey", "windowVar", "itemsPath", "itemsObjectValues",
     "titlePaths", "summaryPaths", "summaryIsBody", "authorPaths", "publishedAtPath", "publishedAtUnit", "externalIdPath",
-    "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric",
+    "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric", "everyinfraAction", "everyinfraParams", "everyinfraDetail",
   ],
   // X accounts are mostly read in shards, which apply only these.
   x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType"],
@@ -42,7 +42,7 @@ const VALUES: Record<string, string[]> = {
 // Values that depend on the kind of source: each adapter belongs to one fetcher.
 const KIND_VALUES: Partial<Record<SourceRow["kind"], Record<string, string[]>>> = {
   web_list: { adapter: ["mimo_home"] },
-  json_list: { adapter: ["bluesky_feed"] },
+  json_list: { adapter: ["bluesky_feed", "everyinfra_xhs"] },
 };
 
 /** The config entries a source of this kind would ignore or cannot run, e.g. ["adapter=site_cards", "detail.titleFoo"]. */

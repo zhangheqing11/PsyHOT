@@ -2358,6 +2358,31 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "rss-babcp-news",
+   "name": "英国行为与认知心理治疗协会（BABCP）· 新闻",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://babcp.com/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 180,
+   "tags": [
+    "学会",
+    "认知行为治疗",
+    "英国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "rss-openai-news",
    "name": "OpenAI · 新闻",
    "kind": "rss",

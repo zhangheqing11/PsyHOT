@@ -3,7 +3,7 @@ import type { PoolResponse, TimelineFilters } from "@aihot/contracts/site";
 import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
 import { one, sql, withCustomPlans, type Db } from "../db.ts";
 import {
-  categoryCondition, channelCondition, ITEM_COLUMNS, ITEM_FROM, listedCondition, tagCondition, toFeedItemSummary, topicCondition,
+  categoryCondition, channelCondition, ITEM_COLUMNS, ITEM_FROM, listedCondition, regionCondition, tagCondition, toFeedItemSummary, topicCondition, trackCondition,
   type ItemRow,
 } from "./items.ts";
 
@@ -116,11 +116,11 @@ export async function loadPool(query: PoolQuery): Promise<PoolResponse> {
   const q = query.q?.trim() || null;
   const tab = q && query.tab === "relevance" ? "relevance" : "time";
   const terms = q ? searchTerms(q) : [];
-  const filters = sql`${channelCondition(query.channel)} ${categoryCondition(query.category)} ${tagCondition(query.tag)} ${topicCondition(query.topicTags)}`;
+  const filters = sql`${channelCondition(query.channel)} ${categoryCondition(query.category)} ${trackCondition(query.category ? null : query.track)} ${regionCondition(query.region)} ${tagCondition(query.tag)} ${topicCondition(query.topicTags)}`;
   const offset = (page - 1) * POOL_PAGE_SIZE;
   const cap = POOL_MAX_PAGES * POOL_PAGE_SIZE;
   // A fixed clock (tests, replays) never shares cached totals.
-  const filterKey = query.now ? null : JSON.stringify([query.channel, query.category, query.tag, query.topicTags ?? null]);
+  const filterKey = query.now ? null : JSON.stringify([query.channel, query.category, query.track ?? null, query.region ?? null, query.tag, query.topicTags ?? null]);
 
   // Searches go through pool_search (eligible items only): trigram indexes for longer terms, a small
   // table to scan for one- and two-character ones.
@@ -196,7 +196,11 @@ export async function loadPool(query: PoolQuery): Promise<PoolResponse> {
       (SELECT max(p.updated_at) FROM publications p WHERE p.eligible) AS updated_at`);
 
   return {
-    filters: { channel: query.channel, category: query.category, tag: query.tag, topic: query.topic ?? null, q, tab },
+    filters: {
+      channel: query.channel, category: query.category, tag: query.tag, topic: query.topic ?? null, q, tab,
+      ...(query.track ? { track: query.track } : {}),
+      ...(query.region ? { region: query.region } : {}),
+    },
     items: rows.map(toFeedItemSummary),
     page,
     pageCount: Math.min(POOL_MAX_PAGES, Math.max(1, Math.ceil(total / POOL_PAGE_SIZE))),

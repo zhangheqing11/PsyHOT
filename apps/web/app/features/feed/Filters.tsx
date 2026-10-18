@@ -1,9 +1,12 @@
 // Feed filters: the channel and category row, and search.
 import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
-import { CATEGORY_LABELS, CHANNEL_LABELS, PUBLIC_API_CATEGORY_KEYS, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
+import { useNavigate } from "react-router";
+import { FEATURES } from "@aihot/industry/features";
+import { CATEGORY_LABELS, CATEGORY_TRACK, CHANNEL_LABELS, PUBLIC_API_CATEGORY_KEYS, TRACK_LABELS, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { IconClose, IconSearch } from "../../components/icons";
 import { PillTabs } from "../../components/ui/Tabs";
+import { setTrackPreference } from "../../lib/local-state";
 
 /** Same page with some query parameters changed (paging state dropped). */
 export function hrefWith(base: string, params: URLSearchParams, patch: Record<string, string | null>) {
@@ -23,12 +26,37 @@ export function hrefWith(base: string, params: URLSearchParams, patch: Record<st
  * time: picking 一手 clears the category and picking a category clears 一手. Older 资讯 / X links
  * still filter; the row then shows 全部.
  */
-export function CategoryTabs({ base, category, channel = "all", layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; layoutId: string; size?: "md" | "sm"; className?: string }) {
+export function TrackTabs({ base, track, layoutId, size = "md", className = "" }: { base: string; track?: TrackKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
+  if (!FEATURES.tracks) return null;
+  const active = track ?? "all";
+  const go = (key: string) => {
+    const next = key === "all" ? null : key as TrackKey;
+    setTrackPreference(next);
+    navigate(hrefWith(base, params, { track: next, region: null, category: null }));
+  };
+  return <PillTabs items={[{ key: "all", label: "综合" }, ...(["academic", "industry"] as const).map((key) => ({ key, label: TRACK_LABELS[key] }))]} active={active} onSelect={go} layoutId={layoutId} label="视角" size={size} className={className} />;
+}
+
+export function RegionTabs({ base, track, region, layoutId, size = "sm", className = "" }: { base: string; track?: TrackKey | null; region?: RegionKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  if (!FEATURES.tracks || track !== "industry") return null;
+  const active = region ?? "all";
+  const go = (key: string) => navigate(hrefWith(base, params, { region: key === "all" ? null : key, track: "industry" }));
+  return <PillTabs items={[{ key: "all", label: "全部地区" }, { key: "domestic", label: "国内" }, { key: "international", label: "国际" }]} active={active} onSelect={go} layoutId={layoutId} label="地区" size={size} className={className} />;
+}
+
+export function CategoryTabs({ base, category, channel = "all", track, layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
+  const [params] = useSearchParams();
+  const categoryKeys = FEATURES.tracks
+    ? (track ? PUBLIC_API_CATEGORY_KEYS.filter((key) => CATEGORY_TRACK[key] === track) : [])
+    : [...PUBLIC_API_CATEGORY_KEYS];
   const items = [
     { key: "all", label: "全部", to: hrefWith(base, params, { category: null, channel: null }) },
     { key: "firstParty", label: CHANNEL_LABELS.firstParty, to: hrefWith(base, params, { category: null, channel: "firstParty" }) },
-    ...PUBLIC_API_CATEGORY_KEYS.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k, channel: null }) })),
+    ...categoryKeys.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k, channel: null }) })),
   ];
   const active = channel === "firstParty" ? "firstParty" : (category ?? "all");
   return <PillTabs items={items} active={active} layoutId={layoutId} label="筛选" size={size} className={className} />;

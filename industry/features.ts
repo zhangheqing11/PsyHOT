@@ -15,5 +15,5 @@ export const FEATURES = {
    * 学界 / 业界视角开关（docs/plans/tracks-academic-industry.md）。关着时网站和对外出口看起来和以前一样：
    * 四个业界类别在筛选栏、角标、RSS、API 和 MCP 里合并成原来的“行业”（key 仍是 industry）。
    */
-  tracks: false,
+  tracks: true,
 } as const;

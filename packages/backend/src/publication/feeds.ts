@@ -1,7 +1,7 @@
 // RSS feeds. GUID = article id (isPermaLink=false), <link> = the site's page, pubDate = source
 // publication time. Summary feeds never carry content:encoded; full feeds inline bodies only for
 // sources that explicitly allow redistribution. Titles come from the site's name and categories.
-import { CATEGORY_LABELS, PUBLIC_API_CATEGORY_KEYS, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
+import { CATEGORY_LABELS, PUBLIC_API_CATEGORY_KEYS, TRACK_LABELS, type PublicApiCategoryKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { config } from "../config.ts";
 import { sql } from "../db.ts";
@@ -9,7 +9,7 @@ import { escapeXml } from "../lib/text.ts";
 import { proxyBodyImages } from "../media/imgproxy.ts";
 import { reportHeadline, reportIndex } from "./reports.ts";
 import { textToHtml } from "../content/sanitize.ts";
-import { categoryCondition, exportedPoolCondition, selectedCondition, xView, type ItemRow } from "./items.ts";
+import { categoryCondition, exportedPoolCondition, regionCondition, selectedCondition, trackCondition, xView, type ItemRow } from "./items.ts";
 import { dailyUrl, itemUrl, siteUrl } from "./links.ts";
 
 interface FeedMeta {
@@ -111,12 +111,12 @@ export type ItemFeedKind = "selected" | "selected-full" | "all";
 // Like the live feeds, items are the newest by their original publish time (the pubDate shown):
 // 50 per feed; a category feed holds only its last 7 days (by original publish time).
 
-export async function itemFeed(kind: ItemFeedKind, category: PublicApiCategoryKey | null, now = new Date()): Promise<string> {
+export async function itemFeed(kind: ItemFeedKind, category: PublicApiCategoryKey | null, track: TrackKey | null = null, region: RegionKey | null = null, now = new Date()): Promise<string> {
   const includeContent = kind === "selected-full";
   const scope = kind === "all"
-    ? sql`${exportedPoolCondition(now)} AND coalesce(p.published_at, p.discovered_at) > ${now}::timestamptz - interval '7 days'
+    ? sql`${exportedPoolCondition(now)} ${trackCondition(track)} ${regionCondition(region)} AND coalesce(p.published_at, p.discovered_at) > ${now}::timestamptz - interval '7 days'
         AND coalesce(p.published_at, p.discovered_at) <= ${now}`
-    : sql`${selectedCondition(now)} ${categoryCondition(category)}
+    : sql`${selectedCondition(now)} ${categoryCondition(category)} ${trackCondition(category ? null : track)} ${regionCondition(region)}
         ${category ? sql`AND coalesce(p.published_at, p.discovered_at) >= ${new Date(now.getTime() - 7 * 86400_000)}` : sql``}`;
   const rows = await sql<FeedRow[]>`
     WITH page AS MATERIALIZED (
@@ -142,6 +142,16 @@ export async function itemFeed(kind: ItemFeedKind, category: PublicApiCategoryKe
         : `${SITE.name} 每日精选「${label}」分类摘要，按分类订阅、不被全量精选刷屏。`,
       homePath: "/",
       selfPath: includeContent ? `/feed/full/category/${category}.xml` : `/feed/category/${category}.xml`,
+      ttl: 30,
+    };
+  } else if (track) {
+    const label = TRACK_LABELS[track];
+    const suffix = region ? ` · ${region === "domestic" ? "国内" : "国际"}` : "";
+    meta = {
+      title: includeContent ? `${SITE.name} — ${label}${suffix}全文` : `${SITE.name} — ${label}${suffix}`,
+      description: `${SITE.name} 每日精选「${label}」${suffix}摘要，按视角订阅。`,
+      homePath: track === "industry" ? `/?track=${track}${region ? `&region=${region}` : ""}` : `/?track=${track}`,
+      selfPath: includeContent ? `/feed/full/track/${track}.xml` : `/feed/track/${track}.xml`,
       ttl: 30,
     };
   } else {

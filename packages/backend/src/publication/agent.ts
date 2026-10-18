@@ -3,7 +3,7 @@
 // answers a question, how it reads and what to tell the user are decided here, on the server; an
 // installed Skill picks up a new ability without an update. Programs keep reading the v1 JSON.
 import type { ReportDetail } from "@aihot/contracts/site";
-import { CATEGORY_LABELS, isCategoryKey, PUBLIC_API_CATEGORY_KEYS, type PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
+import { CATEGORY_LABELS, isCategoryKey, PUBLIC_API_CATEGORY_KEYS, TRACK_LABELS, type PublicApiCategoryKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { beijingDate, beijingTime, beijingWeekday } from "@aihot/contracts/time";
 import { HOT, hoursLabel } from "@aihot/industry/selection";
 import { SITE, withSubject } from "@aihot/industry/site";
@@ -56,11 +56,11 @@ const BRIEF_HINTS = [
   NO_INTERNALS,
 ];
 
-export interface LatestQuery { window: AgentWindow; mode: "selected" | "all"; category: PublicApiCategoryKey | null; limit: number }
+export interface LatestQuery { window: AgentWindow; mode: "selected" | "all"; category: PublicApiCategoryKey | null; track?: TrackKey | null; region?: RegionKey | null; limit: number }
 
 export function latestAnswer(res: V1ItemsResult, q: LatestQuery): string {
   const scope = q.mode === "selected" ? "精选" : "全部公开动态";
-  const title = [`${SITE.name} ${scope}`, category(q.category), WINDOW_ZH[q.window]].filter(Boolean).join(" · ");
+  const title = [`${SITE.name} ${scope}`, q.track ? TRACK_LABELS[q.track] : null, q.region ? (q.region === "domestic" ? "国内" : "国际") : null, category(q.category), WINDOW_ZH[q.window]].filter(Boolean).join(" · ");
   if (!res.items.length) {
     return answer([`# ${title}`, "", `${WINDOW_ZH[q.window]}没有符合条件的${scope}。`], null, [
       "如实告诉用户这段时间没有；可以换成 window=7d 或 mode=all 再查一次。",
@@ -72,15 +72,15 @@ export function latestAnswer(res: V1ItemsResult, q: LatestQuery): string {
 }
 
 /** Editorial picks first; only when they have nothing is the whole public pool searched. */
-export async function searchItems(q: string, window: AgentWindow, cat: PublicApiCategoryKey | null, limit: number, load = v1Items) {
-  const query = (mode: "selected" | "all") => ({ mode, window, by: "timeline" as const, category: cat, q, limit, cursor: null });
+export async function searchItems(q: string, window: AgentWindow, cat: PublicApiCategoryKey | null, limit: number, track: TrackKey | null = null, region: RegionKey | null = null, load = v1Items) {
+  const query = (mode: "selected" | "all") => ({ mode, window, by: "timeline" as const, category: cat, track, region, q, limit, cursor: null });
   const picks = await load(query("selected"));
   if (picks.items.length) return { res: picks, expanded: false };
   return { res: await load(query("all")), expanded: true };
 }
 
-export function searchAnswer(found: { res: V1ItemsResult; expanded: boolean }, q: { q: string; window: AgentWindow; category: PublicApiCategoryKey | null }): string {
-  const title = [`${SITE.name} 搜索「${q.q}」`, category(q.category), WINDOW_ZH[q.window]].filter(Boolean).join(" · ");
+export function searchAnswer(found: { res: V1ItemsResult; expanded: boolean }, q: { q: string; window: AgentWindow; category: PublicApiCategoryKey | null; track?: TrackKey | null; region?: RegionKey | null }): string {
+  const title = [`${SITE.name} 搜索「${q.q}」`, q.track ? TRACK_LABELS[q.track] : null, q.region ? (q.region === "domestic" ? "国内" : "国际") : null, category(q.category), WINDOW_ZH[q.window]].filter(Boolean).join(" · ");
   const { res, expanded } = found;
   if (!res.items.length) {
     return answer([`# ${title}`, "", `${WINDOW_ZH[q.window]}的精选和全部公开动态里都没有相关内容。`], null, [

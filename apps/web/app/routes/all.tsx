@@ -2,10 +2,10 @@ import { SITE, withSubject } from "@aihot/industry/site";
 import { Link, useLoaderData, useNavigation, useSearchParams } from "react-router";
 import type { Route } from "./+types/all";
 import type { PoolResponse } from "@aihot/contracts/site";
-import { isCategoryKey, isChannelKey } from "@aihot/contracts/taxonomy";
+import { isCategoryKey, isChannelKey, isRegionKey, isTrackKey } from "@aihot/contracts/taxonomy";
 import { loadOr404, queryString } from "../lib/api.server";
 import { listPath, pageMeta } from "../lib/seo";
-import { CategoryTabs, SearchField } from "../features/feed/Filters";
+import { CategoryTabs, RegionTabs, SearchField, TrackTabs } from "../features/feed/Filters";
 import { PillTabs } from "../components/ui/Tabs";
 import { DayList, Pagination } from "../features/feed/DayList";
 import { EmptyState } from "../components/ui/Page";
@@ -17,13 +17,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   const categoryParam = url.searchParams.get("category");
   const channel = isChannelKey(channelParam) ? channelParam : "all";
   const category = categoryParam && isCategoryKey(categoryParam) ? categoryParam : null;
+  const trackParam = url.searchParams.get("track");
+  const regionParam = url.searchParams.get("region");
+  const track = trackParam && isTrackKey(trackParam) ? trackParam : null;
+  const region = regionParam && isRegionKey(regionParam) ? regionParam : null;
   const tag = url.searchParams.get("tag")?.trim() || null;
   const q = url.searchParams.get("q")?.trim().slice(0, 200) || null;
   const tab = url.searchParams.get("tab") === "relevance" ? "relevance" : null;
   // Legacy deep-paging parameters (deep, anchorAt) still open a normal page.
   const page = Math.min(Math.max(Number.parseInt(url.searchParams.get("page") ?? "1", 10) || 1, 1), 50);
   const data = await loadOr404<PoolResponse>(
-    `/api/site/pool${queryString({ channel: channel === "all" ? null : channel, category, tag, q, tab, page: page > 1 ? page : null })}`,
+    `/api/site/pool${queryString({ channel: channel === "all" ? null : channel, category, track, region, tag, q, tab, page: page > 1 ? page : null })}`,
     { signal: request.signal, busyRedirect: "/all/search-busy" },
   );
   return { data };
@@ -36,7 +40,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
   return pageMeta({
     title: q ? `搜索：${q}` : `全部${withSubject("动态")}`,
     description: `${SITE.name} 收录的全部${withSubject("动态")}，可按类别与标签筛选，支持中英文搜索。`,
-    path: listPath("/all", { channel: f && f.channel !== "all" ? f.channel : null, category: f?.category, tag: f?.tag, q, tab: f?.tab === "relevance" ? "relevance" : null, page: page > 1 ? page : null }),
+    path: listPath("/all", { channel: f && f.channel !== "all" ? f.channel : null, category: f?.category, track: f?.track, region: f?.region, tag: f?.tag, q, tab: f?.tab === "relevance" ? "relevance" : null, page: page > 1 ? page : null }),
     noindex: !!q,
   });
 }
@@ -62,7 +66,7 @@ export default function AllPage() {
   const navigation = useNavigation();
   const f = data.filters;
   const busy = navigation.state === "loading" && navigation.location?.pathname === "/all";
-  const keep = { channel: f.channel === "all" ? null : f.channel, category: f.category };
+  const keep = { channel: f.channel === "all" ? null : f.channel, category: f.category, track: f.track ?? null, region: f.region ?? null };
   const searchTabHref = (tab: "time" | "relevance") => {
     const sp = new URLSearchParams(params);
     sp.delete("page");
@@ -79,7 +83,11 @@ export default function AllPage() {
       <div className="hidden lg:block">
         <h1 className="text-[24px] font-semibold leading-[1.3] text-ink">{title ?? `全部${withSubject("动态")}`}</h1>
         <div className="mb-5 mt-4 flex items-center justify-between gap-4">
-          <CategoryTabs base="/all" category={f.category} channel={f.channel} layoutId="all-cat-desk" className="min-w-0" />
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <TrackTabs base="/all" track={f.track} layoutId="all-track-desk" />
+            <RegionTabs base="/all" track={f.track} region={f.region} layoutId="all-region-desk" />
+            <CategoryTabs base="/all" category={f.category} channel={f.channel} track={f.track} layoutId="all-cat-desk" className="min-w-0" />
+          </div>
           <SearchField variant="track" defaultValue={f.q ?? ""} keep={keep} />
         </div>
       </div>
@@ -96,7 +104,11 @@ export default function AllPage() {
         </div>
         <SearchField variant="bar" defaultValue={f.q ?? ""} keep={keep} autoFocus={params.get("search") === "1"} />
         <div className="-mx-4 mt-3 border-b border-line-soft px-4 pb-3">
-          <CategoryTabs base="/all" category={f.category} channel={f.channel} layoutId="all-cat-mobile" size="sm" className="min-w-0" />
+          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <TrackTabs base="/all" track={f.track} layoutId="all-track-mobile" size="sm" />
+            <RegionTabs base="/all" track={f.track} region={f.region} layoutId="all-region-mobile" size="sm" />
+            <CategoryTabs base="/all" category={f.category} channel={f.channel} track={f.track} layoutId="all-cat-mobile" size="sm" className="min-w-0" />
+          </div>
         </div>
       </div>
 

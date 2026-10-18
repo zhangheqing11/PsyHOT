@@ -2,7 +2,7 @@
 // Reads through the same public read layer as v1; no cookies are read or set.
 import { FEATURES } from "@aihot/industry/features";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { isCategoryKey, isChannelKey, type CategoryKey, type ChannelKey } from "@aihot/contracts/taxonomy";
+import { isCategoryKey, isChannelKey, isRegionKey, isTrackKey, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { InvalidCursorError } from "@aihot/backend/lib/cursor";
 import { exportMarkdown, loadItemDetail, siteItemDetail } from "@aihot/backend/publication/detail";
 import { loadPool, SearchBusyError } from "@aihot/backend/publication/pool";
@@ -59,6 +59,8 @@ export function siteHandler(fn: Handler): Handler {
 export interface FilterParams {
   channel: ChannelKey;
   category: CategoryKey | null;
+  track?: TrackKey;
+  region?: RegionKey;
   tag: string | null;
   topic: string | null;
   topicTags: string[] | null;
@@ -69,6 +71,10 @@ export async function parseFilters(q: Record<string, string>): Promise<FilterPar
   if (!isChannelKey(channel)) throw new BadRequest("invalid channel");
   const category = q.category ?? null;
   if (category !== null && !isCategoryKey(category)) throw new BadRequest("invalid category");
+  const track = q.track?.trim() || null;
+  if (track !== null && !isTrackKey(track)) throw new BadRequest("invalid track");
+  const region = q.region?.trim() || null;
+  if (region !== null && !isRegionKey(region)) throw new BadRequest("invalid region");
   const tag = q.tag?.trim() ? q.tag.trim().slice(0, 60) : null;
   const topic = q.topic?.trim() || null;
   let topicTags: string[] | null = null;
@@ -76,7 +82,11 @@ export async function parseFilters(q: Record<string, string>): Promise<FilterPar
     topicTags = await loadTopicTags(topic);
     if (!topicTags) throw new BadRequest("unknown topic");
   }
-  return { channel, category: category as CategoryKey | null, tag, topic, topicTags };
+  return {
+    channel, category: category as CategoryKey | null, tag, topic, topicTags,
+    ...(track ? { track } : {}),
+    ...(region ? { region } : {}),
+  };
 }
 
 export function registerSite(app: FastifyInstance) {
@@ -90,10 +100,10 @@ export function registerSite(app: FastifyInstance) {
     const q = looseQuery(req);
     const filters = await parseFilters(q);
     const limit = Math.min(Math.max(Number(q.limit) || 20, 1), 40);
-    const unfiltered = filters.channel === "all" && !filters.category && !filters.tag && !filters.topic && !q.cursor;
+    const unfiltered = filters.channel === "all" && !filters.category && !filters.region && !filters.tag && !filters.topic && !q.cursor;
     const [data, hot] = await Promise.all([
       loadTimeline({ ...filters, cursor: q.cursor || null, limit }),
-      unfiltered ? loadHotStrip() : null,
+      unfiltered ? loadHotStrip(filters.track ?? null) : null,
     ]);
     const body = { ...data, hot, generatedAt: new Date().toISOString() };
     const cc = cacheUntil(reply, 60, data.refreshAt);
@@ -180,8 +190,10 @@ export function registerSite(app: FastifyInstance) {
 
   app.get("/api/site/topics/:slug", siteHandler(async (req, reply) => {
     const slug = (req.params as { slug: string }).slug;
-    const page = Number(looseQuery(req).page ?? 1);
-    const data = Number.isInteger(page) ? await loadTopicPage(slug, page) : null;
+    const q = looseQuery(req);
+    const page = Number(q.page ?? 1);
+    const filters = await parseFilters(q);
+    const data = Number.isInteger(page) ? await loadTopicPage(slug, page, { track: filters.track, region: filters.region }) : null;
     if (!data) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "topic page not found", cacheControl: "public, max-age=60" });
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "topic", cacheControl: "public, max-age=60, s-maxage=60" });
   }));
@@ -190,7 +202,10 @@ export function registerSite(app: FastifyInstance) {
 
 
   app.get("/api/site/hot", siteHandler(async (req, reply) => {
-    const data = await loadHot();
+    const q = looseQuery(req);
+    const track = q.track?.trim() || null;
+    if (track !== null && !isTrackKey(track)) throw new BadRequest("invalid track");
+    const data = await loadHot(track);
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "hot", cacheControl: "public, max-age=30, s-maxage=30" });
   }));
 

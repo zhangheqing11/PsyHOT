@@ -1,10 +1,13 @@
 // Reading the latest published hot ranking. The web shows heat values; machine exits only ranks.
 import type { HotParticipant, HotStripEntry } from "@aihot/contracts/site";
+import type { TrackKey } from "@aihot/contracts/taxonomy";
 import { sql } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 
 export interface HotEntry {
   rank: number;
+  track?: TrackKey | "combined";
+  rankInTrack?: number;
   storyId: number;
   storyPublicId: string;
   title: string;
@@ -120,11 +123,12 @@ export async function rankingExtras(ranking: HotRanking) {
 }
 
 /** Home "current hot" strip: 3–5 entries from the same ranking, hidden when there are fewer than 3. */
-export async function loadHotStrip(): Promise<HotStripEntry[] | null> {
+export async function loadHotStrip(track: TrackKey | null = null): Promise<HotStripEntry[] | null> {
   const ranking = await latestHotRanking();
-  if (!ranking || ranking.entries.length < 3) return null;
+  const entries = ranking?.entries.filter((e) => e.track === (track ?? "combined") || (!e.track && !track)) ?? [];
+  if (!ranking || entries.length < 3) return null;
   const extras = await rankingExtras(ranking);
-  return ranking.entries.slice(0, 5).map((e) => ({
+  return entries.slice(0, 5).map((e) => ({
     rank: e.rank,
     title: e.title,
     heat: e.heat,

@@ -1,9 +1,9 @@
 // v1 items and the selected sync (snapshot + changes), read from the same public read layer.
-import type { PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
+import type { PublicApiCategoryKey, RegionKey, TrackKey } from "@aihot/contracts/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import { newShortId } from "../lib/ids.ts";
-import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, exportedPoolCondition, selectedCondition, type ApiItemRow } from "./items.ts";
+import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, exportedPoolCondition, regionCondition, selectedCondition, trackCondition, type ApiItemRow } from "./items.ts";
 import { publicMatchCondition, searchTerms, withSearchCapacity } from "./pool.ts";
 import { v1Payload, type V1ItemPayload } from "./publish.ts";
 
@@ -12,6 +12,8 @@ export interface V1ItemsQuery {
   window: "24h" | "7d";
   by: "timeline" | "published";
   category: PublicApiCategoryKey | null;
+  track?: TrackKey | null;
+  region?: RegionKey | null;
   q: string | null;
   limit: number;
   cursor: string | null;
@@ -35,7 +37,7 @@ export function rowToV1(row: ApiItemRow): V1ItemPayload {
 export async function v1Items(query: V1ItemsQuery, now = new Date()): Promise<V1ItemsResult> {
   const windowMs = query.window === "24h" ? 86400000 : 7 * 86400000;
   const windowStart = new Date(now.getTime() - windowMs);
-  const binding = queryBinding({ m: query.mode, w: query.window, b: query.by, c: query.category, q: query.q });
+  const binding = queryBinding({ m: query.mode, w: query.window, b: query.by, c: query.category, x: query.track ?? null, r: query.region ?? null, q: query.q });
   // by=timeline is the site's own order: a selected item at its reading-group anchor, anything else at its timeline time.
   const sortCol = query.by === "published" ? sql`coalesce(p.published_at, p.discovered_at)` : query.mode === "selected" ? sql`p.sort_at` : sql`p.timeline_at`;
   let after: { a: number; i: string } | null = null;
@@ -50,8 +52,8 @@ export async function v1Items(query: V1ItemsQuery, now = new Date()): Promise<V1
   const terms = query.q ? searchTerms(query.q) : [];
 
   const run = (db: Db) => db<(ApiItemRow & { sort_at: Date })[]>`
-    SELECT ${API_ITEM_COLUMNS}, ${sortCol} AS sort_at ${API_ITEM_FROM}
-    WHERE ${scope} ${categoryCondition(query.category)} ${publicMatchCondition(terms)}
+      SELECT ${API_ITEM_COLUMNS}, ${sortCol} AS sort_at ${API_ITEM_FROM}
+    WHERE ${scope} ${categoryCondition(query.category)} ${trackCondition(query.category ? null : query.track)} ${regionCondition(query.region)} ${publicMatchCondition(terms)}
       AND ${sortCol} >= ${windowStart} AND ${sortCol} <= ${now}
       ${after ? sql`AND (${sortCol}, p.article_id) < (${new Date(after.a)}, ${after.i})` : sql``}
     ORDER BY ${sortCol} DESC, p.article_id DESC
@@ -66,6 +68,8 @@ export async function v1Items(query: V1ItemsQuery, now = new Date()): Promise<V1
     query: {
       mode: query.mode, category: query.category, window: query.window, q: query.q, by: query.by,
       ordering: query.by === "published" ? "publishedAtDesc" : "timelineDesc",
+      ...(query.track ? { track: query.track } : {}),
+      ...(query.region ? { region: query.region } : {}),
     },
     items: page.map(rowToV1),
     page: {

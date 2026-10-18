@@ -13,6 +13,23 @@ export const TRACK_LABELS = Object.fromEntries(TRACKS.map((t) => [t.key, t.label
 /** The track each category belongs to. */
 export const CATEGORY_TRACK = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.track])) as Record<CategoryKey, TrackKey>;
 
+/** Stored source regions that readers may use as an optional industry filter. */
+export const REGION_KEYS = ["domestic", "international"] as const;
+export type RegionKey = (typeof REGION_KEYS)[number];
+
+/** Categories belonging to each reader-facing track. */
+export const TRACK_CATEGORIES = Object.fromEntries(
+  TRACK_KEYS.map((track) => [track, CATEGORY_KEYS.filter((category) => CATEGORY_TRACK[category] === track)]),
+) as Record<TrackKey, CategoryKey[]>;
+
+export function isTrackKey(value: unknown): value is TrackKey {
+  return typeof value === "string" && (TRACK_KEYS as readonly string[]).includes(value);
+}
+
+export function isRegionKey(value: unknown): value is RegionKey {
+  return typeof value === "string" && (REGION_KEYS as readonly string[]).includes(value);
+}
+
 /** Each category's own name (admin pages, the model's guide). */
 export const CATEGORY_NAMES = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.label])) as Record<CategoryKey, string>;
 

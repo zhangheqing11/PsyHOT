@@ -4,7 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { REGION_KEYS, TRACK_KEYS, PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { config } from "@aihot/backend/config";
 import { MCP_TOOL_NAMES as T } from "@aihot/contracts/mcp";
@@ -53,6 +53,8 @@ function safe<A>(tool: string, run: (args: A) => Promise<ReturnType<typeof ok> |
 }
 
 const category = z.enum(PUBLIC_API_CATEGORY_KEYS).optional().describe(`Optional category: ${PUBLIC_API_CATEGORY_KEYS.join(", ")}.`);
+const track = z.enum(TRACK_KEYS).optional().describe("Optional view: academic or industry.");
+const region = z.enum(REGION_KEYS).optional().describe("Optional source region: domestic or international.");
 
 type ItemList = Awaited<ReturnType<typeof v1Items>>;
 
@@ -61,15 +63,20 @@ const LATEST_INPUT = z.strictObject({
   window: z.enum(["24h", "7d"]).default("24h").describe("Time window. Use 24h for a current briefing and 7d for a weekly view."),
   mode: z.enum(["selected", "all"]).default("selected").describe("selected returns editorial picks; all returns every public item."),
   category,
+  track,
+  region,
   limit: z.number().int().min(1).max(30).default(10).describe("Maximum number of results, from 1 to 30."),
 });
 const SEARCH_INPUT = z.strictObject({
   q: z.string().min(2).max(200).describe("Search query, 2 to 200 characters."),
   window: z.enum(["24h", "7d"]).default("7d").describe("Search window. Defaults to the latest 7 days."),
   category,
+  track,
+  region,
   limit: z.number().int().min(1).max(30).default(10).describe("Maximum number of results, from 1 to 30."),
 });
 const HOT_INPUT = z.strictObject({
+  track,
   limit: z.number().int().min(1).max(10).default(10).describe("Maximum number of current topics, from 1 to 10."),
 });
 const STORY_INPUT = z.strictObject({
@@ -122,7 +129,7 @@ export function buildMcpServer(): McpServer {
       annotations: ANNOTATIONS,
     },
     safe(T.latest, async (args: z.infer<typeof LATEST_INPUT>) => {
-      const query = { mode: args.mode, window: args.window, by: "timeline", category: args.category ?? null, q: null, limit: args.limit, cursor: null } as const;
+      const query = { mode: args.mode, window: args.window, by: "timeline", category: args.category ?? null, track: args.track ?? null, region: args.region ?? null, q: null, limit: args.limit, cursor: null } as const;
       const res = await recent(`items:${JSON.stringify(query)}`, () => v1Items(query));
       return ok(itemsText(`${SITE.name} 最新资讯｜${args.window}｜${args.mode === "selected" ? "精选" : "全部公开"}（${res.items.length} 条）`, res), { schemaVersion: 1, query: res.query, items: res.items });
     }),
@@ -138,7 +145,7 @@ export function buildMcpServer(): McpServer {
     safe(T.search, async (args: z.infer<typeof SEARCH_INPUT>) => {
       const q = args.q.trim();
       if ([...q].length < 2) return fail("invalid_request", "搜索词需要 2 到 200 个字符。");
-      const query = (mode: "selected" | "all") => ({ mode, window: args.window, by: "timeline", category: args.category ?? null, q, limit: args.limit, cursor: null } as const);
+      const query = (mode: "selected" | "all") => ({ mode, window: args.window, by: "timeline", category: args.category ?? null, track: args.track ?? null, region: args.region ?? null, q, limit: args.limit, cursor: null } as const);
       let res = await recent(`items:${JSON.stringify(query("selected"))}`, () => v1Items(query("selected")));
       let scope = "精选";
       if (res.items.length === 0) {
@@ -157,7 +164,7 @@ export function buildMcpServer(): McpServer {
       annotations: ANNOTATIONS,
     },
     safe(T.hot, async (args: z.infer<typeof HOT_INPUT>) => {
-      const all = await recent("hot", () => v1HotTopics());
+      const all = await recent(`hot:${args.track ?? "combined"}`, () => v1HotTopics(args.track ?? null));
       const items = all.items.slice(0, args.limit);
       const lines = [`${SITE.name} 当前热点（${items.length} 个）`, ""];
       for (const t of items) {

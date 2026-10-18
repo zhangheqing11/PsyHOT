@@ -2,12 +2,14 @@
 // silently. Keep the keys and formats once readers have data under them.
 import { useSyncExternalStore } from "react";
 import { beijingDate } from "@aihot/contracts/time";
+import type { TrackKey } from "@aihot/contracts/taxonomy";
 
 export const KEYS = {
   starred: "aihot-starred-items",
   read: "aihot-read-items",
   theme: "aihot-theme",
   changelogSeen: "aihot-changelog-seen-version",
+  track: "aihot-track",
   feedbackDraft: "aihot-feedback-draft-v1",
 } as const;
 
@@ -88,6 +90,7 @@ const subscribeStarred = subscribeKey(KEYS.starred);
 const subscribeRead = subscribeKey(KEYS.read);
 const subscribeTheme = subscribeKey(KEYS.theme);
 const subscribeChangelog = subscribeKey(KEYS.changelogSeen);
+const subscribeTrack = subscribeKey(KEYS.track);
 
 // Snapshot cache so useSyncExternalStore gets stable references between changes.
 const cache = new Map<string, unknown>();
@@ -241,6 +244,17 @@ export function setChangelogSeen(version: string) {
   invalidate(KEYS.changelogSeen);
 }
 
+// --- academic / industry view ---
+export function getTrackPreference(): TrackKey | null {
+  const v = readRaw(KEYS.track);
+  return v === "academic" || v === "industry" ? v : null;
+}
+
+export function setTrackPreference(track: TrackKey | null) {
+  writeRaw(KEYS.track, track);
+  invalidate(KEYS.track);
+}
+
 // --- export / import (version 1) ---
 export interface ExportBundle {
   version: 1;
@@ -345,4 +359,8 @@ export function useThemePreference(): ThemePreference {
 
 export function useChangelogSeen(): string | null {
   return useSyncExternalStore(subscribeChangelog, getChangelogSeen, () => null);
+}
+
+export function useTrackPreference(): TrackKey | null {
+  return useSyncExternalStore(subscribeTrack, getTrackPreference, () => null);
 }

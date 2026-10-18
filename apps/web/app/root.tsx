@@ -1,10 +1,11 @@
 import { titled } from "./lib/seo";
 import { SITE } from "@aihot/industry/site";
+import { FEATURES } from "@aihot/industry/features";
 import {
-  isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData, useLocation, useNavigation, useRouteError, useRouteLoaderData,
+  isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData, useLocation, useNavigate, useNavigation, useRouteError, useRouteLoaderData,
   type ShouldRevalidateFunction,
 } from "react-router";
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import type { Route } from "./+types/root";
 import "./app.css";
 import { Sidebar } from "./components/shell/Sidebar";
@@ -12,7 +13,7 @@ import { MobileTabBar } from "./components/shell/MobileTabBar";
 import { BackToTop, NavigationProgress } from "./components/shell/Chrome";
 import { RingMark } from "./components/Logo";
 import { buttonClass } from "./components/ui/Controls";
-import { THEME_BOOT_SCRIPT } from "./lib/local-state";
+import { THEME_BOOT_SCRIPT, useTrackPreference } from "./lib/local-state";
 import { apiGet } from "./lib/api.server";
 import { useHydratedFlag } from "./lib/hydration";
 import { usePageViews } from "./lib/page-views";
@@ -88,6 +89,21 @@ function SiteShell({ changelogVersion, children }: { changelogVersion: string | 
   );
 }
 
+/** A remembered view is opt-in and only redirects unqualified list pages in this browser. */
+function TrackPreferenceRedirect() {
+  const preference = useTrackPreference();
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!FEATURES.tracks || !preference || (location.pathname !== "/" && location.pathname !== "/all")) return;
+    const params = new URLSearchParams(location.search);
+    if (params.has("track")) return;
+    params.set("track", preference);
+    navigate(`${location.pathname}?${params}`, { replace: true, preventScrollReset: true });
+  }, [location.pathname, location.search, navigate, preference]);
+  return null;
+}
+
 export default function App() {
   const meta = useLoaderData<typeof loader>();
   useHydratedFlag();
@@ -97,6 +113,7 @@ export default function App() {
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return <Outlet />;
   return (
     <SiteShell changelogVersion={meta.changelogVersion}>
+      <TrackPreferenceRedirect />
       <Outlet />
     </SiteShell>
   );

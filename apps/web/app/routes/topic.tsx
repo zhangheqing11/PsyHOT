@@ -1,8 +1,9 @@
 import { SITE, withSubject } from "@aihot/industry/site";
-import { Link, redirect, useLoaderData } from "react-router";
+import { Link, redirect, useLoaderData, useSearchParams } from "react-router";
 import type { Route } from "./+types/topic";
 import type { FeedItemSummary } from "@aihot/contracts/site";
-import { loadOr404 } from "../lib/api.server";
+import { isRegionKey, isTrackKey } from "@aihot/contracts/taxonomy";
+import { loadOr404, queryString } from "../lib/api.server";
 import { breadcrumbLd, pageMeta, titled } from "../lib/seo";
 import { DayList, Pagination } from "../features/feed/DayList";
 import { EmptyState, MoreLink } from "../components/ui/Page";
@@ -24,7 +25,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   if (params.page !== undefined && (!/^\d+$/.test(params.page) || page < 1)) throw new Response("Not found", { status: 404 });
   // Page 1 lives at the topic's own address (308).
   if (params.page === "1") throw redirect(`/topics/${params.slug}`, 308);
-  const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}?page=${page}`, { signal: request.signal });
+  const url = new URL(request.url);
+  const trackParam = url.searchParams.get("track");
+  const regionParam = url.searchParams.get("region");
+  const track = trackParam && isTrackKey(trackParam) ? trackParam : null;
+  const region = regionParam && isRegionKey(regionParam) ? regionParam : null;
+  const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}${queryString({ page, track, region })}`, { signal: request.signal });
   return { data };
 }
 
@@ -45,7 +51,12 @@ export function meta({ loaderData }: Route.MetaArgs) {
 export default function TopicPage() {
   const { data } = useLoaderData<typeof loader>();
   const { topic, items, page, pageCount } = data;
-  const href = (p: number) => (p <= 1 ? `/topics/${topic.slug}` : `/topics/${topic.slug}/page/${p}`);
+  const [params] = useSearchParams();
+  const href = (p: number) => {
+    const base = p <= 1 ? `/topics/${topic.slug}` : `/topics/${topic.slug}/page/${p}`;
+    const query = params.toString();
+    return query ? `${base}?${query}` : base;
+  };
   const first = (page - 1) * 20 + 1;
   const last = first + items.length - 1;
   return (

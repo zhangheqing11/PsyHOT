@@ -1,5 +1,5 @@
 // Academic and industry tracks, first batch (docs/plans/handoff-academic-industry-tracks.md): the
-// industry categories show as one 行业 until the switch is on; a source's track keeps its items'
+// industry categories showed as one 行业 until the switch was turned on; a source's track keeps its items'
 // categories on its side; the industry's own promotions are listed in the full feed only.
 import { stub } from "./setup.ts";
 import assert from "node:assert/strict";
@@ -77,14 +77,14 @@ const publication = async (id: string) =>
   (await sql<{ category: string | null; selected: boolean; eligible: boolean; promotion: boolean; reason: string | null; fact_id: number | null }[]>`
     SELECT category, selected, eligible, promotion, reason, fact_id FROM publications WHERE article_id = ${id}`)[0]!;
 
-test("until the switch is on, the industry track's categories read as the one 行业 they used to be", () => {
-  assert.equal(FEATURES.tracks, false);
-  assert.deepEqual([...PUBLIC_API_CATEGORY_KEYS], ["research", "review", "clinical", "industry", "method", "opinion"]);
-  assert.deepEqual(categoryMembers("industry").sort(), ["digital", "industry", "policy", "profession"]);
+test("with the switch on, every industry category shows, filters and exports as itself", () => {
+  assert.equal(FEATURES.tracks, true);
+  assert.deepEqual([...PUBLIC_API_CATEGORY_KEYS], ["research", "review", "clinical", "industry", "method", "opinion", "policy", "profession", "digital"]);
+  assert.deepEqual(categoryMembers("industry"), ["industry"]);
   assert.deepEqual(categoryMembers("research"), ["research"]);
   for (const k of ["policy", "profession", "industry", "digital"] as const) {
-    assert.equal(CATEGORY_LABELS[k], "行业");
-    assert.equal(toPublicApiCategory(k), "industry");
+    assert.equal(CATEGORY_LABELS[k], CATEGORY_NAMES[k]);
+    assert.equal(toPublicApiCategory(k), k);
   }
   assert.equal(CATEGORY_NAMES.industry, "机构与市场");
   assert.equal(CATEGORY_NAMES.policy, "政策监管");
@@ -127,12 +127,25 @@ test("the structure step reads the source's track, and the category it picks is 
   assert.equal(await category(journal), "opinion");
   assert.equal(await category(regulator), "industry");
   assert.equal(await category(news), "policy");
-  // Stored as itself, shown as 行业 while the switch is off.
+  // Stored, shown and filtered as itself now that the switch is on.
+  await publishArticle(journal);
+  await publishArticle(regulator);
   await publishArticle(news);
   assert.equal((await publication(news)).category, "policy");
   // Selected (two scores of 90), so it is listed once its release gate opens.
-  const pool = await loadPool({ channel: "all", category: "industry", tag: null, now: new Date(Date.now() + 3600_000) });
-  assert.ok(pool.items.some((i) => i.id === news && i.category === "industry"));
+  const now = new Date(Date.now() + 3600_000);
+  const pool = await loadPool({ channel: "all", category: "policy", tag: null, now });
+  assert.ok(pool.items.some((i) => i.id === news && i.category === "policy"));
+  const institutions = await loadPool({ channel: "all", category: "industry", tag: null, now });
+  assert.ok(!institutions.items.some((i) => i.id === news), "机构与市场 no longer stands for the whole industry track");
+  const domesticIndustry = await loadPool({ channel: "all", category: null, track: "industry", region: "domestic", tag: null, now });
+  assert.ok(domesticIndustry.items.some((i) => i.id === regulator));
+  assert.ok(!domesticIndustry.items.some((i) => i.id === news), "international mixed source is excluded from domestic industry");
+  const internationalAcademic = await loadPool({ channel: "all", category: null, track: "academic", region: "international", tag: null, now });
+  assert.ok(internationalAcademic.items.some((i) => i.id === journal));
+  assert.ok(!internationalAcademic.items.some((i) => i.id === regulator));
+  const categoryWins = await loadPool({ channel: "all", category: "industry", track: "academic", tag: null, now });
+  assert.ok(categoryWins.items.some((i) => i.id === regulator), "category takes precedence over a conflicting track");
 });
 
 test("a promotion: scored but never selected, written the cheap way, in the full feed only", async () => {

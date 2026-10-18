@@ -2,7 +2,8 @@ import { HOT, hoursLabel } from "@aihot/industry/selection";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { Link, useLoaderData } from "react-router";
 import type { HotEntryView, HotResponse } from "@aihot/contracts/site";
-import { loadOr404 } from "../lib/api.server";
+import { isTrackKey } from "@aihot/contracts/taxonomy";
+import { loadOr404, queryString } from "../lib/api.server";
 import { pageMeta } from "../lib/seo";
 import { monthDayTime, shortSourceName } from "../lib/format";
 import { Badge } from "../components/ui/Badge";
@@ -11,9 +12,13 @@ import { IconChevronDown, IconInfo } from "../components/icons";
 import { Sparkline } from "../features/hot/Sparkline";
 import { Faces } from "../features/hot/Faces";
 import { Delta } from "../features/hot/Delta";
+import { TrackTabs } from "../features/feed/Filters";
 
 export async function loader({ request }: { request: Request }) {
-  return { hot: await loadOr404<HotResponse>("/api/site/hot", { signal: request.signal }) };
+  const url = new URL(request.url);
+  const trackParam = url.searchParams.get("track");
+  const track = trackParam && isTrackKey(trackParam) ? trackParam : null;
+  return { hot: await loadOr404<HotResponse>(`/api/site/hot${queryString({ track })}`, { signal: request.signal }) };
 }
 
 export function meta() {
@@ -247,6 +252,7 @@ export default function HotPage() {
           </p>
         )}
       </header>
+      <div className="mb-5"><TrackTabs base="/hot" track={hot.track} layoutId="hot-track" /></div>
 
       {!lead ? (
         <div className="card rounded-sheet">

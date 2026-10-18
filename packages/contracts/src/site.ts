@@ -1,6 +1,6 @@
 // First-party site API (/api/site/*). Not a public API: it may evolve with the website,
 // but it is served from the same public read layer as v1, RSS and MCP.
-import type { CategoryKey, ChannelKey } from "./taxonomy.ts";
+import type { CategoryKey, ChannelKey, RegionKey, TrackKey } from "./taxonomy.ts";
 
 export type SourceKind = "rss" | "web_list" | "json_list" | "x_search" | "mp_account" | "external";
 
@@ -109,6 +109,10 @@ export interface TimelineFilters {
   category: CategoryKey | null;
   tag: string | null;
   topic?: string | null;
+  /** Optional reader-facing view; omitted preserves the unfiltered response shape. */
+  track?: TrackKey | null;
+  /** Optional source region, primarily used with the industry view. */
+  region?: RegionKey | null;
 }
 
 export interface TimelineResponse {
@@ -209,6 +213,9 @@ export interface HotParticipant {
 
 export interface HotEntryView {
   rank: number;
+  /** The view this entry belongs to; old rankings omit it and are treated as combined. */
+  track?: TrackKey | "combined";
+  rankInTrack?: number;
   story: StoryRef;
   heat: number;
   trend: "up" | "down" | "flat" | "new" | "unknown";
@@ -237,6 +244,7 @@ export interface HotResponse {
   computedAt: string | null;
   ruleVersion: string | null;
   windowHours: number;
+  track?: TrackKey | null;
   entries: HotEntryView[];
 }
 

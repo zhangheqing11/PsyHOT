@@ -1,6 +1,6 @@
 // RSS 2.0 / Atom / RDF feeds.
 import { XMLParser } from "fast-xml-parser";
-import { guardedFetch } from "../lib/http-fetch.ts";
+import { DEFAULT_UA, guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
@@ -124,7 +124,10 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
   // Config changes can alter parsing/filtering even when the upstream bytes did not change.
   const configHash = sha256(stableJson(source.config));
   const previous = !opts.force && source.cursor?.rss?.configHash === configHash ? source.cursor.rss as RssValidator : null;
-  const headers: Record<string, string> = { accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8" };
+  // A few official feeds reject the default UA's contact URL while allowing the same transparent
+  // crawler name. Keep the override source-local; never impersonate a browser or another crawler.
+  const userAgent = typeof source.config.userAgent === "string" && source.config.userAgent.trim() ? source.config.userAgent.trim() : DEFAULT_UA;
+  const headers: Record<string, string> = { "user-agent": userAgent, accept: "application/rss+xml, application/atom+xml, application/xml;q=0.9, */*;q=0.8" };
   if (previous?.etag) headers["if-none-match"] = previous.etag;
   if (previous?.lastModified) headers["if-modified-since"] = previous.lastModified;
   let res = await guardedFetch(url, { headers, timeoutMs: 25_000 });

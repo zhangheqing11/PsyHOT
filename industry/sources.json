@@ -2363,6 +2363,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://babcp.com/feed/",
+    "userAgent": "PsyHOTBot/1.0",
     "_aihot": {
      "initialBackfillLimit": 5
     }

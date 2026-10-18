@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>每天读完心理学和精神医学的新研究，挑出值得看的几条。</b><br>
-  期刊、预印本、学会、监管机构和媒体，93 个公开信源，学界和业界都收；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
+  期刊、预印本、学会、监管机构和媒体，94 个公开信源，学界和业界都收；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
 </p>
 
 <p align="center">
@@ -28,10 +28,17 @@
   <a href="#免责声明">免责声明</a>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/psyhot-home-dark.png">
-  <img src="docs/assets/psyhot-home-light.png" alt="PsyHOT 的“儿童青少年”主题页：按时间排列的精选卡片，每张有中文标题、保留了统计量的摘要、推荐理由和评分" width="100%">
-</picture>
+<p align="center">
+  <img src="docs/assets/psyhot-featured-page.png" alt="PsyHOT 精选页：当前热点和按日期排列的精选卡片" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/assets/psyhot-hot-page.png" alt="PsyHOT 热点榜：按热度排列的心理学事件和参与信源" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/assets/psyhot-daily-page.png" alt="PsyHOT 日报页：当期头版、分栏内容和日报历史" width="100%">
+</p>
 
 ## 这是什么
 
@@ -58,15 +65,11 @@ PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。�
 
 每一步的提示词原文都在 [`industry/prompts/`](industry/prompts/)，入选门槛在 [`industry/selection.ts`](industry/selection.ts)，改标准不用改代码。
 
-<p align="center">
-  <img src="docs/assets/psyhot-daily.png" alt="心理学日报的报头：宋体日期叠在一张由这一期生成的罗夏墨迹上" width="100%">
-</p>
-
-每一期日报的报眼里都有一张由这一期的日期生成的罗夏墨迹，每期都不一样。
+日报页会展示当期头版、分栏内容和往期日报入口。
 
 ## 信源
 
-93 个公开信源，另有 2 个只作热度信号、1 个暂停，全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊、学会和政府机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
+94 个正文信源，另有 123 个只作热度信号、1 个暂停，全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊、学会和政府机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
 
 | 方向 | 信源 |
 |---|---|
@@ -83,12 +86,12 @@ PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。�
 | 学会、政策与媒体 | Association for Psychological Science、KFF Health News（心理健康）、PsyPost、ScienceDaily（心理学）、Psyche、Greater Good、The Transmitter |
 | 中文 | 《心理学报》、《心理科学进展》、中国心理卫生协会 |
 | 业界：政策与监管 | 中国政府网政策文件库（按“心理”“精神卫生”“精神障碍”“精神药品”检索）、国家网信办、国家心理健康和精神卫生防治中心、WHO、美国 FDA、美国 FTC、欧洲药品管理局、英国 NICE |
-| 业界：学会与执业 | 中国心理学会、中国心理学会临床与咨询心理学注册系统、美国精神医学学会、英国皇家精神科医学院、英国心理咨询与心理治疗协会（BACP）、美国咨询协会（ACA）、英国心理治疗委员会（UKCP） |
+| 业界：学会与执业 | 中国心理学会、中国心理学会临床与咨询心理学注册系统、美国精神医学学会、英国皇家精神科医学院、英国心理咨询与心理治疗协会（BACP）、英国行为与认知心理治疗协会（BABCP）、美国咨询协会（ACA）、英国心理治疗委员会（UKCP） |
 | 业界：行业媒体 | 中国网·心理中国、健康报、Behavioral Health Business、STAT（心理健康）、MedPage Today（精神科）、Psychiatric Times、The Guardian（心理健康）、Psychedelic Alpha |
 | 业界：AI 公司 | OpenAI、Anthropic、Character.AI（只有涉及心理健康的内容会通过预筛） |
 | 只作热度信号 | BBC 健康、36氪：不单独展示，只给多家同时报道的事件增加热度证据 |
 
-完整配置见 [`industry/sources.json`](industry/sources.json)。《美国精神病学杂志》的官网会拦截机房 IP，所以改走 Europe PMC 的公开接口（有标题和摘要）；Psychiatric News 只能拿到标题，没有正文，已暂停。国家卫健委、国家药监局和健康界的网站对所有自动访问都要求通过 JS 验证，本站不绕过：卫健委和药监局的文件改从中国政府网政策文件库检索。中国心理卫生协会的网站从 2026 年 10 月起拒绝境外 IP，从香港服务器抓取会失败。还缺的：中文媒体和学会的动态多发在公众号上（需要付费的公众号接口）；SAMHSA、美国心理学会等站点会拦截抓取。欢迎补充，见 [贡献说明](CONTRIBUTING.md)。
+完整配置见 [`industry/sources.json`](industry/sources.json)。《美国精神病学杂志》的官网会拦截机房 IP，所以改走 Europe PMC 的公开接口（有标题和摘要）；Psychiatric News 只能拿到标题，没有正文，已暂停。新增的 BABCP、ACA、UKCP 分别使用官方 RSS 或公开网页列表，归入国际业界的“执业与学会”。BABCP 的站点会拒绝带联系 URL 的默认抓取标识，采集器仍使用透明的 `PsyHOTBot` 身份，只对这个源使用简化标识，不绕过验证。国家卫健委、国家药监局和健康界的网站对所有自动访问都要求通过 JS 验证，本站不绕过：卫健委和药监局的文件改从中国政府网政策文件库检索。中国心理卫生协会的网站从 2026 年 10 月起拒绝境外 IP，从香港服务器抓取会失败。还缺的：中文媒体和学会的动态多发在公众号上（需要付费的公众号接口）；SAMHSA、美国心理学会等站点会拦截抓取。欢迎补充，见 [贡献说明](CONTRIBUTING.md)。
 
 ## 跑起来
 
@@ -146,4 +149,4 @@ PsyHOT 汇总的是研究和行业动态，只用于了解领域进展，不构�
 
 ---
 
-<sub>**In English:** PsyHOT is a daily digest of psychology and psychiatry research. It reads 60 public sources (journals, preprint servers, societies and media), filters and scores every item twice with a language model against an evidence-aware rubric, writes Chinese headlines and summaries under mental-health-safe writing rules, clusters coverage of the same study into one story, and publishes a daily briefing. It is built on the open-source [AIHOT](https://github.com/KKKKhazix/AIHOT) framework; everything specific to psychology lives in `industry/`. Not medical advice.</sub>
+<sub>**In English:** PsyHOT is a daily digest of psychology and psychiatry research. It reads 94 public sources (journals, preprint servers, societies and media), filters and scores every item twice with a language model against an evidence-aware rubric, writes Chinese headlines and summaries under mental-health-safe writing rules, clusters coverage of the same study into one story, and publishes a daily briefing. It is built on the open-source [AIHOT](https://github.com/KKKKhazix/AIHOT) framework; everything specific to psychology lives in `industry/`. Not medical advice.</sub>

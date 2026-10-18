@@ -214,6 +214,12 @@ test("noise words match whatever their case", () => {
   assert.equal(noiseFiltered(c("Manus：正组建团队开发面向国内市场的产品", "与笔记本厂商合作的 Agent 产品"), source), false);
   assert.equal(noiseFiltered(c("新款笔记本开售", "首发价 4999 元"), source), true);
   assert.equal(noiseFiltered(c("iPhone 18 开售", ""), source), true);
+  // A keyword search source keeps only what names one of its markers, and still drops its noise.
+  const search = { config: { ingestNoiseFilter: { requireMarkers: ["研究", "nature"], dropMarkers: ["课程"] } } } as never;
+  assert.equal(noiseFiltered(c("Nature 子刊：社交媒体使用与青少年抑郁", ""), search), false);
+  assert.equal(noiseFiltered(c("秋天莫名难过？", "这项研究告诉你原因"), search), false);
+  assert.equal(noiseFiltered(c("情绪稳定的人都有这 5 个习惯", "收藏起来"), search), true);
+  assert.equal(noiseFiltered(c("心理学研究课程报名", ""), search), true);
 });
 
 test("search hit marks are no word breaks, and escaped CDATA wrappers keep their titles", async () => {
@@ -234,4 +240,14 @@ test("dates in yyyymmdd and in JSON-LD are read", async () => {
   assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-22T00:00:00.000Z", null], "February 30 is no date");
   const got = await fetchDetail(`${site}/ld-post`, { id: "test-feed", config: { detail: { maxFetches: 20 } } } as never, { date: true, title: false, summary: false, body: false });
   assert.equal(got.publishedAt?.toISOString(), "2026-09-24T00:00:00.000Z");
+});
+
+test("industry/sources.json: every seed source passes its config check and the table's limits", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { sources } = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; kind: string; config: Record<string, unknown>; interval_minutes?: number }> };
+  assert.equal(new Set(sources.map((s) => s.id)).size, sources.length, "ids are unique");
+  for (const s of sources) {
+    assert.deepEqual(unsupportedConfig(s.kind as never, s.config), [], s.id);
+    assert.ok((s.interval_minutes ?? 60) >= 1 && (s.interval_minutes ?? 60) <= 1440, `${s.id}: interval between 1 and 1440 minutes`);
+  }
 });

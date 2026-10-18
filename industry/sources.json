@@ -5645,6 +5645,1794 @@
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-psychology-new-research",
+   "name": "小红书 · 心理学 新研究",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "心理学 新研究",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-psychology-frontier",
+   "name": "小红书 · 心理学 前沿",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "心理学 前沿",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-depression-research",
+   "name": "小红书 · 抑郁症 新研究",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "抑郁症 新研究",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-autism-research",
+   "name": "小红书 · 孤独症 研究",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "孤独症 研究",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-neuroscience-findings",
+   "name": "小红书 · 神经科学 新发现",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "神经科学 新发现",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-brain-science-research",
+   "name": "小红书 · 脑科学 研究",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "脑科学 研究",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-psychiatric-drugs",
+   "name": "小红书 · 精神科 新药",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "精神科 新药",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-counselor-policy",
+   "name": "小红书 · 心理咨询师 政策",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "心理咨询师 政策",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-ai-mental-health",
+   "name": "小红书 · AI心理健康",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "AI心理健康",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-search-digital-therapeutics",
+   "name": "小红书 · 数字疗法 获批",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "search",
+    "everyinfraParams": {
+     "keyword": "数字疗法 获批",
+     "date_range": "last_7_days",
+     "sort": "newest"
+    },
+    "everyinfraDetail": true,
+    "summaryIsBody": true,
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "研究",
+      "论文",
+      "期刊",
+      "顶刊",
+      "子刊",
+      "nature",
+      "science",
+      "lancet",
+      "jama",
+      "bmj",
+      "pnas",
+      "cell",
+      "元分析",
+      "meta",
+      "综述",
+      "试验",
+      "rct",
+      "指南",
+      "共识",
+      "政策",
+      "监管",
+      "卫健委",
+      "药监",
+      "fda",
+      "who",
+      "获批",
+      "新药",
+      "上市",
+      "诺奖",
+      "诺贝尔",
+      "学会",
+      "学者",
+      "研究所",
+      "实验室",
+      "调查",
+      "dsm",
+      "icd",
+      "循证",
+      "行业"
+     ],
+     "dropMarkers": [
+      "考研",
+      "考点",
+      "上岸",
+      "教招",
+      "教资",
+      "备考",
+      "报名",
+      "私信",
+      "课程",
+      "训练营",
+      "招生",
+      "塔罗",
+      "星座",
+      "好物",
+      "带货",
+      "团购",
+      "招募",
+      "招聘",
+      "被试",
+      "代写",
+      "润色",
+      "护肤",
+      "减肥"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "关键词"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-creator-bohe-ai-mental-health",
+   "name": "小红书 · 薄荷冰泡-AI心理健康小菜博",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "user_posts",
+    "everyinfraParams": {
+     "user_id": "5c701004000000001103135f",
+     "limit": 20
+    },
+    "everyinfraDetail": true,
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "固定博主",
+    "AI心理健康",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-creator-neixiang-sikaozhe",
+   "name": "小红书 · 内向思考者",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "user_posts",
+    "everyinfraParams": {
+     "user_id": "5cb082710000000016001fa4",
+     "limit": 20
+    },
+    "everyinfraDetail": true,
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "固定博主",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-creator-nobel-autism",
+   "name": "小红书 · 诺贝尔觊觎者",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "user_posts",
+    "everyinfraParams": {
+     "user_id": "5a5ede60e8ac2b03ebd4e20b",
+     "limit": 20
+    },
+    "everyinfraDetail": true,
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "固定博主",
+    "孤独症",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-creator-dongyu-xiyu",
+   "name": "小红书 · 东鱼西鱼的心理岛",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "user_posts",
+    "everyinfraParams": {
+     "user_id": "5d26f65a00000000110114e9",
+     "limit": 20
+    },
+    "everyinfraDetail": true,
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "固定博主",
+    "心理咨询行业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "xhs-creator-caoya-psy",
+   "name": "小红书 · 草芽君Psy",
+   "kind": "json_list",
+   "config": {
+    "adapter": "everyinfra_xhs",
+    "everyinfraAction": "user_posts",
+    "everyinfraParams": {
+     "user_id": "63c17a1a0000000026011a43",
+     "limit": 20
+    },
+    "everyinfraDetail": true,
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "小红书",
+    "固定博主",
+    "期刊解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-camh",
+   "name": "中国心理卫生协会",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_d1f7488e321b",
+    "nickname": "中国心理卫生协会"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "学会"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-nhc",
+   "name": "健康中国",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_fbad962b1065",
+    "nickname": "健康中国",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "心理",
+      "精神",
+      "抑郁",
+      "焦虑",
+      "自杀",
+      "自伤",
+      "睡眠",
+      "孤独症",
+      "自闭症",
+      "多动",
+      "adhd",
+      "双相",
+      "成瘾",
+      "认知",
+      "脑"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "政府",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-nmpa",
+   "name": "中国药闻",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_be9781dfc193",
+    "nickname": "中国药闻",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "心理",
+      "精神",
+      "抑郁",
+      "焦虑",
+      "自杀",
+      "自伤",
+      "睡眠",
+      "孤独症",
+      "自闭症",
+      "多动",
+      "adhd",
+      "双相",
+      "成瘾",
+      "认知",
+      "脑"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "政府",
+    "药品监管"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psych-cas",
+   "name": "中科院心理所",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_7927243faac6",
+    "nickname": "中科院心理所"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究机构"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-cps",
+   "name": "中国心理学会",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_aa36afcdc88f",
+    "nickname": "中国心理学会"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "学会"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-cps-registration",
+   "name": "CPS 注册系统",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_cb2c4f4d1eac",
+    "nickname": "CPS 注册系统"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "学会",
+    "执业"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-xlxb",
+   "name": "心理学报",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_b4788a78419e",
+    "nickname": "心理学报"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "期刊"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-xlkxjz",
+   "name": "心理科学进展",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_d04323ecacdb",
+    "nickname": "心理科学进展"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "期刊"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-xlkx",
+   "name": "心理科学",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_83562d53280a",
+    "nickname": "心理科学"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "期刊"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psychcomm",
+   "name": "心理学通讯",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "心理学通讯",
+    "nickname": "心理学通讯"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "期刊"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psychology-open-science",
+   "name": "心理学开放科学平台",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "心理学开放科学平台",
+    "nickname": "心理学开放科学平台"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "开放科学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-libpsy",
+   "name": "LIBPSY",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "LIBPSY",
+    "nickname": "LIBPSY"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "enabled": false
+  },
+  {
+   "id": "wechat-psybrain-frontier",
+   "name": "PsyBrain 脑心前沿",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "PSY-Brain_Frontier",
+    "nickname": "PsyBrain 脑心前沿"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-ibraintalk",
+   "name": "脑人言",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "脑人言",
+    "nickname": "脑人言"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-affective-computing",
+   "name": "情感计算",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "情感计算",
+    "nickname": "情感计算"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "AI心理健康"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-medlive-psy",
+   "name": "医脉通精神科",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "医脉通精神科",
+    "nickname": "医脉通精神科"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "精神医学",
+    "媒体"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-mindseek",
+   "name": "MindSeek",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_04251f4c2ba8",
+    "nickname": "MindSeek"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psynote",
+   "name": "观心日记",
+   "kind": "mp_account",
+   "config": {
+    "wxid": "观心日记",
+    "nickname": "观心日记"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-zhonghua-psychiatry",
+   "name": "中华精神科杂志",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_66b4582d5496",
+    "nickname": "中华精神科杂志"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "期刊",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psychiatry-new-views",
+   "name": "精神医学新观点",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_beb25b22b537",
+    "nickname": "精神医学新观点"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "精神医学",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psychiatry-navigator",
+   "name": "精神医学导航",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_670f884340a6",
+    "nickname": "精神医学导航"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-yxj-psych",
+   "name": "医学界精神心理频道",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_2899cec8d333",
+    "nickname": "医学界精神心理频道"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "精神医学",
+    "媒体"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-cog-neuro-frontier",
+   "name": "认知神经科学前沿",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_d19b45c46493",
+    "nickname": "认知神经科学前沿"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "神经科学",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-ncmhc",
+   "name": "国家心理健康和精神卫生防治中心",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_5d57c0735e20",
+    "nickname": "国家心理健康和精神卫生防治中心",
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "招标",
+      "中标",
+      "成交"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "政府",
+    "精神卫生"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-mh686",
+   "name": "精神卫生686",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_1d10e7c55e22",
+    "nickname": "精神卫生686"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "政府",
+    "精神卫生"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-cjcp",
+   "name": "中国临床心理学杂志",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_5522be47a326",
+    "nickname": "中国临床心理学杂志"
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "期刊",
+    "临床心理"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
   }
  ]
 }

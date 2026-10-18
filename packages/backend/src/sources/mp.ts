@@ -7,8 +7,12 @@ import { queueProcessing } from "../jobs/content.ts";
 import { stripTags } from "../lib/text.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
-import { mpArticle, mpHistory, type MpArticle } from "../providers/dajiala.ts";
+import { credential } from "../config.ts";
+import { mpArticle as dajialaArticle, mpHistory as dajialaHistory, type MpArticle } from "../providers/dajiala.ts";
+import { everyInfraMpArticle, everyInfraMpHistory } from "../providers/everyinfra.ts";
 import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
+import { noiseFiltered } from "./collect.ts";
+import type { Candidate, SourceRow } from "./types.ts";
 
 const MAX_NEW_PER_CHECK = 8;
 /** Posts older than this on the first check of an account are history, not news. */
@@ -16,6 +20,19 @@ const FIRST_CHECK_WINDOW_MS = 7 * 86400_000;
 /** A body missing for a passing reason is fetched again on later checks: this often, while the post is this recent. */
 const BODY_RETRIES = 3;
 const BODY_RETRY_WINDOW_MS = 3 * 86400_000;
+
+/** EveryInfra is selected as soon as its key is present; Dajiala remains a backwards-compatible fallback. */
+async function mpHistory(account: string, opts: { subject: string; window: string }) {
+  return credential("collectors", "EVERYINFRA_API_KEY")
+    ? everyInfraMpHistory(account, opts)
+    : dajialaHistory(account, opts);
+}
+
+async function mpArticle(url: string, opts: { subject: string; identity: string }) {
+  return credential("collectors", "EVERYINFRA_API_KEY")
+    ? everyInfraMpArticle(url, opts)
+    : dajialaArticle(url, opts);
+}
 
 /** The article body, and when it is missing for a reason that may pass (rate limit, server error, lost answer), that reason. */
 async function fetchBody(url: string, sourceId: string, identity: string): Promise<{ body: MpArticle | null; passing: string | null }> {
@@ -31,7 +48,7 @@ async function fetchBody(url: string, sourceId: string, identity: string): Promi
 interface MpSource {
   id: string;
   name: string;
-  config: { wxid?: string; ghid?: string; nickname?: string };
+  config: { wxid?: string; ghid?: string; nickname?: string; ingestNoiseFilter?: Record<string, string[]> };
   cursor: Record<string, unknown> | null;
   enabled: boolean;
   participation_mode: string;
@@ -56,9 +73,11 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       if (!p.url || !p.title || fetched >= MAX_NEW_PER_CHECK) continue;
       const publishedAt = p.post_time ? new Date(p.post_time * 1000) : null;
       if (firstCheck && publishedAt && Date.now() - publishedAt.getTime() > FIRST_CHECK_WINDOW_MS) continue;
+      // A broad account (a government health account) keeps only what is on topic; the paid body is not fetched for the rest.
+      if (noiseFiltered({ title: p.title, excerpt: p.digest ?? null, url: p.url } as Candidate, source as unknown as SourceRow)) continue;
       // Same identity rule as every entrance: the long link without tracking parameters. A known post is
       // skipped, unless its body failed for a passing reason: then it is tried again a few times.
-      const key = identityKeyForUrl(p.url);
+      const key = p.identityKey ?? identityKeyForUrl(p.url);
       const [known] = key
         ? await sql<{ id: string; body_status: string; discovered_at: Date; retry: { attempts: number } | null }[]>`
             SELECT id, body_status, discovered_at, raw->'dajiala'->'bodyRetry' AS retry FROM articles WHERE identity_key = ${key} LIMIT 1`

@@ -73,7 +73,7 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       if (firstCheck && publishedAt && Date.now() - publishedAt.getTime() > FIRST_CHECK_WINDOW_MS) continue;
       // Same identity rule as every entrance: the long link without tracking parameters. A known post is
       // skipped, unless its body failed for a passing reason: then it is tried again a few times.
-      const key = identityKeyForUrl(p.url);
+      const key = p.identityKey ?? identityKeyForUrl(p.url);
       const [known] = key
         ? await sql<{ id: string; body_status: string; discovered_at: Date; retry: { attempts: number } | null }[]>`
             SELECT id, body_status, discovered_at, raw->'dajiala'->'bodyRetry' AS retry FROM articles WHERE identity_key = ${key} LIMIT 1`

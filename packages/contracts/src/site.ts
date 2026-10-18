@@ -329,6 +329,15 @@ export interface ReportCitation {
   available: boolean;
 }
 
+/** One track's part of a report's lead (the daily's lead, or the weekly and monthly overview). */
+export interface ReportLeadPart {
+  track: TrackKey;
+  label: string;
+  /** A daily's part has its own headline; a weekly or monthly's does not (the report's headline covers both). */
+  title: string | null;
+  leadParagraph: string;
+}
+
 export interface ReportDetail {
   kind: ReportKind;
   key: string;
@@ -338,10 +347,19 @@ export interface ReportDetail {
   generatedAt: string;
   revision: number;
   lead: { title: string; leadParagraph: string } | null;
+  /**
+   * The lead in two parts (学界, then 业界) when the whole report is shown and both tracks have one; empty
+   * otherwise (older reports, a report of one track, or one track's view, whose `lead` is that part).
+   */
+  leadParts: ReportLeadPart[];
   overview: string | null;
   highlights: ReportCitation[];
-  /** As edited: daily categories, weekly and monthly themes. */
-  sections: Array<{ label: string; summary: string | null; items: ReportCitation[] }>;
+  /** The track this view is limited to; null when the whole report is shown. */
+  track: TrackKey | null;
+  /** False for weekly and monthly reports composed before tracks: they cannot be told apart by track and show whole. */
+  trackSplit: boolean;
+  /** As edited: daily categories, weekly and monthly themes. `track` is the side a section belongs to (null when not recorded). */
+  sections: Array<{ label: string; summary: string | null; track: TrackKey | null; items: ReportCitation[] }>;
   /** Reading order: every section item once, labelled with its section. */
   stories: Array<ReportCitation & { label: string }>;
   flashes: ReportCitation[];

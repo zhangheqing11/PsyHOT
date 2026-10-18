@@ -8,8 +8,10 @@
 import { FEATURES } from "@aihot/industry/features";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { useState, type ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useLocation } from "react-router";
 import type { ReportCitation, ReportDetail, ReportNavigationEntry } from "@aihot/contracts/site";
+import { TRACK_LABELS } from "@aihot/contracts/taxonomy";
+import { TrackTabs } from "../feed/Filters";
 import { shortSourceName } from "../../lib/format";
 import { Badge } from "../../components/ui/Badge";
 import { IconArrowLeft, IconArrowRight, IconArrowUpRight } from "../../components/icons";
@@ -74,7 +76,23 @@ function Masthead({ report, index }: { report: ReportDetail; index: ReportNaviga
         ))}
         <span className="ml-auto whitespace-nowrap text-[12px] text-ink-4">约 {report.readingMinutes} 分钟读完</span>
       </div>
+      {FEATURES.tracks && <TrackSwitch report={report} />}
     </header>
+  );
+}
+
+/**
+ * 综合 / 学界 / 业界 for this issue. A weekly or monthly written before tracks cannot be told apart by
+ * track, so it says so instead of offering the choice.
+ */
+function TrackSwitch({ report }: { report: ReportDetail }) {
+  const { pathname } = useLocation();
+  if (!report.trackSplit) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line py-3">
+      <span className="text-[12px] text-ink-4">视角</span>
+      <TrackTabs base={pathname} track={report.track} layoutId="report-track" size="sm" />
+    </div>
   );
 }
 
@@ -155,6 +173,8 @@ export function Rows<T>({ items, children }: { items: T[]; children: (item: T, c
 interface Page {
   id: string;
   label: string;
+  /** The side this page belongs to, named beside its title when the whole report is shown. */
+  track: ReportDetail["sections"][number]["track"];
   summary: string | null;
   items: ReportCitation[];
 }
@@ -175,6 +195,7 @@ function pagesOf(report: ReportDetail, leadStory: ReportCitation | null): Page[]
     .map((s, i) => ({
       id: `s-${i + 1}`,
       label: s.label,
+      track: s.track,
       summary: s.summary,
       items: s.items
         .filter((c) => {
@@ -217,6 +238,8 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail; 
   const wide = !cover?.width || !cover.height || cover.width / cover.height >= 1.25;
   const title = report.lead?.title ?? leadStory?.title ?? headline(report.kind, report.key, count);
   const dek = report.lead?.leadParagraph ?? leadStory?.summary ?? report.overview;
+  const parts = report.leadParts;
+  const ownTitles = parts.length > 0 && parts.every((p) => p.title);
   const highlights = report.highlights.filter((h) => !leadStory || keyOf(h) !== keyOf(leadStory)).slice(0, 3);
   const inPage = new Set(pages.flatMap((p) => p.items.map((c) => c.itemId)).filter(Boolean));
   const period = daily ? "今日" : report.kind === "weekly" ? "本周" : "本月";
@@ -225,22 +248,49 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail; 
   return (
     <section aria-label="头版" className="grid @[880px]:grid-cols-[minmax(0,1fr)_300px] @[1040px]:grid-cols-[minmax(0,1fr)_340px]">
       <div id={leadStory ? (anchorOf(leadStory) ?? undefined) : undefined} className="min-w-0 scroll-mt-6 py-7 @[880px]:border-r @[880px]:border-line @[880px]:py-10 @[880px]:pr-10">
-        <Kicker>{daily ? "头条" : "本期导读"}</Kicker>
-        {cover && wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} priority className="mt-5" />}
-        <h2 className="mt-4 text-[32px] font-black leading-[1.28] tracking-[-0.03em] text-ink [text-wrap:balance] @[520px]:text-[40px] @[1040px]:text-[48px] @[1040px]:leading-[1.22]">
-          {leadStory?.itemId ? (
-            <Link to={`/items/${leadStory.itemId}`} prefetch="intent" className="transition-colors hover:text-accent">
-              {title}
-            </Link>
-          ) : (
-            title
-          )}
-        </h2>
-        {dek && (
-          <div className={cover && !wide ? "mt-6 grid gap-6 @[640px]:grid-cols-[minmax(0,1fr)_minmax(0,38%)] @[880px]:mt-7" : ""}>
-            <p className={`text-[16.5px] leading-[1.9] text-ink-2 @[880px]:text-[17.5px] ${cover && !wide ? "" : "mt-6 @[560px]:text-justify @[880px]:mt-7"}`}>{dek}</p>
-            {cover && !wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} />}
-          </div>
+        {ownTitles ? (
+          // A daily's lead in two parts, each with its own headline: 学界 first, 业界 after; the picture belongs to the part it was chosen for.
+          parts.map((part, i) => (
+            <div key={part.track} className={i === 0 ? "" : "mt-9 border-t border-line pt-9"}>
+              <Kicker>{part.label}头条</Kicker>
+              {cover && part.title === report.lead?.title && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} priority={i === 0} className="mt-5" />}
+              <h2 className="mt-4 text-[28px] font-black leading-[1.3] tracking-[-0.03em] text-ink [text-wrap:balance] @[520px]:text-[34px] @[1040px]:text-[40px] @[1040px]:leading-[1.25]">{part.title}</h2>
+              <p className="mt-5 text-[16.5px] leading-[1.9] text-ink-2 @[560px]:text-justify @[880px]:text-[17.5px]">{part.leadParagraph}</p>
+            </div>
+          ))
+        ) : (
+          <>
+            <Kicker>{daily ? "头条" : "本期导读"}</Kicker>
+            {cover && wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} priority className="mt-5" />}
+            <h2 className="mt-4 text-[32px] font-black leading-[1.28] tracking-[-0.03em] text-ink [text-wrap:balance] @[520px]:text-[40px] @[1040px]:text-[48px] @[1040px]:leading-[1.22]">
+              {leadStory?.itemId ? (
+                <Link to={`/items/${leadStory.itemId}`} prefetch="intent" className="transition-colors hover:text-accent">
+                  {title}
+                </Link>
+              ) : (
+                title
+              )}
+            </h2>
+            {parts.length > 0 ? (
+              <div className={cover && !wide ? "mt-6 grid gap-6 @[640px]:grid-cols-[minmax(0,1fr)_minmax(0,38%)] @[880px]:mt-7" : ""}>
+                {/* A weekly's or monthly's overview in two parts, 学界 first, 业界 after. */}
+                <div className={cover && !wide ? "" : "mt-6 @[880px]:mt-7"}>
+                  {parts.map((part, i) => (
+                    <div key={part.track} className={i === 0 ? "" : "mt-6 border-t border-line pt-6"}>
+                      <Kicker>{part.label}导读</Kicker>
+                      <p className="mt-2 text-[16.5px] leading-[1.9] text-ink-2 @[560px]:text-justify @[880px]:text-[17.5px]">{part.leadParagraph}</p>
+                    </div>
+                  ))}
+                </div>
+                {cover && !wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} />}
+              </div>
+            ) : dek && (
+              <div className={cover && !wide ? "mt-6 grid gap-6 @[640px]:grid-cols-[minmax(0,1fr)_minmax(0,38%)] @[880px]:mt-7" : ""}>
+                <p className={`text-[16.5px] leading-[1.9] text-ink-2 @[880px]:text-[17.5px] ${cover && !wide ? "" : "mt-6 @[560px]:text-justify @[880px]:mt-7"}`}>{dek}</p>
+                {cover && !wide && <LeadPicture cover={cover} onError={() => setBroken(cover.url)} />}
+              </div>
+            )}
+          </>
         )}
         {leadStory && (
           <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[12.5px] text-ink-3">
@@ -295,7 +345,7 @@ function FrontPage({ report, pages, leadStory, count }: { report: ReportDetail; 
 }
 
 /** A page of the report: its number in the accent beside its name. */
-export function SectionPage({ id, no, label, children }: { id: string; no?: number; label: string; children: ReactNode }) {
+export function SectionPage({ id, no, label, side, children }: { id: string; no?: number; label: string; side?: string; children: ReactNode }) {
   return (
     <section id={id} aria-labelledby={`${id}-t`} className="scroll-mt-6 pt-12 @[880px]:pt-16">
       <header className="flex items-baseline gap-3 border-b border-line-strong pb-3 @[880px]:gap-4">
@@ -303,6 +353,7 @@ export function SectionPage({ id, no, label, children }: { id: string; no?: numb
         <h2 id={`${id}-t`} className="min-w-0 text-[24px] font-black leading-[1.25] tracking-[-0.02em] text-ink @[880px]:text-[28px]">
           {label}
         </h2>
+        {side && <span className="shrink-0 rounded-full border border-line-strong px-2 py-0.5 text-[11.5px] font-medium text-ink-3">{side}</span>}
       </header>
       {children}
     </section>
@@ -319,7 +370,7 @@ function Neighbours({ report, index }: { report: ReportDetail; index: ReportNavi
   return (
     <nav aria-label={report.kind === "daily" ? "前后日报" : "前后各期"} className="mt-16 grid grid-cols-2 border-y border-line-strong">
       {report.prev ? (
-        <Link to={reportPath(report.kind, report.prev)} className={`${cell} pr-5 @[880px]:pr-10`}>
+        <Link to={reportPath(report.kind, report.prev, report.track)} className={`${cell} pr-5 @[880px]:pr-10`}>
           <span className="inline-flex items-center gap-1 text-[12px] text-ink-4">
             <IconArrowLeft size={13} /> {neighbourLabel(report.kind, report.prev, "prev")}
           </span>
@@ -329,7 +380,7 @@ function Neighbours({ report, index }: { report: ReportDetail; index: ReportNavi
         <span />
       )}
       {report.next ? (
-        <Link to={reportPath(report.kind, report.next)} className={`${cell} items-end border-l border-line pl-5 text-right @[880px]:pl-10`}>
+        <Link to={reportPath(report.kind, report.next, report.track)} className={`${cell} items-end border-l border-line pl-5 text-right @[880px]:pl-10`}>
           <span className="inline-flex items-center gap-1 text-[12px] text-ink-4">
             {neighbourLabel(report.kind, report.next, "next")} <IconArrowRight size={13} />
           </span>
@@ -351,7 +402,7 @@ function History({ report, index }: { report: ReportDetail; index: ReportNavigat
       <ul className="mt-3">
         {others.map((e) => (
           <li key={e.key}>
-            <Link to={reportPath(report.kind, e.key)} className="group flex items-baseline gap-4 border-b border-line py-3">
+            <Link to={reportPath(report.kind, e.key, report.track)} className="group flex items-baseline gap-4 border-b border-line py-3">
               <span className="num w-[76px] shrink-0 text-[12.5px] text-ink-4">{e.key}</span>
               <span className="min-w-0 flex-1 truncate text-[14px] text-ink-2 transition-colors group-hover:text-accent">{e.title ?? `${SITE.name} ${KIND_LABEL[report.kind]} · ${e.key}`}</span>
             </Link>
@@ -371,13 +422,13 @@ export function ReportPaper({ report, index }: { report: ReportDetail; index: Re
     <article className="@container">
       <Masthead report={report} index={index} />
       {count === 0 && report.flashes.length === 0 ? (
-        <p className="py-16 text-center text-[14px] text-ink-4">本期没有入选内容。</p>
+        <p className="py-16 text-center text-[14px] text-ink-4">本期{report.track ? `${TRACK_LABELS[report.track]}` : ""}没有入选内容。</p>
       ) : (
         <FrontPage report={report} pages={pages} leadStory={leadStory} count={count} />
       )}
 
       {pages.map((p, i) => (
-        <SectionPage key={p.id} id={p.id} no={i + 1} label={p.label}>
+        <SectionPage key={p.id} id={p.id} no={i + 1} label={p.label} side={FEATURES.tracks && !report.track && p.track ? TRACK_LABELS[p.track] : undefined}>
           {p.summary && (
             <p className="border-b border-line py-5 text-[15.5px] leading-[1.9] text-ink-2 @[560px]:text-justify">
               <span className="mr-2 font-semibold text-accent">本版导读</span>

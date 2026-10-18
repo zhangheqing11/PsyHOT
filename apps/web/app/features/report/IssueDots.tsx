@@ -4,9 +4,9 @@
 // on a canvas in the same dot language as the nameplate; the archive column is the accessible way
 // to the same issues.
 import { useEffect, useMemo, useRef } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import type { ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
-import { KIND_PATH, periodGrid } from "./format";
+import { KIND_PATH, periodGrid, trackOfSearch, trackQuery } from "./format";
 
 const ROW = 20;
 const TAU = Math.PI * 2;
@@ -17,6 +17,7 @@ export function IssueDots({ kind, reportKey, index, className = "" }: { kind: Re
   const grid = useMemo(() => periodGrid(kind, reportKey, index), [kind, reportKey, index]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const navigate = useNavigate();
+  const track = trackOfSearch(useSearchParams()[0]);
   const rows = Math.ceil(grid.cells.length / grid.columns);
 
   useEffect(() => {
@@ -114,7 +115,7 @@ export function IssueDots({ kind, reportKey, index, className = "" }: { kind: Re
     };
     const onClick = (e: MouseEvent) => {
       const c = cells[cellAt(e)];
-      if (c?.key && c.state === "issue") navigate(`${KIND_PATH[kind]}/${c.key}`);
+      if (c?.key && c.state === "issue") navigate(`${KIND_PATH[kind]}/${c.key}${trackQuery(track)}`);
     };
 
     const resize = new ResizeObserver(() => {
@@ -148,7 +149,7 @@ export function IssueDots({ kind, reportKey, index, className = "" }: { kind: Re
       canvas.removeEventListener("pointerleave", onLeave);
       canvas.removeEventListener("click", onClick);
     };
-  }, [grid, rows, kind, navigate]);
+  }, [grid, rows, kind, navigate, track]);
 
   return (
     <div className={className}>

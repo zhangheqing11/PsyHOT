@@ -10,6 +10,14 @@ export type TrackKey = (typeof TRACKS)[number]["key"];
 export const TRACK_KEYS = TRACKS.map((t) => t.key) as unknown as readonly [TrackKey, ...TrackKey[]];
 export const TRACK_LABELS = Object.fromEntries(TRACKS.map((t) => [t.key, t.label])) as Record<TrackKey, string>;
 
+/** What an email subscriber reads: both tracks (the default, and what every subscriber was before tracks) or one. */
+export const SUBSCRIPTION_TRACKS = ["combined", ...TRACK_KEYS] as const;
+export type SubscriptionTrack = (typeof SUBSCRIPTION_TRACKS)[number];
+export const SUBSCRIPTION_TRACK_LABELS = { combined: "综合", ...TRACK_LABELS } as Record<SubscriptionTrack, string>;
+export function isSubscriptionTrack(value: unknown): value is SubscriptionTrack {
+  return typeof value === "string" && (SUBSCRIPTION_TRACKS as readonly string[]).includes(value);
+}
+
 /** The track each category belongs to. */
 export const CATEGORY_TRACK = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.track])) as Record<CategoryKey, TrackKey>;
 

@@ -3,7 +3,8 @@
 // the industry pack (industry/prompts/report-*.md), the sections follow its categories.
 import { z } from "zod";
 import { SITE } from "@aihot/industry/site";
-import { CATEGORIES } from "@aihot/industry/taxonomy";
+import { CATEGORIES, TRACKS } from "@aihot/industry/taxonomy";
+import { TRACK_KEYS, TRACK_LABELS, type TrackKey } from "@aihot/contracts/taxonomy";
 import { promptText, promptVersion } from "../editorial/prompts.ts";
 import { modelFor } from "../editorial/models.ts";
 import { addDays, beijingDate, beijingMidnight, isoWeekLabel, isoWeekRange } from "@aihot/contracts/time";
@@ -14,10 +15,13 @@ import { shutdownSignal } from "../jobs/queue.ts";
 
 export const REPORT_VERSION = promptVersion("report-daily-lead", "report-period");
 
-const SECTION_OF: Record<string, string> = Object.fromEntries(CATEGORIES.map((c) => [c.key, c.section]));
-const SECTION_ORDER = [...new Set(CATEGORIES.map((c) => c.section))];
+interface SectionSpec { track: TrackKey; label: string }
+/** A report lists the academic track's sections first, then the industry track's; each in category order. */
+const SECTION_ORDER: SectionSpec[] = TRACKS.flatMap((t) => [...new Set(CATEGORIES.filter((c) => c.track === t.key).map((c) => c.section))].map((label) => ({ track: t.key, label })));
+const SECTION_OF: Record<string, SectionSpec> = Object.fromEntries(CATEGORIES.map((c) => [c.key, { track: c.track, label: c.section }]));
 /** Where an item without a category goes. */
-const DEFAULT_SECTION = SECTION_OF.industry ?? SECTION_ORDER.at(-1)!;
+const DEFAULT_SECTION: SectionSpec = SECTION_OF.industry ?? SECTION_ORDER.at(-1)!;
+const sectionOf = (category: string | null): SectionSpec => SECTION_OF[category ?? ""] ?? DEFAULT_SECTION;
 
 export interface ReportEntry {
   itemId: string;
@@ -96,25 +100,44 @@ async function recentlyCovered(kind: "daily", before: string, days = 7): Promise
   return out;
 }
 
-const LeadSchema = z.object({
+const LeadPartSchema = z.object({
   title: z.string().max(120),
   leadParagraph: z.string().max(600),
   highlights: z.array(z.union([z.number(), z.string()])).max(6).catch([]),
 });
+// One call writes both tracks' leads; a track without entries comes back null or absent.
+const LeadSchema = z.object({ academic: LeadPartSchema.nullish(), industry: LeadPartSchema.nullish() });
 
-async function writeLead(kind: string, key: string, entries: ReportEntry[], model: string) {
-  if (entries.length === 0) return null;
-  const list = entries.slice(0, 30).map((e, i) => `${i + 1}. ${e.title}｜${e.summary.slice(0, 120)}`).join("\n");
+type TrackLead = { lead: { title: string; leadParagraph: string }; highlights: string[] };
+
+/** Entries sent to the editor per track: 15 each, or more for a track when the other has fewer. */
+function leadShare(byTrack: Record<TrackKey, ReportEntry[]>): Record<TrackKey, ReportEntry[]> {
+  const other = (t: TrackKey) => TRACK_KEYS.filter((k) => k !== t).reduce((n, k) => n + Math.min(byTrack[k].length, 15), 0);
+  return Object.fromEntries(TRACK_KEYS.map((t) => [t, byTrack[t].slice(0, Math.max(15, 30 - other(t)))])) as Record<TrackKey, ReportEntry[]>;
+}
+
+async function writeLead(kind: string, key: string, byTrack: Record<TrackKey, ReportEntry[]>, model: string) {
+  const shown = leadShare(byTrack);
+  const numbered: ReportEntry[] = [];
+  const blocks = TRACK_KEYS.filter((t) => shown[t].length > 0).map((t) => {
+    const lines = shown[t].map((e) => `${numbered.push(e)}. ${e.title}｜${e.summary.slice(0, 120)}`);
+    return `【${TRACK_LABELS[t]}】\n${lines.join("\n")}`;
+  });
+  if (numbered.length === 0) return null;
   const res = await chatJson({
     model, purpose: "report_lead", subject: `report:${kind}:${key}`, promptVersion: REPORT_VERSION,
     system: promptText("report-daily-lead"),
-    user: list, schema: LeadSchema, temperature: 0.3, maxTokens: 800,
+    user: blocks.join("\n\n"), schema: LeadSchema, temperature: 0.3, maxTokens: 1200,
   });
-  const highlights = res.data.highlights
-    .map((h) => entries[Number(h) - 1])
-    .filter((e): e is ReportEntry => !!e)
-    .map((e) => e.itemId);
-  return { lead: { title: res.data.title, leadParagraph: res.data.leadParagraph }, highlights, receiptId: res.receiptId };
+  const leads: Partial<Record<TrackKey, TrackLead>> = {};
+  for (const t of TRACK_KEYS) {
+    const part = shown[t].length > 0 ? res.data[t] : null;
+    if (!part) continue;
+    // A part cites its own track's entries only.
+    const highlights = part.highlights.map((h) => numbered[Number(h) - 1]).filter((e): e is ReportEntry => !!e && shown[t].includes(e)).map((e) => e.itemId);
+    leads[t] = { lead: { title: part.title, leadParagraph: part.leadParagraph }, highlights };
+  }
+  return { leads, receiptId: res.receiptId };
 }
 
 async function saveReport(kind: "daily" | "weekly" | "monthly", key: string, start: Date, end: Date, content: Record<string, unknown>, reason: string, model: string) {
@@ -133,7 +156,14 @@ async function saveReport(kind: "daily" | "weekly" | "monthly", key: string, sta
   });
 }
 
-/** Daily report for Beijing date D covers [D-1 08:00, D 08:00) Beijing time. */
+type Flash = { itemId: string; title: string; sourceName: string; sourceUrl: string; publishedAt: string; track: TrackKey };
+
+/**
+ * Daily report for Beijing date D covers [D-1 08:00, D 08:00) Beijing time. Its sections are grouped by
+ * track (academic first, then industry; an empty section is not shown) and one model call writes a lead
+ * for each track. `lead` and `highlights` stay as the whole report's (the top track's lead, the tracks'
+ * highlights alternating) for readers that do not know tracks; `tracks` holds each track's own.
+ */
 export async function composeDaily(date: string, reason = "scheduled"): Promise<{ key: string; entries: number }> {
   const end = new Date(beijingMidnight(date).getTime() + 8 * 3600 * 1000);
   const start = new Date(end.getTime() - 86400000);
@@ -141,25 +171,36 @@ export async function composeDaily(date: string, reason = "scheduled"): Promise<
   const all = await candidates(start, end);
   const fresh = all.filter((c) => !covered.has(c.factKey) && !covered.has(`a:${c.itemId}`));
   const perSection = new Map<string, Candidate[]>();
-  const flashes: Array<{ itemId: string; title: string; sourceName: string; sourceUrl: string; publishedAt: string }> = [];
+  const flashes: Flash[] = [];
+  const flashesOf = (t: TrackKey) => flashes.filter((f) => f.track === t).length;
+  const sectionKey = (s: SectionSpec) => `${s.track}|${s.label}`;
   for (const c of fresh) {
-    const label = SECTION_OF[c.category ?? ""] ?? DEFAULT_SECTION;
-    const list = perSection.get(label) ?? [];
+    const spec = sectionOf(c.category);
+    const list = perSection.get(sectionKey(spec)) ?? [];
     if (list.length < 8) list.push(c);
-    else if (flashes.length < 12) flashes.push({ itemId: c.itemId, title: c.title, sourceName: c.sourceName, sourceUrl: c.sourceUrl, publishedAt: c.publishedAt });
-    perSection.set(label, list);
+    else if (flashesOf(spec.track) < 12) flashes.push({ itemId: c.itemId, title: c.title, sourceName: c.sourceName, sourceUrl: c.sourceUrl, publishedAt: c.publishedAt, track: spec.track });
+    perSection.set(sectionKey(spec), list);
   }
-  const sections = SECTION_ORDER.filter((l) => perSection.get(l)?.length).map((label) => ({
-    label,
-    items: perSection.get(label)!.map(({ category: _c, factKey: _f, ...entry }) => entry),
+  const sections = SECTION_ORDER.filter((s) => perSection.get(sectionKey(s))?.length).map((s) => ({
+    label: s.label,
+    track: s.track,
+    items: perSection.get(sectionKey(s))!.map(({ category: _c, factKey: _f, ...entry }) => entry),
   }));
   const ordered = sections.flatMap((s) => s.items).sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+  const byTrack = Object.fromEntries(TRACK_KEYS.map((t) => [t, sections.filter((s) => s.track === t).flatMap((s) => s.items).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))])) as Record<TrackKey, ReportEntry[]>;
   const model = await modelFor("report");
-  const lead = ordered.length ? await writeLead("daily", date, ordered, model) : null;
+  const written = ordered.length ? await writeLead("daily", date, byTrack, model) : null;
+  const leads = written?.leads ?? {};
+  // The track holding the day's top story speaks first.
+  const trackOrder = TRACK_KEYS.filter((t) => byTrack[t].length > 0).sort((a, b) => (byTrack[b][0]!.score ?? 0) - (byTrack[a][0]!.score ?? 0));
+  const highlights: string[] = [];
+  const queues = trackOrder.map((t) => [...(leads[t]?.highlights ?? [])]);
+  while (queues.some((q) => q.length > 0)) for (const q of queues) if (q.length > 0) highlights.push(q.shift()!);
   const content = {
     date,
-    lead: lead?.lead ?? null,
-    highlights: lead?.highlights ?? [],
+    lead: trackOrder.map((t) => leads[t]?.lead).find((l) => !!l) ?? null,
+    highlights,
+    tracks: Object.fromEntries(TRACK_KEYS.filter((t) => byTrack[t].length > 0).map((t) => [t, { lead: leads[t]?.lead ?? null, highlights: leads[t]?.highlights ?? [] }])),
     sections,
     flashes,
     metrics: {
@@ -173,54 +214,77 @@ export async function composeDaily(date: string, reason = "scheduled"): Promise<
     generator: { version: REPORT_VERSION, model, repeatsSuppressed: all.length - fresh.length },
   };
   await saveReport("daily", date, start, end, content, reason, model);
-  if (lead) await completeReceipt(sql, lead.receiptId);
+  if (written) await completeReceipt(sql, written.receiptId);
   return { key: date, entries: ordered.length };
 }
 
-export const PeriodSchema = z.object({
-  // A headline is asked for, but a missing or unusable one leaves the issue on its generic name.
-  headline: z.string().max(60).catch(""),
+const PartSchema = z.object({
   overview: z.string().max(1500),
   themes: z
     // A theme cites at most eight entries; a model that lists more keeps its first eight rather than failing the issue.
     .array(z.object({ heading: z.string().max(60), summary: z.string().max(800), refs: z.array(z.union([z.number(), z.string()])).transform((refs) => refs.slice(0, 8)) }))
     .min(1)
-    .transform((themes) => themes.slice(0, 6)),
+    .transform((themes) => themes.slice(0, 5)),
 });
 
-/** The editor's brief for a week or month: its top entries as a numbered list, each with its section. */
+export const PeriodSchema = z.object({
+  // A headline is asked for, but a missing or unusable one leaves the issue on its generic name.
+  headline: z.string().max(60).catch(""),
+  // One part per track; a track without entries comes back null or absent.
+  academic: PartSchema.nullish(),
+  industry: PartSchema.nullish(),
+}).refine((r) => !!r.academic || !!r.industry, "no track part");
+
+/** The editor's brief for a week or month: its top entries as a numbered list, each with its track and section. */
 export function periodPrompt(kind: "weekly" | "monthly", startDate: string, endDateInclusive: string, top: Candidate[]) {
-  const list = top.map((e, i) => `${i + 1}. [${SECTION_OF[e.category ?? ""] ?? DEFAULT_SECTION}] ${e.title}｜${e.summary.slice(0, 140)}`).join("\n");
+  const list = top.map((e, i) => {
+    const spec = sectionOf(e.category);
+    return `${i + 1}. [${TRACK_LABELS[spec.track]}·${spec.label}] ${e.title}｜${e.summary.slice(0, 140)}`;
+  }).join("\n");
   return {
-    system: promptText("report-period", { kindName: kind === "weekly" ? "周报" : "月报", overviewLength: kind === "weekly" ? "150–300" : "200–400" }),
+    system: promptText("report-period", { kindName: kind === "weekly" ? "周报" : "月报", overviewLength: kind === "weekly" ? "100–200" : "150–300" }),
     user: `本期：${startDate} 至 ${endDateInclusive}\n${list}`,
   };
+}
+
+/** The entries an issue reads from: the best by score, with a quarter of the places kept for each track that has any. */
+export function pickTop<T extends { category: string | null }>(all: T[], limit: number): T[] {
+  const chosen = new Set<T>();
+  for (const t of TRACK_KEYS) all.filter((c) => sectionOf(c.category).track === t).slice(0, Math.floor(limit / 4)).forEach((c) => chosen.add(c));
+  for (const c of all) if (chosen.size < limit) chosen.add(c);
+  return all.filter((c) => chosen.has(c));
 }
 
 async function composePeriod(kind: "weekly" | "monthly", key: string, startDate: string, endDateInclusive: string, reason: string) {
   const start = beijingMidnight(startDate);
   const end = beijingMidnight(addDays(endDateInclusive, 1));
   const all = await candidates(start, end);
-  const top = all.slice(0, kind === "weekly" ? 40 : 60);
+  const top = pickTop(all, kind === "weekly" ? 40 : 60);
   const dailyCount = (await sql<{ n: number }[]>`SELECT count(*) AS n FROM reports WHERE kind = 'daily' AND key >= ${startDate} AND key <= ${endDateInclusive}`)[0]?.n ?? 0;
-  let themes: Array<{ heading: string; summary: string; storyRefs: ReportEntry[] }> = [];
+  const themes: Array<{ heading: string; summary: string; track: TrackKey; storyRefs: ReportEntry[] }> = [];
+  const trackOverviews: Partial<Record<TrackKey, string>> = {};
   let headline = "";
-  let overview = "";
   let receiptId: number | null = null;
   const model = await modelFor("report");
   if (top.length) {
     const res = await chatJson({
       model, purpose: `report_${kind}`, subject: `report:${kind}:${key}`, promptVersion: REPORT_VERSION,
-      ...periodPrompt(kind, startDate, endDateInclusive, top), schema: PeriodSchema, temperature: 0.3, maxTokens: 2500,
+      ...periodPrompt(kind, startDate, endDateInclusive, top), schema: PeriodSchema, temperature: 0.3, maxTokens: 3500,
     });
     receiptId = res.receiptId;
     headline = res.data.headline.trim();
-    overview = res.data.overview;
-    themes = res.data.themes.map((t) => ({
-      heading: t.heading,
-      summary: t.summary,
-      storyRefs: t.refs.map((r) => top[Number(r) - 1]).filter((e): e is Candidate => !!e).map(({ category: _c, factKey: _f, ...e }) => e),
-    }));
+    for (const track of TRACK_KEYS) {
+      const part = res.data[track];
+      // A part cites its own track's entries only.
+      if (!part || !top.some((e) => sectionOf(e.category).track === track)) continue;
+      trackOverviews[track] = part.overview;
+      themes.push(...part.themes.map((t) => ({
+        heading: t.heading,
+        summary: t.summary,
+        track,
+        storyRefs: t.refs.map((r) => top[Number(r) - 1]).filter((e): e is Candidate => !!e && sectionOf(e.category).track === track).map(({ category: _c, factKey: _f, ...e }) => e),
+      })));
+    }
   }
   const content = {
     kind,
@@ -229,7 +293,9 @@ async function composePeriod(kind: "weekly" | "monthly", key: string, startDate:
     periodStart: startDate,
     periodEnd: endDateInclusive,
     ...(headline ? { headline } : {}),
-    overview,
+    // `overview` is the whole issue's (each track's overview, academic first) for readers that do not know tracks.
+    overview: TRACK_KEYS.map((t) => trackOverviews[t]).filter(Boolean).join("\n\n"),
+    trackOverviews,
     themes,
     storyOrder: top.map((e) => e.itemId),
     metrics: { totalStories: themes.reduce((n, t) => n + t.storyRefs.length, 0), selectedCount: all.length, reportsCovered: Number(dailyCount) },

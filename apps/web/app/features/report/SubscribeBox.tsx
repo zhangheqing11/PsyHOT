@@ -1,4 +1,6 @@
 // The daily report by email: one address, a confirmation email, then every morning's issue.
+import { SUBSCRIPTION_TRACKS, SUBSCRIPTION_TRACK_LABELS, type SubscriptionTrack } from "@aihot/contracts/taxonomy";
+import { FEATURES } from "@aihot/industry/features";
 import { withSubject } from "@aihot/industry/site";
 import { useState } from "react";
 import { Link } from "react-router";
@@ -6,8 +8,25 @@ import { Kicker } from "../../components/ui/Kicker";
 
 type State = { kind: "idle" } | { kind: "sending" } | { kind: "done"; email: string } | { kind: "error"; message: string };
 
+/** 综合 / 学界 / 业界: which side of the daily report the address will read. */
+export function TrackChoice({ value, onChange, name }: { value: SubscriptionTrack; onChange: (track: SubscriptionTrack) => void; name: string }) {
+  return (
+    <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2">
+      <legend className="sr-only">订阅内容</legend>
+      <span aria-hidden="true" className="text-[13px] text-ink-3">订阅</span>
+      {SUBSCRIPTION_TRACKS.map((t) => (
+        <label key={t} className="inline-flex min-h-8 cursor-pointer items-center gap-1.5 text-[13.5px] text-ink-2">
+          <input type="radio" name={name} value={t} checked={value === t} onChange={() => onChange(t)} className="size-4 accent-[var(--accent)]" />
+          {SUBSCRIPTION_TRACK_LABELS[t]}
+        </label>
+      ))}
+    </fieldset>
+  );
+}
+
 export function SubscribeBox() {
   const [email, setEmail] = useState("");
+  const [track, setTrack] = useState<SubscriptionTrack>("combined");
   const [state, setState] = useState<State>({ kind: "idle" });
 
   const submit = async (e: React.FormEvent) => {
@@ -15,7 +34,7 @@ export function SubscribeBox() {
     if (!email.trim()) return;
     setState({ kind: "sending" });
     try {
-      const res = await fetch("/api/site/subscriptions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: email.trim() }) });
+      const res = await fetch("/api/site/subscriptions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: email.trim(), track: FEATURES.tracks ? track : "combined" }) });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) return setState({ kind: "error", message: body.detail ?? "订阅失败，请稍后再试。" });
       setState({ kind: "done", email: email.trim() });
@@ -34,7 +53,7 @@ export function SubscribeBox() {
         </p>
       ) : (
         <>
-          <p className="mt-2 text-[13.5px] leading-[1.8] text-ink-3">日报 08:00 出炉后发送，每期一封，随时一键退订。</p>
+          <p className="mt-2 text-[13.5px] leading-[1.8] text-ink-3">日报 08:00 出炉后发送，每期一封，{FEATURES.tracks && "可选只收学界或只收业界，"}随时一键退订。</p>
           <form onSubmit={submit} className="mt-4 flex flex-col gap-2.5 sm:flex-row">
             <label htmlFor="subscribe-email" className="sr-only">邮箱地址</label>
             <input
@@ -56,6 +75,7 @@ export function SubscribeBox() {
               {state.kind === "sending" ? "发送中…" : "订阅"}
             </button>
           </form>
+          {FEATURES.tracks && <div className="mt-3"><TrackChoice name="subscribe-track" value={track} onChange={setTrack} /></div>}
           {state.kind === "error" && <p role="alert" className="mt-3 rounded-tile bg-hot-soft px-3.5 py-2.5 text-[13px] text-hot">{state.message}</p>}
           <p className="mt-3 text-[12px] text-ink-4">
             邮箱只用来发日报，退订即删除，详见<Link to="/privacy" className="text-ink-3 underline-offset-2 hover:text-accent hover:underline">隐私说明</Link>。

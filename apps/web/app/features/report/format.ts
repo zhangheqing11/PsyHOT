@@ -1,5 +1,7 @@
 // Names, dates and grouping for daily, weekly and monthly reports.
+import { FEATURES } from "@aihot/industry/features";
 import { SITE, withSubject } from "@aihot/industry/site";
+import { isTrackKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import type { ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
 import { beijingWeekday } from "../../lib/format";
 
@@ -13,8 +15,11 @@ export function kindFromPath(pathname: string): ReportKind {
   return "daily";
 }
 
-export function reportPath(kind: ReportKind, key: string): string {
-  return `${KIND_PATH[kind]}/${key}`;
+/** `?track=academic` while a track's side of the reports is being read; nothing for the whole report. */
+export const trackQuery = (track: TrackKey | null | undefined): string => (FEATURES.tracks && track ? `?track=${track}` : "");
+
+export function reportPath(kind: ReportKind, key: string, track?: TrackKey | null): string {
+  return `${KIND_PATH[kind]}/${key}${trackQuery(track)}`;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -217,4 +222,10 @@ export function periodGrid(kind: ReportKind, key: string, index: ReportNavigatio
   }
   const cells = Array.from({ length: 12 }, (_, i) => cell(`${year}-${pad(i + 1)}`, `${i + 1} 月`));
   return { title: `${year} 年`, note: `全年 ${count(cells)} 期`, columns: 6, heads: null, cells };
+}
+
+/** The track in the address, if it names one. */
+export function trackOfSearch(params: URLSearchParams): TrackKey | null {
+  const track = params.get("track");
+  return track && isTrackKey(track) ? track : null;
 }

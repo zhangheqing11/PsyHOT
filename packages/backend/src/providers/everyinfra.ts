@@ -2,7 +2,6 @@
 // billable request goes through the same receipt and budget guard as the other paid providers.
 import { credential } from "../config.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
-import { sha256 } from "../lib/ids.ts";
 import { paidRequest, ProviderRejectedError, type CallOutcome } from "./receipts.ts";
 
 export interface EveryInfraEnvelope<T = unknown> {
@@ -82,7 +81,6 @@ export interface EveryInfraMpPost {
   position: number;
   url: string;
   title: string;
-  identityKey?: string;
   post_time: number;
   digest?: string;
   sn?: string;
@@ -92,33 +90,18 @@ export interface EveryInfraMpPost {
 }
 
 export async function everyInfraMpHistory(account: string, opts: { subject: string; window: string }) {
-  let call: Awaited<ReturnType<typeof everyInfraCall<unknown[]>>>;
-  let rows: unknown[];
-  try {
-    call = await everyInfraCall<unknown[]>({
-      platform: "wechat_oa",
-      action: "account_articles",
-      params: { account, limit: 160 },
-      subject: opts.subject,
-      purpose: "mp_history",
-      window: opts.window,
-    });
-    rows = Array.isArray(call.results) ? call.results : [];
-  } catch (error) {
-    // EveryInfra currently sometimes returns 503 for account-level actions while its article
-    // search action remains available. Search by the exact account label as a bounded fallback;
-    // search URLs may be temporary, so callers still treat body retrieval as best effort.
-    if (!(error instanceof ProviderRejectedError) || !error.retryable) throw error;
-    call = await everyInfraCall<unknown[]>({
-      platform: "wechat_oa",
-      action: "article_search",
-      params: { keyword: account },
-      subject: opts.subject,
-      purpose: "mp_history_fallback_search",
-      window: opts.window,
-    });
-    rows = Array.isArray(call.results) ? call.results : [];
-  }
+  // No fallback when the account listing is unavailable (EveryInfra answers 503 for some accounts at
+  // times; failed calls are not billed): an article search by the account's name returns other accounts'
+  // articles too, and their bodies were paid for and thrown away on every retry. The check is retried.
+  const call = await everyInfraCall<unknown[]>({
+    platform: "wechat_oa",
+    action: "account_articles",
+    params: { account, limit: 160 },
+    subject: opts.subject,
+    purpose: "mp_history",
+    window: opts.window,
+  });
+  const rows: unknown[] = Array.isArray(call.results) ? call.results : [];
   const posts = rows.flatMap((row, i) => {
     if (!row || typeof row !== "object") return [];
     const r = row as Record<string, unknown>;
@@ -132,9 +115,6 @@ export async function everyInfraMpHistory(account: string, opts: { subject: stri
       digest: typeof r.digest === "string" ? r.digest : typeof r.summary === "string" ? r.summary : undefined,
       sn: typeof r.id === "string" ? r.id : undefined,
       cover_url: typeof r.cover_image_url === "string" ? r.cover_image_url : undefined,
-      identityKey: call.response.action === "article_search"
-        ? `wechat-search:${sha256([account, title, String(r.summary ?? ""), url].join("\u0001"))}`
-        : undefined,
       original: r.is_original === true ? 1 : r.is_original === false ? 0 : undefined,
       item_show_type: undefined,
     } satisfies EveryInfraMpPost];

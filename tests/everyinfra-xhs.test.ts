@@ -1,7 +1,7 @@
 // Xiaohongshu through EveryInfra (json_list adapter everyinfra_xhs) against a local stub: one paid
 // listing call through the receipts, notes mapped with their link, author and time, and the public
 // counts kept for the hot ranking.
-import { stub, tag } from "./setup.ts";
+import { Reply, stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, test } from "node:test";
 import { config } from "@aihot/backend/config";
@@ -9,11 +9,14 @@ import { closeDb, sql } from "@aihot/backend/db";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { fetchJsonList } from "@aihot/backend/sources/json-list";
 import { collectSource } from "@aihot/backend/sources/collect";
+import { checkMpAccount } from "@aihot/backend/sources/mp";
 
 const T = tag();
 const calls: Array<{ platform: string; action: string; params: Record<string, unknown> }> = [];
 const provider = await stub((_hit, req) => {
-  calls.push(JSON.parse(req.body));
+  const call = JSON.parse(req.body);
+  calls.push(call);
+  if (call.action === "account_articles") return new Reply(503, { error: "unavailable" });
   return {
     id: `req-${T}`, billing: { charged: true, charged_usd: 0.005556 },
     results: [
@@ -62,4 +65,25 @@ test("a budget that runs out during note details keeps the paid listing's notes 
   const [stored] = await sql<{ body_text: string; like_count: number }[]>`SELECT body_text, (raw->>'like_count')::int AS like_count FROM articles WHERE source_id = ${id}`;
   assert.equal(stored!.body_text, "一项纵向研究……", "with the listing's excerpt as its body");
   assert.equal(stored!.like_count, 120);
+});
+
+test("a WeChat account whose listing is unavailable is retried, never searched for by its name", async () => {
+  const id = `test-mp-${T}`;
+  await sql`UPDATE budgets SET per_minute = 10 WHERE service = 'everyinfra'`;
+  await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, next_fetch_at) VALUES (${id}, '心理学报', 'mp_account',
+    ${sql.json({ ghid: `gh_test_${T}`, nickname: "心理学报" } as never)}, 'T1', 'editorial', '2100-01-01')`;
+  const before = calls.length;
+  const result = await checkMpAccount(id, "manual");
+  assert.equal(result.status, "failed");
+  const [row] = await sql<{ retry_at: string }[]>`SELECT cursor->>'retryAt' AS retry_at FROM sources WHERE id = ${id}`;
+  assert.ok(Date.parse(row!.retry_at) > Date.now() + 50 * 60_000, "tried again in an hour, not on every reconcile");
+  await sql`UPDATE sources SET enabled = true WHERE id = ${id}`;
+  const { scheduleMpReconcile } = await import("@aihot/backend/sources/mp");
+  await scheduleMpReconcile();
+  assert.equal((await sql`SELECT 1 FROM pgboss.job WHERE name = 'sources.mp' AND data->>'sourceId' = ${id}`).length, 0, "not queued before then");
+  await sql`UPDATE sources SET cursor = cursor - 'retryAt' WHERE id = ${id}`;
+  await scheduleMpReconcile();
+  assert.equal((await sql`SELECT 1 FROM pgboss.job WHERE name = 'sources.mp' AND data->>'sourceId' = ${id}`).length, 1, "queued once the hour is up");
+  assert.deepEqual(calls.slice(before).map((c) => c.action), ["account_articles"], "no article search, no bodies");
+  assert.equal((await sql`SELECT 1 FROM articles WHERE source_id = ${id}`).length, 0);
 });

@@ -54,7 +54,8 @@
 ```
 
 填好 `EVERYINFRA_API_KEY` 后，`mp_account` 会调用 EveryInfra 的 `wechat_oa/account_articles` 和
-`wechat_oa/article_detail`，每次列表查询最多取 160 篇，正文按文章单独取回。没有 key 时仍保留
+`wechat_oa/article_detail`，每次列表查询最多取 160 篇，正文按文章单独取回。EveryInfra 有时对个别账号的列表
+返回 503（失败的调用不计费），这时这个号一小时后再试；不会改用按名字搜文章，因为搜出来的大多是别的号的文章。没有 key 时仍保留
 Dajiala 兼容路径，避免旧部署启动失败。
 
 ### 小红书（EveryInfra）

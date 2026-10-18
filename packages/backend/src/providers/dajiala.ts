@@ -9,7 +9,6 @@ export interface MpPost {
   position: number;
   url: string;
   title: string;
-  identityKey?: string;
   post_time: number;
   digest?: string;
   sn?: string;

@@ -28,10 +28,17 @@
   <a href="#免责声明">免责声明</a>
 </p>
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/psyhot-home-dark.png">
-  <img src="docs/assets/psyhot-home-light.png" alt="PsyHOT 的“儿童青少年”主题页：按时间排列的精选卡片，每张有中文标题、保留了统计量的摘要、推荐理由和评分" width="100%">
-</picture>
+<p align="center">
+  <img src="docs/assets/psyhot-featured-page.png" alt="PsyHOT 精选页：当前热点和按日期排列的精选卡片" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/assets/psyhot-hot-page.png" alt="PsyHOT 热点榜：按热度排列的心理学事件和参与信源" width="100%">
+</p>
+
+<p align="center">
+  <img src="docs/assets/psyhot-daily-page.png" alt="PsyHOT 日报页：当期头版、分栏内容和日报历史" width="100%">
+</p>
 
 ## 这是什么
 
@@ -58,11 +65,7 @@ PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。�
 
 每一步的提示词原文都在 [`industry/prompts/`](industry/prompts/)，入选门槛在 [`industry/selection.ts`](industry/selection.ts)，改标准不用改代码。
 
-<p align="center">
-  <img src="docs/assets/psyhot-daily.png" alt="心理学日报的报头：宋体日期叠在一张由这一期生成的罗夏墨迹上" width="100%">
-</p>
-
-每一期日报的报眼里都有一张由这一期的日期生成的罗夏墨迹，每期都不一样。
+日报页会展示当期头版、分栏内容和往期日报入口。
 
 ## 信源
 

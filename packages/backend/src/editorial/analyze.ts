@@ -26,8 +26,8 @@ import {
   type IdentityGuard,
 } from "./writing.ts";
 import {
-  CATEGORY_BY_ITEM_TYPE, CATEGORY_GUIDE, CATEGORY_TAGS, categoryForSource, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS, TRACK_CATEGORIES,
-  trackOfCategory,
+  CATEGORY_BY_ITEM_TYPE, CATEGORY_TAGS, categoryForSource, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS,
+  trackGuide, trackOfCategory,
 } from "./vocabulary.ts";
 import { promptText, promptVersion } from "./prompts.ts";
 
@@ -155,10 +155,9 @@ const ZH_COUNT = ["零", "一", "二", "三", "四", "五", "六", "七", "八",
 /** The structure step's prompt (it writes nothing a reader sees), filled from the pack's vocabulary. */
 const STRUCTURE_SYSTEM = promptText("structure", {
   categoryCount: ZH_COUNT[CATEGORIES.length] ?? String(CATEGORIES.length),
-  categoryGuide: CATEGORY_GUIDE,
+  academicGuide: trackGuide("academic"),
+  industryGuide: trackGuide("industry"),
   categoryTags: CATEGORY_TAGS.join("、"),
-  academicCategories: TRACK_CATEGORIES.academic.join("、"),
-  industryCategories: TRACK_CATEGORIES.industry.join("、"),
   topicTags: TOPIC_TAGS.join("、"),
   entityTags: ENTITY_TAGS.join("、"),
   entities: Object.entries(ENTITIES).map(([id, e]) => `${id}（${e.aliases.slice(0, 3).join("/")}）`).join("，"),

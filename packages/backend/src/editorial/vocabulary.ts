@@ -25,8 +25,9 @@ export function normalizeTags(v: unknown, opts: { max?: number; fallbackCategory
   return [category, ...tags.filter((t) => t !== category)].slice(0, max);
 }
 
-/** The category guide the structure step reads: one line per category. */
-export const CATEGORY_GUIDE = CATEGORIES.map((c) => `- ${c.key}（${c.label}）：${c.guide}`).join("\n");
+/** The category guide of one track's categories, for the structure step's second question. */
+export const trackGuide = (track: "academic" | "industry") =>
+  CATEGORIES.filter((c) => c.track === track).map((c) => `- ${c.key}（${c.label}）：${c.guide}`).join("\n");
 
 /** Each track's categories, in the pack's order. */
 export const TRACK_CATEGORIES = {

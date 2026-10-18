@@ -45,6 +45,9 @@ async function fetchBody(url: string, sourceId: string, identity: string): Promi
   }
 }
 
+/** How long an account the provider cannot list now waits before the next try. */
+const UNAVAILABLE_RETRY_MS = 60 * 60_000;
+
 interface MpSource {
   id: string;
   name: string;
@@ -77,7 +80,7 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       if (noiseFiltered({ title: p.title, excerpt: p.digest ?? null, url: p.url } as Candidate, source as unknown as SourceRow)) continue;
       // Same identity rule as every entrance: the long link without tracking parameters. A known post is
       // skipped, unless its body failed for a passing reason: then it is tried again a few times.
-      const key = p.identityKey ?? identityKeyForUrl(p.url);
+      const key = identityKeyForUrl(p.url);
       const [known] = key
         ? await sql<{ id: string; body_status: string; discovered_at: Date; retry: { attempts: number } | null }[]>`
             SELECT id, body_status, discovered_at, raw->'dajiala'->'bodyRetry' AS retry FROM articles WHERE identity_key = ${key} LIMIT 1`
@@ -138,19 +141,26 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
         health = CASE WHEN ${soft} THEN health WHEN fail_count + 1 >= 3 THEN 'failing' ELSE 'degraded' END, updated_at = now()
       WHERE id = ${sourceId}`;
     await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
-    if (soft) throw error; // retried by the queue
+    // The provider cannot list this account now (EveryInfra answers 503 for some accounts for hours):
+    // try again in an hour rather than on every reconcile, whose attempts would use up the budget.
+    if (error instanceof ProviderRejectedError && error.retryable) {
+      await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + UNAVAILABLE_RETRY_MS).toISOString() })} WHERE id = ${sourceId}`;
+      return { sourceId, status: "failed" as const, error: message };
+    }
+    if (soft) throw error; // over budget: retried by the queue
     return { sourceId, status: "failed" as const, error: message };
   }
 }
 
 /** Every enabled account is checked once per its interval (the paid list call is the cost). */
 export async function scheduleMpReconcile(now = new Date()) {
-  const rows = await sql<{ id: string; last: string | null; interval_minutes: number }[]>`
-    SELECT id, cursor->>'lastCheckedAt' AS last, interval_minutes FROM sources WHERE kind = 'mp_account' AND enabled`;
+  const rows = await sql<{ id: string; last: string | null; retry_at: string | null; interval_minutes: number }[]>`
+    SELECT id, cursor->>'lastCheckedAt' AS last, cursor->>'retryAt' AS retry_at, interval_minutes FROM sources WHERE kind = 'mp_account' AND enabled`;
   let enqueued = 0;
   for (const s of rows) {
     const since = s.last ? now.getTime() - Date.parse(s.last) : Infinity;
     if (since <= s.interval_minutes * 60_000) continue;
+    if (s.retry_at && Date.parse(s.retry_at) > now.getTime()) continue;
     await enqueue(QUEUES.mpCheck, { sourceId: s.id, reason: "schedule" }, { singletonKey: `mp:${s.id}` });
     enqueued += 1;
   }

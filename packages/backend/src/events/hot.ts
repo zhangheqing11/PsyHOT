@@ -12,7 +12,7 @@ import { tierRank, type HotEntry } from "./hot-read.ts";
 const WINDOW_HOURS = HOT.windowHours;
 const HALF_LIFE_HOURS = HOT.halfLifeHours;
 const MIN_PARTICIPANTS = 2;
-export const HOT_RULE_VERSION = `heat-v4-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality-tracks-engagement`;
+export const HOT_RULE_VERSION = `heat-v5-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality-tracks-engagement-byheat`;
 
 /** A count in the stored listing item (EveryInfra names them like_count, collect_count…); 0 when absent. */
 const count = (key: string) => sql`(CASE WHEN jsonb_typeof(a.raw->${key}) = 'number' THEN greatest((a.raw->>${key})::numeric, 0) ELSE 0 END)`;
@@ -118,65 +118,52 @@ export async function hotCandidates(at: Date, behind: string[] = []): Promise<He
   return rows.sort((a, b) => Number(b.heat) - Number(a.heat) || (b.latest_at?.getTime() ?? 0) - (a.latest_at?.getTime() ?? 0));
 }
 
-interface RankedHotCandidate {
+export interface RankedHotCandidate {
   entry: HotEntry;
   tracks: Set<TrackKey>;
-  quality: number;
-  category: string | null;
 }
 
-function academicSelection(candidates: RankedHotCandidate[]): RankedHotCandidate[] {
-  const remaining = [...candidates].sort((a, b) => b.quality - a.quality || b.entry.heat - a.entry.heat || b.entry.latestAt.localeCompare(a.entry.latestAt));
+/** Places on each list; a source fills at most two of them with stories it alone reports. */
+const LIST_SIZE = 10;
+const SINGLE_PARTICIPANT_PER_SOURCE = 2;
+/** The combined list keeps this many places for each track that has stories. */
+const TRACK_FLOOR = 3;
+
+const byHeat = (a: RankedHotCandidate, b: RankedHotCandidate) => b.entry.heat - a.entry.heat || b.entry.latestAt.localeCompare(a.entry.latestAt);
+
+/** A story one source alone reports counts against that source's two places. */
+function capped(picked: RankedHotCandidate[], c: RankedHotCandidate): boolean {
+  if (c.entry.participantCount > 1) return false;
+  const source = c.entry.representativeSource ?? "";
+  return picked.filter((p) => p.entry.participantCount <= 1 && (p.entry.representativeSource ?? "") === source).length >= SINGLE_PARTICIPANT_PER_SOURCE;
+}
+
+/** A track's list (and the pool of the combined one): hottest first, within the per-source cap. */
+export function rankByHeat(candidates: RankedHotCandidate[], limit = LIST_SIZE): RankedHotCandidate[] {
   const picked: RankedHotCandidate[] = [];
-  const sourceCounts = new Map<string, number>();
-  const categoryCounts = new Map<string, number>();
-  while (remaining.length && picked.length < 10) {
-    const available = remaining.filter((c) => (sourceCounts.get(c.entry.representativeSource ?? "") ?? 0) < 2);
-    if (!available.length) break;
-    available.sort((a, b) => {
-      const diversity = (categoryCounts.get(a.category ?? "") ?? 0) - (categoryCounts.get(b.category ?? "") ?? 0);
-      return diversity || b.quality - a.quality || b.entry.heat - a.entry.heat;
-    });
-    const chosen = available[0]!;
-    remaining.splice(remaining.indexOf(chosen), 1);
-    picked.push(chosen);
-    const source = chosen.entry.representativeSource ?? "";
-    sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1);
-    const category = chosen.category ?? "";
-    categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1);
+  for (const c of [...candidates].sort(byHeat)) {
+    if (picked.length >= limit) break;
+    if (!capped(picked, c)) picked.push(c);
   }
   return picked;
 }
 
-function combinedSelection(academic: RankedHotCandidate[], industry: RankedHotCandidate[], all: RankedHotCandidate[]): RankedHotCandidate[] {
+/**
+ * The combined list: the top three of each track's list are in it, the other places go to the hottest
+ * of the rest (within the per-source cap), and the list reads hottest first.
+ */
+export function combinedSelection(academic: RankedHotCandidate[], industry: RankedHotCandidate[], all: RankedHotCandidate[]): RankedHotCandidate[] {
   const picked: RankedHotCandidate[] = [];
   const seen = new Set<number>();
-  const counts: Record<TrackKey, number> = { academic: 0, industry: 0 };
-  const required: Record<TrackKey, number> = { academic: Math.min(3, academic.length), industry: Math.min(3, industry.length) };
-  const add = (candidate: RankedHotCandidate, track: TrackKey) => {
-    if (picked.length >= 10 || seen.has(candidate.entry.storyId)) return false;
-    seen.add(candidate.entry.storyId); picked.push(candidate); counts[track] += 1; return true;
+  const add = (c: RankedHotCandidate) => {
+    if (picked.length >= LIST_SIZE || seen.has(c.entry.storyId)) return;
+    seen.add(c.entry.storyId);
+    picked.push(c);
   };
-  while (counts.academic < required.academic || counts.industry < required.industry) {
-    const need = counts.academic < required.academic ? academic : industry;
-    const track: TrackKey = need === academic ? "academic" : "industry";
-    const candidate = need.find((c) => !seen.has(c.entry.storyId));
-    if (!candidate) break;
-    add(candidate, track);
-  }
-  let ai = 0, ii = 0;
-  while (picked.length < 10 && (ai < academic.length || ii < industry.length || picked.length < all.length)) {
-    const a = academic[ai++];
-    const i = industry[ii++];
-    if (a && (!i || a.entry.rankInTrack! <= i.entry.rankInTrack!)) add(a, "academic");
-    if (i && picked.length < 10) add(i, "industry");
-    if (!a && !i) {
-      const extra = all.find((c) => !seen.has(c.entry.storyId));
-      if (!extra) break;
-      seen.add(extra.entry.storyId); picked.push(extra);
-    }
-  }
-  return picked.slice(0, 10);
+  for (const c of academic.slice(0, TRACK_FLOOR)) add(c);
+  for (const c of industry.slice(0, TRACK_FLOOR)) add(c);
+  for (const c of [...all].sort(byHeat)) if (!seen.has(c.entry.storyId) && !capped(picked, c)) add(c);
+  return picked.sort(byHeat);
 }
 
 export async function computeHotRanking(at = new Date()): Promise<{ id: number; entries: number }> {
@@ -240,10 +227,11 @@ export async function computeHotRanking(at = new Date()): Promise<{ id: number; 
     };
     const tracks = new Set<TrackKey>();
     for (const report of reports) if (report.category && isCategoryKey(report.category)) tracks.add(CATEGORY_TRACK[report.category]);
-    candidates.push({ entry, tracks, quality: Math.max(...reports.map((report) => Number(report.score ?? UNSCORED))), category: rep.category });
+    candidates.push({ entry, tracks });
   }
-  const academic = academicSelection(candidates.filter((c) => c.tracks.has("academic"))).map((c, i) => ({ ...c, entry: { ...c.entry, rankInTrack: i + 1 } }));
-  const industry = candidates.filter((c) => c.tracks.has("industry")).sort((a, b) => b.entry.heat - a.entry.heat || b.entry.latestAt.localeCompare(a.entry.latestAt)).slice(0, 10).map((c, i) => ({ ...c, entry: { ...c.entry, rankInTrack: i + 1 } }));
+  // One rule for every list (decision 8 of the tracks handoff): heat, which already carries the story's best score.
+  const academic = rankByHeat(candidates.filter((c) => c.tracks.has("academic"))).map((c, i) => ({ ...c, entry: { ...c.entry, rankInTrack: i + 1 } }));
+  const industry = rankByHeat(candidates.filter((c) => c.tracks.has("industry"))).map((c, i) => ({ ...c, entry: { ...c.entry, rankInTrack: i + 1 } }));
   const combined = combinedSelection(academic, industry, candidates);
   const entries: HotEntry[] = [
     ...academic.map((c, i) => ({ ...c.entry, track: "academic" as const, rank: i + 1, rankInTrack: i + 1 })),

@@ -8,7 +8,8 @@ import { after, before, test } from "node:test";
 import { HOT } from "@aihot/industry/selection";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
-import { hotCandidates } from "@aihot/backend/events/hot";
+import { combinedSelection, hotCandidates, rankByHeat } from "@aihot/backend/events/hot";
+import type { HotEntry } from "@aihot/backend/events/hot-read";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { publishArticle } from "@aihot/backend/publication/publish";
 
@@ -76,4 +77,29 @@ test("likes, saves, comments and shares weigh a participant up to a cap, never i
   assert.ok(Math.abs(heat(viral) / heat(plain) - HOT.engagement.maxWeight) < 1e-6, "capped");
   assert.ok(Math.abs(heat(junk) / heat(plain) - 1) < 1e-6, "counts that are not numbers, or below zero, add nothing");
   assert.equal(rows.has(lonely), false, "engagement does not stand in for a second participant");
+});
+
+// The lists (decision 8 of the tracks handoff): every list by heat, a source alone filling at most two
+// places, and the combined list keeping three places for each track.
+const ranked = (id: number, heat: number, o: { participants?: number; source?: string; tracks?: Array<"academic" | "industry"> } = {}) => ({
+  entry: { storyId: id, heat, participantCount: o.participants ?? 1, representativeSource: o.source ?? `source-${id}`, latestAt: "2026-10-19T00:00:00.000Z" } as never as HotEntry,
+  tracks: new Set<"academic" | "industry">(o.tracks ?? ["academic"]),
+});
+
+test("a list reads hottest first; one source fills at most two places with stories it alone reports", () => {
+  const list = rankByHeat([
+    ranked(1, 3.5), ranked(2, 21.3, { participants: 4 }), ranked(3, 4.5),
+    ranked(4, 9, { source: "PsyPost" }), ranked(5, 8, { source: "PsyPost" }), ranked(6, 7, { source: "PsyPost" }),
+    ranked(7, 6, { source: "PsyPost", participants: 3 }),
+  ]);
+  assert.deepEqual(list.map((c) => c.entry.storyId), [2, 4, 5, 7, 3, 1], "the third PsyPost story alone is left out; one with other participants is not capped");
+});
+
+test("the combined list keeps three places for each track and reads hottest first", () => {
+  const academic = Array.from({ length: 10 }, (_, i) => ranked(i + 1, 20 - i));
+  const industry = [ranked(101, 2.2, { tracks: ["industry"] }), ranked(102, 1.5, { tracks: ["industry"] }), ranked(103, 0.9, { tracks: ["industry"] }), ranked(104, 0.5, { tracks: ["industry"] })];
+  const combined = combinedSelection(rankByHeat(academic), rankByHeat(industry), [...academic, ...industry]);
+  assert.deepEqual(combined.map((c) => c.entry.storyId), [1, 2, 3, 4, 5, 6, 7, 101, 102, 103], "the industry floor takes the last three places; 104 is not in");
+  const fewIndustry = combinedSelection(rankByHeat(academic), rankByHeat(industry.slice(0, 2)), [...academic, ...industry.slice(0, 2)]);
+  assert.deepEqual(fewIndustry.map((c) => c.entry.storyId), [1, 2, 3, 4, 5, 6, 7, 8, 101, 102], "a track with fewer stories keeps what it has");
 });

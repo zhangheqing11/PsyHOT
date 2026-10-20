@@ -18,7 +18,7 @@ export async function registerSourceJobs(boss: PgBoss) {
     return collectXShard(job.data.key, job.data.sourceIds);
   });
   await ensureQueue(QUEUES.mpCheck);
-  // Dajiala allows a few requests per second; two accounts at a time stays well under it.
+  // Only cached WeRSS feeds are read here; WeRSS schedules the upstream WeChat collection.
   await boss.work<{ sourceId: string; reason?: "schedule" | "manual" }>(QUEUES.mpCheck, { localConcurrency: 2, pollingIntervalSeconds: 2 }, async ([job]) => {
     if (!job) return;
     return checkMpAccount(job.data.sourceId, job.data.reason ?? "schedule");

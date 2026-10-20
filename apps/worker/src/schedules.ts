@@ -90,7 +90,7 @@ export const SCHEDULES: Scheduled[] = [
     ? [
         { name: "sources.schedule", cron: "* * * * *", run: () => scheduleDueSources() },
         { name: "sources.adapt-intervals", cron: "20 4 * * *", run: adaptIntervals },
-        // WeChat official accounts (paid), each once per its interval.
+        // Fixed WeChat accounts read free cached WeRSS feeds, each once per its interval.
         { name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile() },
         // Abstracts for journal items that have only a title, from open scholarly metadata (free).
         { name: "content.abstracts", cron: "*/20 * * * *", run: () => enrichThinAbstracts() },

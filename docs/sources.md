@@ -10,7 +10,7 @@
 | `web_list` | 没有 RSS 的网页列表（新闻页、博客列表、更新日志） | 写选择器；抓不到时可以经 Jina Reader 渲染（按次计费） |
 | `json_list` | 返回 JSON 的接口（GitHub Releases 等） | 写字段路径 |
 | `x_search` | X（推特）账号 | SocialData 的 key，按请求计费 |
-| `mp_account` | 微信公众号 | EveryInfra 的 `EVERYINFRA_API_KEY`（优先）；未填时兼容极致了（Dajiala） |
+| `mp_account` | 固定微信公众号 | 自建 WeRSS，以及后端 `WECHAT_RSS_BASE_URL` |
 | `external` | 你自己的脚本推送进来的内容 | `INGEST_TOKEN`，见下文 |
 
 每种信源认哪些配置项写在 `packages/backend/src/sources/config-keys.ts`。填了不认识的配置项，保存会被拒绝、抓取会直接失败并在后台显示原因，不会悄悄退回通用解析。
@@ -47,16 +47,26 @@
 
 普通账号会被自动合并成一次搜索（每次最多二十几个账号），省请求数。
 
-### mp_account
+### mp_account（固定公众号，WeRSS）
 
 ```json
-{ "ghid": "gh_xxxxxxxx", "nickname": "公众号名称" }
+{ "werssFeedId": "MP_WXS_12345", "wechatBiz": "MTIzNDU=", "nickname": "公众号名称" }
 ```
 
-填好 `EVERYINFRA_API_KEY` 后，`mp_account` 会调用 EveryInfra 的 `wechat_oa/account_articles` 和
-`wechat_oa/article_detail`，每次列表查询最多取 160 篇，正文按文章单独取回。EveryInfra 有时对个别账号的列表
-返回 503（失败的调用不计费），这时这个号一小时后再试；不会改用按名字搜文章，因为搜出来的大多是别的号的文章。没有 key 时仍保留
-Dajiala 兼容路径，避免旧部署启动失败。
+固定公众号只读取 `WECHAT_RSS_BASE_URL` 指向的自建 WeRSS 缓存 RSS；这个地址由后端部署配置提供。
+WeRSS 自己维护微信登录及采集任务，PsyHOT 不接收微信 Cookie。
+每条文章必须匹配账号 `__biz`、原文链接和发布时间，入库后沿用正文分析、筛选和归组队列。
+未授权、空缓存、错误账号及验证页会记为采集异常，不会切换 EveryInfra 或 Dajiala 付费补抓。
+`industry/wechat-werss.json` 保存账号映射；`verifiedInWeRSS=false` 的补充账号要在 WeRSS 中核验身份。
+原 `ghid`/`wxid` 可保留作身份线索，不再触发付费列表或正文调用。
+
+公众号候选发现是显式付费操作：
+
+```bash
+node --env-file=.env scripts/discover-wechat.ts --keyword 'AI 心理健康' --output /private/path/candidates.json
+```
+
+候选结果仅供评估，不会自动成为固定信源或下载历史文章。
 
 ### 小红书（EveryInfra）
 
@@ -84,13 +94,20 @@ API key、计费回执和失败重试由后端统一处理。
 `ingestNoiseFilter.requireMarkers`：标题或摘要里没有其中一个词（研究、期刊、指南、获批、政策……）的笔记
 直接丢弃，不进分析链路也不付详情费用；`dropMarkers` 再去掉备考、招募、课程之类。关键词信源只保存搜索
 结果里的正文（`summaryIsBody`），固定博主才取详情。`ingestNoiseFilter` 也可以用在 `mp_account` 上，
-给“健康中国”这类覆盖面很宽的账号只留心理相关的文章（列表筛过再付正文费用）。
+给“健康中国”这类覆盖面很宽的账号只留心理相关的文章。
 
 小红书笔记的点赞、收藏、评论、转发数随列表一起存进 `articles.raw`，热点榜用它们给参与方加权
 （`industry/selection.ts` 的 `HOT.engagement`，最多 2 倍，没有互动数据的参与方仍是 1）。公众号列表
 不带阅读数和点赞数，取传播数据要对每篇文章单独付费，目前没有开。
 
-每个公众号按它的抓取间隔检查一次（查列表按次计费），新文章的正文一并取回。
+### X 主题检索（EveryInfra）
+
+`json_list` 使用 `adapter: "everyinfra_x"`、`everyinfraAction: "search"`，
+`everyinfraParams: { "keyword": "(psychology OR neuroscience) research" }`。
+也支持 `user_posts`，参数是 `username`。检索结果沿用 `x:<推文ID>` 判重、作者、正文与互动计数，
+默认主题发现信源为 `hot_signal`，参与现有事件归组与热度，不把讨论帖自动当作独立报道。
+当前 API 偏向 Top 结果，不提供完整 Latest 时间水位保证。付费调用仍受回执和预算限制。
+EveryInfra 信源的采集间隔由运营配置，自动频率调整不会加快其付费轮询。
 
 ### Bluesky（`json_list` 的 `bluesky_feed` 适配器）
 
@@ -150,3 +167,18 @@ Content-Type: application/json
 - `sourceId` 不存在时会自动建一个 `external` 信源，默认不进公开页面：到后台把它的参与方式改成 `editorial` 才会出现在站上。
 - 在后台暂停信源后，推送接口返回 409，不再接收新文章；恢复信源后可以继续推送。
 - 条目的 `raw._aihot.backfill` 为 `true` 时按历史回灌处理（不进入“今天”、不推送）。
+
+### 部署 WeRSS 私有服务
+
+在服务器 `.data/werss/runtime.env` 中设置随机 `SECRET_KEY`、`USERNAME`、`PASSWORD`，
+以及 `WERSS_AUTH_WEB=True`（浏览器扫码）、`HEADLESS=true`、`GATHER.MODEL=web`、`GATHER.CONTENT=True`、`THREADS=1`。
+PsyHOT 的 `.env` 设置 `WECHAT_RSS_BASE_URL=http://werss:8001`。
+
+```bash
+docker compose -f docker-compose.yml -f deploy/werss.compose.yml --profile werss up -d werss
+```
+
+管理页只绑定服务器 `127.0.0.1:8001`，经 SSH 转发访问；不要向公网开放。
+固定账号映射会导入 WeRSS，日常微信采集为北京时间 09:15、18:15；PsyHOT 每 30 分钟读取缓存。
+微信授权过期必须人工扫码，出现 200013 时全局冷却六小时，禁止轮换账号或密集重试。
+未通过真实文章验证前，只能报告配置就绪，不能报告微信采集恢复成功。

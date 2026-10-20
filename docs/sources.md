@@ -171,7 +171,7 @@ Content-Type: application/json
 ### 部署 WeRSS 私有服务
 
 在服务器 `.data/werss/runtime.env` 中设置随机 `SECRET_KEY`、`USERNAME`、`PASSWORD`，
-以及 `WERSS_AUTH_WEB=False`、`GATHER.MODEL=web`、`GATHER.CONTENT=True`、`THREADS=1`。
+以及 `WERSS_AUTH_WEB=True`（浏览器扫码）、`HEADLESS=true`、`GATHER.MODEL=web`、`GATHER.CONTENT=True`、`THREADS=1`。
 PsyHOT 的 `.env` 设置 `WECHAT_RSS_BASE_URL=http://werss:8001`。
 
 ```bash

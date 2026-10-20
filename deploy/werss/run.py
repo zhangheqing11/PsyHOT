@@ -33,6 +33,29 @@ install(WX_API)
 from web import app
 
 
+def install_fixed_jobs(accounts):
+    # This pinned image routes every MP_WXS_* feed to WeRead. Our numeric feed
+    # IDs are historical identifiers, so explicitly retain the web collector.
+    import jobs.mps as jobs
+    from core.wx.model.web import MpsWeb
+    from jobs.article import UpdateArticle, Update_Over
+    fixed_ids = {account['feedId'] for account in accounts}
+    original = jobs.do_job
+
+    def collect(mp=None, task=None, isTest=False):
+        if isTest or not mp or mp.id not in fixed_ids:
+            return original(mp, task, isTest)
+        collector = MpsWeb()
+        try:
+            collector.get_Articles(mp.faker_id, Mps_id=mp.id, Mps_title=mp.mp_name,
+                                   CallBack=UpdateArticle, Over_CallBack=Update_Over,
+                                   MaxPage=1, interval=30)
+        finally:
+            print(json.dumps({'werssFeed': mp.id, 'cachedArticles': collector.all_count()}))
+
+    jobs.do_job = collect
+
+
 async def initialize():
     import asyncio
     from datetime import datetime
@@ -41,6 +64,7 @@ async def initialize():
     from core.models.message_task import MessageTask
     from jobs.mps import start_job, scheduler
     accounts = json.load(open('/app/psyhot/accounts.json'))['sources']
+    install_fixed_jobs(accounts)
     session = DB.get_session()
     try:
         for account in accounts:
@@ -55,7 +79,8 @@ async def initialize():
             session.add(task)
         session.commit()
         # Only enable this fixed feed task; no third-party notification or broad automatic discovery.
-        start_job(job_id=task.id)
+        if not scheduler._scheduler.get_job(task.id):
+            start_job(job_id=task.id)
         print(json.dumps({'werssFixedAccounts': len(accounts), 'scheduled': bool(scheduler._scheduler.get_job(task.id))}))
     finally:
         session.close()

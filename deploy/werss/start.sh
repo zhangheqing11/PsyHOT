@@ -5,4 +5,4 @@ cd /app
 source /app/environment.sh
 export TZ=Asia/Taipei
 source "/app/env_$(uname -m)/bin/activate"
-exec python3 /app/psyhot/run.py -job True -init True
+exec python3 /app/psyhot/run.py -job False -init True

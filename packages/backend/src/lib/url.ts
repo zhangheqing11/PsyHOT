@@ -35,6 +35,19 @@ export function normalizeUrl(input: string): string | null {
   return s;
 }
 
+/**
+ * A Xiaohongshu note has one identity across search results, signed links and mobile share paths.
+ * xsec_token is needed to open some links, but rotates on each search; keep it on the stored URL.
+ * Check the host and the entire path, never a note link embedded in another site's query.
+ */
+export function xhsNoteIdFromUrl(input: string): string | null {
+  let u: URL;
+  try { u = new URL(input.trim()); } catch { return null; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return null;
+  if (!/^(?:(?:www|m)\\.)?xiaohongshu\\.com$/.test(u.hostname)) return null;
+  return /^\\/(?:explore|discovery\\/item)\\/([0-9a-f]{24})\\/?$/i.exec(u.pathname)?.[1]?.toLowerCase() ?? null;
+}
+
 /** Tweet id from an x.com / twitter.com status URL. */
 export function tweetIdFromUrl(url: string): string | null {
   let u: URL;
@@ -66,6 +79,8 @@ export function doiFromUrl(url: string): string | null {
 }
 
 export function identityKeyForUrl(url: string, opts: { keepFragment?: boolean } = {}): string | null {
+  const note = xhsNoteIdFromUrl(url);
+  if (note) return `xhs:${note}`;
   const tweet = tweetIdFromUrl(url);
   if (tweet) return `x:${tweet}`;
   const normalized = normalizeUrl(url);

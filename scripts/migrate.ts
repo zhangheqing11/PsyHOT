@@ -3,6 +3,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { REPO_ROOT } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
+import { repairMaterialIdentities, rebuildMaterialIdentityRepairs } from "@aihot/backend/content/repair-identities";
+import { stopBoss } from "@aihot/backend/jobs/queue";
 
 const dir = path.join(REPO_ROOT, "database/migrations");
 
@@ -21,4 +23,8 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
   count += 1;
 }
 console.log(count === 0 ? "database is up to date" : `${count} migration(s) applied`);
+// Idempotent data repair follows schema changes before collectors start. It also resumes a rebuild
+// interrupted after its consolidation transaction committed.
+console.log("material identity repair", await repairMaterialIdentities(), await rebuildMaterialIdentityRepairs());
+await stopBoss();
 await closeDb();

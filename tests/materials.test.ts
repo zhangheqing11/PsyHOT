@@ -5,6 +5,7 @@
 // every fetch, and a feed garbled a few characters differently on every load).
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
 import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
@@ -166,4 +167,22 @@ test("characters lost in transit are no revision, lost or restored", async () =>
   assert.equal((await upsertMaterial(edited(garbled[1]!))).revised, true, "a real change is one, lost characters or not");
   for (const report of [edited(clean), edited(garbled[2]!)]) assert.equal((await upsertMaterial(report)).revised, false);
   assert.equal((await state(first.articleId)).revision, 2);
+});
+
+test("nine signed links from overlapping XHS searches create one material under concurrency", async () => {
+  const noteId = randomBytes(12).toString("hex");
+  const links = Array.from({ length: 9 }, (_, i) => `https://www.xiaohongshu.com/explore/${noteId}?xsec_token=token-${i}`);
+  const results = await Promise.all(links.map((url, i) => upsertMaterial({
+    sourceId: i % 2 ? SOURCE : OTHER, url, title: "One note", bodyText: "Same note body",
+    // Even an entrance supplying its old signed-URL identity cannot split a platform note.
+    identityKey: `url:${url}`, via: "fetch",
+  })));
+  assert.equal(new Set(results.map((r) => r.articleId)).size, 1);
+  assert.equal(results.filter((r) => r.created).length, 1);
+  assert.ok(results.every((r) => !r.revised));
+  const id = results[0]!.articleId;
+  const [stored] = await sql<{ url: string; identity_key: string }[]>`SELECT url, identity_key FROM articles WHERE id = ${id}`;
+  assert.equal(stored!.identity_key, `xhs:${noteId}`);
+  assert.ok(links.includes(stored!.url), "the signed URL needed to open the note is retained");
+  assert.equal((await sql`SELECT 1 FROM article_discoveries WHERE article_id = ${id}`).length, 2);
 });

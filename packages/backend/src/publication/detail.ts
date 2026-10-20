@@ -39,7 +39,7 @@ async function loadRow(id: string): Promise<DetailRow | null> {
   const [row] = await sql<DetailRow[]>`
     SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete
     ${ITEM_FROM}
-    WHERE p.article_id = ${id}`;
+    WHERE p.article_id = coalesce((SELECT duplicate_of FROM articles WHERE id = ${id}), ${id})`;
   return row ?? null;
 }
 
@@ -51,6 +51,7 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
   const row = await loadRow(id);
   if (!row || !hasItemPage({ visibility: row.visibility, sourceMode: row.source_mode })) return { kind: "not_found" };
 
+  id = row.id; // Old bookmarks resolve to the surviving material, with its own visibility rules.
   const summary = toItemSummary(row);
   if (row.channel === "x") summary.x = xView(row, false, true);
   if (row.visibility === "summary-only") {
@@ -156,6 +157,7 @@ const turndown = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fen
 export async function exportMarkdown(id: string): Promise<{ filename: string; body: string } | null> {
   const row = await loadRow(id);
   if (!row || !markdownAvailable(row)) return null;
+  id = row.id;
   const lines: string[] = [];
   lines.push(`# ${row.title}`, "");
   if (row.original_title) lines.push(`> 原标题：${row.original_title}`, "");

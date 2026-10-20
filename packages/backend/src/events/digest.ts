@@ -51,7 +51,7 @@ export async function composeStoryDigest(storyId: number, opts: { afterCorrectio
   if (sameReports && (last!.inputs_hash === inputsHash || (last!.inputs_hash === null && !opts.afterCorrection))) return { updated: false };
   // Same reports, different content: an editor corrected one. Rewrite from the reports as they are now,
   // without the previous digest, so a corrected fact does not survive as "earlier reports said".
-  const corrected = sameReports;
+  const corrected = sameReports || !!last?.article_ids.some((id) => !ids.includes(id));
   const known = new Set(last?.article_ids ?? []);
 
   const lines = reports.slice(-40).map((r) => `${corrected || known.has(r.id) ? "" : "【新】"}${beijingDate(r.at)} ${beijingTime(r.at)}｜${r.source_name}${r.first_party ? "（一手）" : ""}｜${r.title}｜${(r.summary ?? "").slice(0, 220)}`);

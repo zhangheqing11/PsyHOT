@@ -4,6 +4,7 @@ import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { blueskyCandidate, type FeedItem } from "./bluesky.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
+import { everyInfraXCandidate } from "./everyinfra-x.ts";
 import { everyInfraCall } from "../providers/everyinfra.ts";
 
 export function getPath(obj: unknown, path: string): unknown {
@@ -148,15 +149,22 @@ function engagementOf(item: unknown): Record<string, number> {
 export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
   const c = source.config;
   let everyInfraData: unknown = null;
-  if (c.adapter === "everyinfra_xhs") {
-    const params = c.everyinfraParams && typeof c.everyinfraParams === "object" ? c.everyinfraParams : {};
+  if (c.adapter === "everyinfra_xhs" || c.adapter === "everyinfra_x") {
+    const params = { ...(c.everyinfraParams && typeof c.everyinfraParams === "object" ? c.everyinfraParams : {}) };
+    if (c.adapter === "everyinfra_x" && (c.everyinfraAction ?? "search") === "search") {
+      const days = Number(c.everyinfraLookbackDays ?? 7);
+      if (!Number.isInteger(days) || days < 1 || days > 30) throw new FetchError("X discovery lookback must be 1–30 days");
+      if (typeof params.keyword !== "string" || !params.keyword.trim()) throw new FetchError("X discovery keyword required");
+      const since = new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
+      params.keyword += ` since:${since}`;
+    }
     const call = await everyInfraCall<unknown[]>({
-      platform: "xiaohongshu",
+      platform: c.adapter === "everyinfra_x" ? "twitter" : "xiaohongshu",
       action: String(c.everyinfraAction ?? "search"),
       params: params as Record<string, unknown>,
       subject: source.id,
-      purpose: "xhs_listing",
-      window: String(source.cursor?.lastCheckedAt ?? Math.floor(Date.now() / 600_000)),
+      purpose: c.adapter === "everyinfra_x" ? "x_discovery" : "xhs_listing",
+      window: String(Math.floor(Date.now() / 600_000)),
     });
     everyInfraData = call.response;
   }
@@ -184,9 +192,10 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
     }
   }
   const bluesky = c.adapter === "bluesky_feed";
-  let items = c.itemsPath ? getPath(data, c.itemsPath) : c.jsonKey ? getPath(data, c.jsonKey) : c.adapter === "everyinfra_xhs" ? getPath(data, "results") : bluesky ? getPath(data, "feed") : data;
+  let items = c.itemsPath ? getPath(data, c.itemsPath) : c.jsonKey ? getPath(data, c.jsonKey) : c.adapter?.startsWith("everyinfra_") ? getPath(data, "results") : bluesky ? getPath(data, "feed") : data;
   if (c.itemsObjectValues && items && typeof items === "object" && !Array.isArray(items)) items = Object.values(items);
   if (!Array.isArray(items)) throw new FetchError("items path did not resolve to an array");
+  if (c.adapter === "everyinfra_x") return items.map(everyInfraXCandidate).filter((x): x is Candidate => !!x);
   if (bluesky) return items.map((i) => blueskyCandidate(i as FeedItem)).filter((x): x is Candidate => !!x);
 
   const out: Candidate[] = [];

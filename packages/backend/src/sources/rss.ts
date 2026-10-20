@@ -144,9 +144,14 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
     return { candidates: [], validator, notModified: true };
   }
   if (res.status !== 200) throw new FetchError(`HTTP ${res.status}`, res.status);
+  return { candidates: parseRss(res.text(), source, url), validator, notModified: false };
+}
+
+/** Shared parsing for public feeds and the operator-owned WeRSS service. */
+export function parseRss(xml: string, source: SourceRow, url: string): Candidate[] {
   let doc: Record<string, any>;
   try {
-    doc = parser.parse(res.text());
+    doc = parser.parse(xml);
   } catch (e) {
     throw new FetchError(`feed parse error: ${String(e).slice(0, 200)}`);
   }
@@ -184,7 +189,7 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
         raw: { guid: text(it.guid) || null },
       });
     }
-    return { candidates: out, validator, notModified: false };
+    return out;
   }
 
   const feed = doc.feed;
@@ -210,7 +215,7 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
         raw: { id: text(e.id) || null },
       });
     }
-    return { candidates: out, validator, notModified: false };
+    return out;
   }
   throw new FetchError("not an RSS/Atom document");
 }

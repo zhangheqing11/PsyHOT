@@ -374,7 +374,7 @@ export async function scheduleDueSources(limit = Number(process.env.FETCH_SCHEDU
  */
 export async function adaptIntervals(): Promise<{ updated: number }> {
   const rows = await sql<Array<Pick<SourceRow, "id" | "participation_mode" | "kind" | "config" | "cursor"> & { paid_listing: boolean; per_day: number }>>`
-    SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' AS paid_listing,
+    SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, (coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' OR coalesce(s.config->>'adapter', '') LIKE 'everyinfra_%') AS paid_listing,
       (SELECT count(*) FROM articles a WHERE a.source_id = s.id AND a.discovered_at > now() - interval '7 days' AND NOT a.backfill) / 7.0 AS per_day
     FROM sources s WHERE s.enabled AND s.kind IN ('rss', 'web_list', 'json_list', 'x_search')`;
   let updated = 0;
@@ -383,6 +383,8 @@ export async function adaptIntervals(): Promise<{ updated: number }> {
     // Editorial sites and feeds are looked at hourly at least (they cost nothing);
     // editorial X and listings read through Jina stop at two hours (paid per call, within their budgets);
     // hot signals may wait longer.
+    // Keep EveryInfra's operator-selected cadence; avoid increasing a paid feed's polling overnight.
+    if (String(r.config.adapter ?? "").startsWith("everyinfra_")) continue;
     const max = r.participation_mode === "hot_signal" ? 180 : r.kind === "x_search" || r.paid_listing ? 120 : 60;
     // Listings read through Jina are not looked at more than hourly: busy ones would outrun its daily budget.
     const min = r.paid_listing ? 60 : 15;

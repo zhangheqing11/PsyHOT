@@ -1,0 +1,242 @@
+{
+  "sources": [
+    {
+      "sourceId": "wechat-camh",
+      "name": "中国心理卫生协会",
+      "feedId": "MP_WXS_3529028237",
+      "biz": "MzUyOTAyODIzNw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-nhc",
+      "name": "健康中国",
+      "feedId": "MP_WXS_2396268083",
+      "biz": "MjM5NjI2ODA4Mw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-nmpa",
+      "name": "中国药闻",
+      "feedId": "MP_WXS_3928204688",
+      "biz": "MzkyODIwNDY4OA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-psych-cas",
+      "name": "中国科学院心理研究所",
+      "feedId": "MP_WXS_3078232913",
+      "biz": "MzA3ODIzMjkxMw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-cps",
+      "name": "中国心理学会",
+      "feedId": "MP_WXS_3094558164",
+      "biz": "MzA5NDU1ODE2NA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-cps-registration",
+      "name": "CPS 中国心理学会注册系统",
+      "feedId": "MP_WXS_3873845201",
+      "biz": "Mzg3Mzg0NTIwMQ==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-xlxb",
+      "name": "心理学报",
+      "feedId": "MP_WXS_3244786766",
+      "biz": "MzI0NDc4Njc2Ng==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-xlkxjz",
+      "name": "心理科学进展",
+      "feedId": "MP_WXS_3204787135",
+      "biz": "MzIwNDc4NzEzNQ==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-xlkx",
+      "name": "心理科学杂志",
+      "feedId": "MP_WXS_3933391715",
+      "biz": "MzkzMzM5MTcxNQ==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-psychcomm",
+      "name": "心理学通讯杂志",
+      "feedId": "MP_WXS_3581564114",
+      "biz": "MzU4MTU2NDExNA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-psychology-open-science",
+      "name": "心理学开放科学平台",
+      "feedId": "MP_WXS_3564778256",
+      "biz": "MzU2NDc3ODI1Ng==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-libpsy",
+      "name": "心理科学信息中心",
+      "feedId": "MP_WXS_3535989134",
+      "biz": "MzUzNTk4OTEzNA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-psybrain-frontier",
+      "name": "PsyBrain 脑心前沿",
+      "feedId": "MP_WXS_3621195298",
+      "biz": "MzYyMTE5NTI5OA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-ibraintalk",
+      "name": "脑人言",
+      "feedId": "MP_WXS_3286640207",
+      "biz": "MzI4NjY0MDIwNw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-affective-computing",
+      "name": "情感计算Affective Computing",
+      "feedId": "MP_WXS_3931328140",
+      "biz": "MzkzMTMyODE0MA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-medlive-psy",
+      "name": "医脉通精神科",
+      "feedId": "MP_WXS_2395247680",
+      "biz": "MjM5NTI0NzY4MA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-mindseek",
+      "name": "MindSeek",
+      "feedId": "MP_WXS_3191532380",
+      "biz": "MzE5MTUzMjM4MA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-psynote",
+      "name": "观心日记PsyNote",
+      "feedId": "MP_WXS_3635882422",
+      "biz": "MzYzNTg4MjQyMg==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-openscience",
+      "name": "OpenScience",
+      "feedId": "MP_WXS_3511048448",
+      "biz": "MzUxMTA0ODQ0OA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-neurohub",
+      "name": "神经前研",
+      "feedId": "MP_WXS_3283748947",
+      "biz": "MzI4Mzc0ODk0Nw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-neureality",
+      "name": "神经现实",
+      "feedId": "MP_WXS_3917863916",
+      "biz": "MzkxNzg2MzkxNg==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-psyculture",
+      "name": "PsyCulture&Science",
+      "feedId": "MP_WXS_3252628173",
+      "biz": "MzI1MjYyODE3Mw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-drxin",
+      "name": "Dr昕理学",
+      "feedId": "MP_WXS_3510313283",
+      "biz": "MzUxMDMxMzI4Mw==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-ye",
+      "name": "叶浩生",
+      "feedId": "MP_WXS_3578670356",
+      "biz": "MzU3ODY3MDM1Ng==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-swarma",
+      "name": "集智俱乐部",
+      "feedId": "MP_WXS_3232427490",
+      "biz": "MzIzMjQyNzQ5MA==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-melab",
+      "name": "中国科学院心理所微表情实验室",
+      "feedId": "MP_WXS_3863764501",
+      "biz": "Mzg2Mzc2NDUwMQ==",
+      "verifiedInWeRSS": true
+    },
+    {
+      "sourceId": "wechat-cjcp",
+      "name": "中国临床心理学杂志",
+      "feedId": "MP_WXS_3944720968",
+      "biz": "Mzk0NDcyMDk2OA==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-cog-neuro-frontier",
+      "name": "认知神经科学前沿",
+      "feedId": "MP_WXS_3862885772",
+      "biz": "Mzg2Mjg4NTc3Mg==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-mh686",
+      "name": "精神卫生686",
+      "feedId": "MP_WXS_3623281353",
+      "biz": "MzYyMzI4MTM1Mw==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-ncmhc",
+      "name": "国家心理健康和精神卫生防治中心",
+      "feedId": "MP_WXS_3016398840",
+      "biz": "MzAxNjM5ODg0MA==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-psychiatry-navigator",
+      "name": "精神医学导航",
+      "feedId": "MP_WXS_3548678859",
+      "biz": "MzU0ODY3ODg1OQ==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-psychiatry-new-views",
+      "name": "精神医学新观点",
+      "feedId": "MP_WXS_3572822140",
+      "biz": "MzU3MjgyMjE0MA==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-yxj-psych",
+      "name": "医学界精神心理频道",
+      "feedId": "MP_WXS_3226952005",
+      "biz": "MzIyNjk1MjAwNQ==",
+      "verifiedInWeRSS": false
+    },
+    {
+      "sourceId": "wechat-zhonghua-psychiatry",
+      "name": "中华精神科杂志",
+      "feedId": "MP_WXS_3007510586",
+      "biz": "MzAwNzUxMDU4Ng==",
+      "verifiedInWeRSS": false
+    }
+  ]
+}

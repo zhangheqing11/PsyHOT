@@ -77,69 +77,11 @@ export async function everyInfraCall<T = unknown>(opts: {
   return { results: response.results as T, receiptId: receipt.receiptId, reused: receipt.reused, response };
 }
 
-export interface EveryInfraMpPost {
-  position: number;
-  url: string;
-  title: string;
-  post_time: number;
-  digest?: string;
-  sn?: string;
-  cover_url?: string;
-  original?: number;
-  item_show_type?: number;
-}
-
-export async function everyInfraMpHistory(account: string, opts: { subject: string; window: string }) {
-  // No fallback when the account listing is unavailable (EveryInfra answers 503 for some accounts at
-  // times; failed calls are not billed): an article search by the account's name returns other accounts'
-  // articles too, and their bodies were paid for and thrown away on every retry. The check is retried.
-  const call = await everyInfraCall<unknown[]>({
-    platform: "wechat_oa",
-    action: "account_articles",
-    params: { account, limit: 160 },
-    subject: opts.subject,
-    purpose: "mp_history",
-    window: opts.window,
-  });
-  const rows: unknown[] = Array.isArray(call.results) ? call.results : [];
-  const posts = rows.flatMap((row, i) => {
-    if (!row || typeof row !== "object") return [];
-    const r = row as Record<string, unknown>;
-    const url = typeof r.url === "string" ? r.url : "";
-    const title = typeof r.title === "string" ? r.title : "";
-    if (!url || !title) return [];
-    const posted = typeof r.posted_at === "string" || typeof r.posted_at === "number" ? Date.parse(String(r.posted_at)) : NaN;
-    return [{
-      position: Number(r.position ?? i + 1), url, title,
-      post_time: Number.isFinite(posted) ? Math.floor(posted / 1000) : 0,
-      digest: typeof r.digest === "string" ? r.digest : typeof r.summary === "string" ? r.summary : undefined,
-      sn: typeof r.id === "string" ? r.id : undefined,
-      cover_url: typeof r.cover_image_url === "string" ? r.cover_image_url : undefined,
-      original: r.is_original === true ? 1 : r.is_original === false ? 0 : undefined,
-      item_show_type: undefined,
-    } satisfies EveryInfraMpPost];
-  });
-  return { posts, nickname: null, remainMoney: null, receiptId: call.receiptId, reused: call.reused };
-}
-
-export async function everyInfraMpArticle(articleUrl: string, opts: { subject: string; identity: string }) {
-  const call = await everyInfraCall<Record<string, unknown>>({
-    platform: "wechat_oa",
-    action: "article_detail",
-    params: { url: articleUrl },
-    subject: opts.subject,
-    purpose: "mp_article",
-    window: opts.identity,
-  });
-  const row = call.results && typeof call.results === "object" ? call.results : {};
-  const content = typeof row.content_html === "string" && row.content_html ? row.content_html : String(row.content_text ?? "");
-  return {
-    title: String(row.title ?? ""), content,
-    author: typeof row.author === "string" ? row.author : null,
-    desc: typeof row.digest === "string" ? row.digest : null,
-    pubtime: typeof row.posted_at === "string" ? row.posted_at : null,
-    receiptId: call.receiptId,
-  };
+/** Paid discovery only: results remain candidates until their identity/quality is reviewed. */
+export async function discoverWechatAccounts(keyword: string, window: string) {
+  if (!keyword.trim()) throw new Error("WeChat discovery keyword required");
+  return everyInfraCall<unknown[]>({ platform: "wechat_oa", action: "account_search",
+    params: { keyword: keyword.trim() }, subject: "wechat-discovery", purpose: "wechat_discovery", window });
 }
 
 export async function everyInfraXhsNote(noteUrl: string, opts: { subject: string; identity: string }) {

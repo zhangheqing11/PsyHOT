@@ -89,7 +89,7 @@ class MpsWeb(WxGather):
             try:
                 headers = self.fix_header(url)
                 resp = session.get(url, headers=headers, params = params, verify=True, timeout=(10, 30))
-                
+
                 msg = resp.json()
                 self._cookies =resp.cookies
                 # 流量控制了, 退出
@@ -103,7 +103,7 @@ class MpsWeb(WxGather):
                         continue
                     super().Error("frequencey control, stop at {}".format(str(begin)))
                     break
-                
+
                 if msg['base_resp']['ret'] == 200003:
                     super().Error("Invalid Session, stop at {}".format(str(begin)),code="Invalid Session")
                     break
@@ -131,13 +131,13 @@ class MpsWeb(WxGather):
                     break
                 if msg['base_resp']['ret'] != 0:
                     super().Error("错误原因:{}:代码:{}".format(msg['base_resp']['err_msg'],msg['base_resp']['ret']))
-                    break  
+                    break
                 if "publish_page" in msg:
                     msg["publish_page"]=json.loads(msg['publish_page'])
                     for item in msg["publish_page"]['publish_list']:
                         if "publish_info" in item:
                             publish_info= json.loads(item['publish_info'])
-                       
+
                             if "appmsgex" in publish_info:
                                 # info = '"{}","{}","{}","{}"'.format(str(item["aid"]), item['title'], item['link'], str(item['create_time']))
                                 for item in publish_info["appmsgex"]:

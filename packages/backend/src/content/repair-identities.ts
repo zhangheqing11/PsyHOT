@@ -17,7 +17,7 @@ interface MaterialRow {
   summary_chars: number;
   eligible: boolean;
   manual: boolean;
-  restricted: boolean;
+  restricted: number;
   preserve_fragment: boolean;
 }
 
@@ -26,7 +26,7 @@ async function groups(db: Db) {
     SELECT a.id, a.url, a.identity_key, a.source_id, s.signal_group_id, a.discovered_at,
            length(coalesce(a.body_text, '')) AS body_chars, length(coalesce(p.summary, '')) AS summary_chars,
            coalesce(p.eligible, false) AS eligible, o.article_id IS NOT NULL AS manual,
-           coalesce(o.visibility IN ('withdrawn', 'summary-only'), false) AS restricted,
+           CASE o.visibility WHEN 'withdrawn' THEN 2 WHEN 'summary-only' THEN 1 ELSE 0 END AS restricted,
            coalesce((s.config->>'preserveUrlFragment')::boolean, false) AS preserve_fragment
     FROM articles a JOIN sources s ON s.id = a.source_id
     LEFT JOIN publications p ON p.article_id = a.id LEFT JOIN editorial_overrides o ON o.article_id = a.id

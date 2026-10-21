@@ -139,3 +139,23 @@ test("generic repair consolidates BACP date aliases and records removals for sel
   assert.equal((await loadItemDetail(ids[1]!)).kind, 'not_found');
   assert.equal((await itemAvailability([ids[1]!]))[ids[1]!], 'unavailable');
 });
+
+test("conflicting duplicate restrictions preserve withdrawal over summary-only", async () => {
+  const t = tag();
+  const source = `restricted-repair-${t}`;
+  const note = randomBytes(12).toString('hex');
+  await sql`INSERT INTO sources (id, name, kind, next_fetch_at) VALUES (${source}, 'Restriction test', 'external', '2100-01-01')`;
+  const ids = [`withdrawn-${t}`, `summary-${t}`];
+  for (const [i, id] of ids.entries()) {
+    const url = `https://www.xiaohongshu.com/explore/${note}?xsec_token=${i}`;
+    await sql`INSERT INTO articles (id, source_id, identity_key, url, title, discovered_at, timeline_at, body_text)
+      VALUES (${id}, ${source}, ${`url:${url}`}, ${url}, 'Same note', now(), now(), ${i ? 'More text. '.repeat(100) : 'Short.'})`;
+    await sql`INSERT INTO editorial_overrides (article_id, visibility, reason)
+      VALUES (${id}, ${i ? 'summary-only' : 'withdrawn'}, 'restriction test')`;
+    await publishArticle(id);
+  }
+  await repairMaterialIdentities();
+  const [survivor] = await sql<{ id: string }[]>`SELECT id FROM articles WHERE identity_key = ${`xhs:${note}`}`;
+  assert.equal(survivor!.id, ids[0], 'the richer summary-only copy cannot override a withdrawal');
+  assert.equal((await loadItemDetail(ids[1]!)).kind, 'not_found');
+});

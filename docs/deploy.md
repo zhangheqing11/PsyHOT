@@ -52,6 +52,8 @@ docker compose up -d --build
 
 数据库迁移只做向后兼容的增量，更新时自动执行。
 
+修复历史重复报道的版本上线前应先备份并停止旧 worker；迁移会归并重复材料、更新同步记录并重建热度，随后再启动新 API 和 worker。操作与核验见 [重复报道与热度修复](material-identity-repair.md)。
+
 ### 备份
 
 在 `.env` 里配置 `DB_BACKUP_STORE_*`（任何 S3 兼容的对象存储），每天 04:10 自动备份到那里。也可以手动导出：

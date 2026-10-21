@@ -18,6 +18,7 @@ interface MaterialRow {
   eligible: boolean;
   manual: boolean;
   restricted: boolean;
+  preserve_fragment: boolean;
 }
 
 async function groups(db: Db) {
@@ -25,14 +26,18 @@ async function groups(db: Db) {
     SELECT a.id, a.url, a.identity_key, a.source_id, s.signal_group_id, a.discovered_at,
            length(coalesce(a.body_text, '')) AS body_chars, length(coalesce(p.summary, '')) AS summary_chars,
            coalesce(p.eligible, false) AS eligible, o.article_id IS NOT NULL AS manual,
-           coalesce(o.visibility IN ('withdrawn', 'summary-only'), false) AS restricted
+           coalesce(o.visibility IN ('withdrawn', 'summary-only'), false) AS restricted,
+           coalesce((s.config->>'preserveUrlFragment')::boolean, false) AS preserve_fragment
     FROM articles a JOIN sources s ON s.id = a.source_id
     LEFT JOIN publications p ON p.article_id = a.id LEFT JOIN editorial_overrides o ON o.article_id = a.id
-    WHERE a.duplicate_of IS NULL AND a.url ILIKE '%xiaohongshu.com/%'`;
+    WHERE a.duplicate_of IS NULL`;
   const byKey = new Map<string, MaterialRow[]>();
   for (const row of rows) {
-    if (!xhsNoteIdFromUrl(row.url)) continue;
-    const key = identityKeyForUrl(row.url)!;
+    // Preserve explicit source-specific keys (for example feed entry IDs). URL identities can
+    // safely be reconciled through the exact same normalizer as live collection, across all sources.
+    if (!xhsNoteIdFromUrl(row.url) && !row.identity_key.startsWith("url:")) continue;
+    const key = identityKeyForUrl(row.url, { keepFragment: row.preserve_fragment });
+    if (!key) continue;
     byKey.set(key, [...(byKey.get(key) ?? []), row]);
   }
   return [...byKey].map(([identity, members]) => {
@@ -79,6 +84,9 @@ export async function repairMaterialIdentities(): Promise<{ normalized: number; 
         WHERE fa.article_id = ANY(${ids}::text[]) AND f.story_id IS NOT NULL`;
       for (const f of [...facts, ...signals]) affected.add(Number(f.story_id));
 
+      // A richer copy discovered before a later repair may become the new survivor. Flatten any
+      // earlier aliases so old bookmarks never acquire a chain of withdrawn intermediate rows.
+      await tx`UPDATE articles SET duplicate_of = ${keep.id} WHERE duplicate_of = ANY(${aliasIds}::text[])`;
       await tx`UPDATE articles SET duplicate_of = ${keep.id}, identity_key = 'duplicate:' || id,
                    processing_state = 'skipped', processing_retry_at = NULL, processing_queued_at = NULL
                WHERE id = ANY(${aliasIds}::text[])`;
@@ -116,7 +124,7 @@ export async function repairMaterialIdentities(): Promise<{ normalized: number; 
       await publishArticleTx(tx, keep.id);
       await tx`INSERT INTO audit_log (actor, action, subject, reason, before, after)
         VALUES ('material-identity-repair', 'material.deduplicate', ${identity},
-          'Rotating signed URLs and overlapping search entrances refer to one note',
+          'Canonical URL aliases or overlapping collection entrances refer to one material',
           ${tx.json({ members, memberships, signals } as never)}, ${tx.json({ keep: keep.id, aliases: aliasIds } as never)})`;
       normalized += Number(keep.identity_key !== identity);
       duplicates += aliases.length;

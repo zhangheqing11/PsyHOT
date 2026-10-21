@@ -30,9 +30,8 @@ export function normalizeUrl(input: string): string | null {
     for (const key of [...u.searchParams.keys()]) if (TRACKING_PARAMS.test(key)) u.searchParams.delete(key);
     u.searchParams.sort();
   }
-  let s = u.toString();
-  if (s.endsWith("/") && u.pathname !== "/") s = s.slice(0, -1);
-  return s;
+  u.pathname = u.pathname.replace(/\/+$/, "") || "/";
+  return u.toString();
 }
 
 /**
@@ -44,8 +43,8 @@ export function xhsNoteIdFromUrl(input: string): string | null {
   let u: URL;
   try { u = new URL(input.trim()); } catch { return null; }
   if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-  if (!/^(?:(?:www|m)\\.)?xiaohongshu\\.com$/.test(u.hostname)) return null;
-  return /^\\/(?:explore|discovery\\/item)\\/([0-9a-f]{24})\\/?$/i.exec(u.pathname)?.[1]?.toLowerCase() ?? null;
+  if (!/^(?:(?:www|m)\.)?xiaohongshu\.com$/.test(u.hostname)) return null;
+  return /^\/(?:explore|discovery\/item)\/([0-9a-f]{24})\/?$/i.exec(u.pathname)?.[1]?.toLowerCase() ?? null;
 }
 
 /** Tweet id from an x.com / twitter.com status URL. */
@@ -85,8 +84,21 @@ export function identityKeyForUrl(url: string, opts: { keepFragment?: boolean } 
   if (tweet) return `x:${tweet}`;
   const normalized = normalizeUrl(url);
   if (!normalized) return null;
+  // BACP renamed date slugs (9-oct-... -> 9-october-...) while retaining both addresses.
+  // This publisher-specific alias is one article, not a fresh report on the day it is found again.
+  const publisherUrl = new URL(normalized);
+  if (publisherUrl.hostname === "bacp.co.uk") {
+    const months: Record<string, string> = {
+      jan: "january", feb: "february", mar: "march", apr: "april", jun: "june", jul: "july",
+      aug: "august", sep: "september", sept: "september", oct: "october", nov: "november", dec: "december",
+    };
+    publisherUrl.pathname = publisherUrl.pathname.replace(
+      /^(\/news\/news-from-bacp\/\d{4}\/\d{1,2}-)([a-z]+)(-)/i,
+      (_match, prefix: string, month: string, suffix: string) => `${prefix}${months[month.toLowerCase()] ?? month.toLowerCase()}${suffix}`,
+    );
+  }
   const fragment = opts.keepFragment ? new URL(url.trim()).hash : "";
-  return `url:${normalized}${fragment.length > 1 ? fragment : ""}`;
+  return `url:${publisherUrl.toString()}${fragment.length > 1 ? fragment : ""}`;
 }
 
 function ipv4Blocked(o: [number, number, number, number]): boolean {

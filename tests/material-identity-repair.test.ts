@@ -103,3 +103,33 @@ test("repair all signed-note variants, consolidate source evidence and rebuild a
   assert.ok(heat.every((h) => Number(h.participants) === 1 && Number(h.cohort) === 1 && Number(h.heat) < 99));
   assert.equal((await rebuildMaterialIdentityRepairs()).rebuilt, 0, "completed checkpoints do not rebuild again");
 });
+
+test("generic repair consolidates BACP date aliases and records removals for selected sync clients", async () => {
+  const t = tag();
+  const source = `bacp-repair-${t}`;
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at)
+    VALUES (${source}, 'BACP repair test', 'web_list', 'T1', 'editorial', '2100-01-01')`;
+  const urls = ["oct", "october"].map((month) => `https://www.bacp.co.uk/news/news-from-bacp/2026/9-${month}-test-${t}`);
+  const ids = urls.map((_, i) => `bacp-${t}-${i}`);
+  for (const [i, url] of urls.entries()) {
+    await sql`INSERT INTO articles (id, source_id, identity_key, url, title, discovered_at, timeline_at, body_text, body_status)
+      VALUES (${ids[i]}, ${source}, ${`url:${url}`}, ${url}, 'Mental health support', now(), now(), ${i === 0 ? 'Full text. '.repeat(100) : 'Excerpt.'}, 'ok')`;
+    await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected)
+      VALUES (${ids[i]}, 1, 'rule', 'pass', 'policy', '心理健康服务不应以诊断为前提', '政策声明的完整摘要', 80, true)`;
+    await publishArticle(ids[i]!, { releasedAt: new Date(Date.now() - 60_000) });
+  }
+  const group = (await auditMaterialIdentities()).find((g) => g.keep === ids[0]);
+  assert.ok(group);
+  assert.deepEqual(group.duplicates, [ids[1]]);
+  await repairMaterialIdentities();
+  const [removed] = await sql<{ in_set: boolean }[]>`SELECT in_set FROM selected_state WHERE article_id = ${ids[1]}`;
+  assert.equal(removed!.in_set, false);
+  assert.equal((await sql`SELECT 1 FROM selected_ledger WHERE article_id = ${ids[1]} AND op = 'remove'`).length, 1);
+  assert.equal((await sql`SELECT 1 FROM publications WHERE article_id = ANY(${ids}::text[]) AND selected AND visibility = 'public'`).length, 1);
+  assert.equal((await upsertMaterial({ sourceId: source, url: urls[0]!, title: 'Mental health support', via: 'fetch' })).articleId, ids[0]);
+  // A new withdrawal of the survivor must also hide every old bookmark.
+  await sql`INSERT INTO editorial_overrides (article_id, visibility, reason) VALUES (${ids[0]}, 'withdrawn', 'test withdrawal')`;
+  await publishArticle(ids[0]!);
+  assert.equal((await loadItemDetail(ids[1]!)).kind, 'not_found');
+  assert.equal((await itemAvailability([ids[1]!]))[ids[1]!], 'unavailable');
+});

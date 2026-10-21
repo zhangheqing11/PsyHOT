@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'deploy' / 'werss'))
 from verified_weread import ReadError, parse_article, cache_complete
+from weread_session import healthy_shelf
 
 
 class ArticleVerification(unittest.TestCase):
@@ -54,6 +55,12 @@ class ArticleVerification(unittest.TestCase):
         self.assertTrue(cache_complete(row, self.feed))
         row.content = ''
         self.assertFalse(cache_complete(row, self.feed))
+
+    def test_cached_login_or_http_success_is_not_session_verification(self):
+        self.assertFalse(healthy_shelf({}))
+        self.assertFalse(healthy_shelf({'login_status': True}))
+        self.assertFalse(healthy_shelf({'errCode': -2012, 'books': []}))
+        self.assertTrue(healthy_shelf({'books': [], 'synckey': 1}))
 
 
 if __name__ == '__main__':

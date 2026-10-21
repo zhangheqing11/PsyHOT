@@ -82,6 +82,13 @@ async def initialize():
         # Only enable this fixed feed task; no third-party notification or broad automatic discovery.
         if not scheduler._scheduler.get_job(task.id):
             start_job(job_id=task.id)
+        from core.config import cfg
+        if cfg.get('gather.model') == 'weread_mp':
+            from weread_session import refresh_weread
+            if not scheduler._scheduler.get_job('psyhot-weread-session'):
+                scheduler.add_cron_job(refresh_weread, cron_expr='*/30 * * * *',
+                                       job_id='psyhot-weread-session', tag='微信读书会话维护')
+            asyncio.create_task(asyncio.to_thread(refresh_weread))
         print(json.dumps({'werssFixedAccounts': len(accounts), 'scheduled': bool(scheduler._scheduler.get_job(task.id))}))
     finally:
         session.close()

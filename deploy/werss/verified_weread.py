@@ -89,6 +89,11 @@ def install():
             self.articles = []
             self.start_time = time.time()
             self._load_weread_auth()
+            from core.config import Config
+            auth_data = Config('/app/data/wx.lic').get('weread_data', {})
+            auth_data = json.loads(auth_data) if isinstance(auth_data, str) else auth_data
+            if auth_data.get('user_agent'):
+                self.user_agent = auth_data['user_agent']
             feed = Mps_id or faker_id
             marker = Path('/app/data/psyhot-weread-cooldown.json')
             credential_id = hashlib.sha256(self._weread_cookies.encode()).hexdigest()

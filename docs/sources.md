@@ -173,6 +173,8 @@ Content-Type: application/json
 在服务器 `.data/werss/runtime.env` 中设置随机 `SECRET_KEY`、`USERNAME`、`PASSWORD`，
 以及 `WERSS_AUTH_WEB=True`（公众号后台扫码）、`HEADLESS=true`、`GATHER.MODEL=weread_mp`、`GATHER.CONTENT=True`、`THREADS=1`。
 微信读书需要在 `/weread` 单独扫码授权，公众号后台授权不等于微信读书授权。
+服务启动及每半小时会用正常浏览器访问书架维护会话，并通过书架接口验证后保存新的凭据；
+验证失败只记录状态，不把缓存的“已登录”当作有效授权。
 PsyHOT 的 `.env` 设置 `WECHAT_RSS_BASE_URL=http://werss:8001`。
 
 ```bash

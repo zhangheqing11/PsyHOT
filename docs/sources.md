@@ -171,7 +171,8 @@ Content-Type: application/json
 ### 部署 WeRSS 私有服务
 
 在服务器 `.data/werss/runtime.env` 中设置随机 `SECRET_KEY`、`USERNAME`、`PASSWORD`，
-以及 `WERSS_AUTH_WEB=True`（浏览器扫码）、`HEADLESS=true`、`GATHER.MODEL=web`、`GATHER.CONTENT=True`、`THREADS=1`。
+以及 `WERSS_AUTH_WEB=True`（公众号后台扫码）、`HEADLESS=true`、`GATHER.MODEL=weread_mp`、`GATHER.CONTENT=True`、`THREADS=1`。
+微信读书需要在 `/weread` 单独扫码授权，公众号后台授权不等于微信读书授权。
 PsyHOT 的 `.env` 设置 `WECHAT_RSS_BASE_URL=http://werss:8001`。
 
 ```bash
@@ -180,5 +181,8 @@ docker compose -f docker-compose.yml -f deploy/werss.compose.yml --profile werss
 
 管理页只绑定服务器 `127.0.0.1:8001`，经 SSH 转发访问；不要向公网开放。
 固定账号映射会导入 WeRSS，日常微信采集为北京时间 09:15、18:15；PsyHOT 每 30 分钟读取缓存。
-微信授权过期必须人工扫码，出现 200013 时全局冷却六小时，禁止轮换账号或密集重试。
+微信读书每次只获取最新一篇，无法回补历史，轮询之间多次发布可能漏文。
+私有实例会从正文校验公众号 `__biz`、原始发布时间和原文长链接；空正文记录下次仍重试，
+完整且已核验的记录不重复取正文。失效授权或 429 会暂停后续账号半小时，新扫码后可解除暂停。
+登录状态与标题测试不能证明阅读权限有效，须验证正文。原公众号后台 `web` 模式出现 200013 时全局冷却六小时，禁止轮换账号或密集重试。
 未通过真实文章验证前，只能报告配置就绪，不能报告微信采集恢复成功。

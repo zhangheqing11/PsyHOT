@@ -30,14 +30,15 @@ from driver.base import WX_API
 from auth_adapter import install, restore_saved_session
 apis.auth.WX_API = WX_API
 install(WX_API)
+from verified_weread import install as install_verified_weread
+install_verified_weread()
 from web import app
 
 
 def install_fixed_jobs(accounts):
-    # This pinned image routes every MP_WXS_* feed to WeRead. Our numeric feed
-    # IDs are historical identifiers, so explicitly retain the web collector.
+    # Keep the operator's selected collector for the fixed registry.
     import jobs.mps as jobs
-    from core.wx.model.web import MpsWeb
+    from core.wx import WxGather
     from jobs.article import UpdateArticle, Update_Over
     fixed_ids = {account['feedId'] for account in accounts}
     original = jobs.do_job
@@ -45,7 +46,7 @@ def install_fixed_jobs(accounts):
     def collect(mp=None, task=None, isTest=False):
         if isTest or not mp or mp.id not in fixed_ids:
             return original(mp, task, isTest)
-        collector = MpsWeb()
+        collector = WxGather().Model()
         try:
             collector.get_Articles(mp.faker_id, Mps_id=mp.id, Mps_title=mp.mp_name,
                                    CallBack=UpdateArticle, Over_CallBack=Update_Over,

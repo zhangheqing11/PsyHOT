@@ -143,7 +143,7 @@ def install():
                     Item_Over_CallBack(item)
             except (ReadError, upstream.WereadMPAPIError) as exc:
                 session.rollback()
-                if exc.code in (-2012, -2010, -2041, 429):
+                if exc.code in (-2012, -2010, -2041, 401, 403, 429, 499):
                     marker.write_text(json.dumps({'credential_id': credential_id, 'until': time.time() + 1800}))
                     marker.chmod(0o600)
                 raise upstream.WereadMPAPIError(exc.code, str(exc), retriable=exc.code not in (-2012, -2010, -2041)) from exc

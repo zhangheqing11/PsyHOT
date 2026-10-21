@@ -157,7 +157,7 @@ export function unshield(translated: string, s: Shielded): string | null {
 export async function translateArticle(articleId: string): Promise<TranslateResult> {
   const [row] = await sql<{ revision: number; channel: string; language: string | null; body_html: string | null; body_text: string | null; x_post: { text?: string } | null; title: string; selected: boolean; body_mode: string; visibility: string }[]>`
     SELECT a.revision, p.channel, a.language, a.body_html, a.body_text, a.x_post, p.title, p.selected, p.body_mode, p.visibility
-    FROM publications p JOIN articles a ON a.id = p.article_id WHERE p.article_id = ${articleId}`;
+    FROM publications p JOIN articles a ON a.id = p.article_id WHERE p.article_id = ${articleId} AND a.duplicate_of IS NULL`;
   if (!row) return { articleId, status: "skipped", reason: "not published" };
   const result = (r: Omit<TranslateResult, "articleId" | "revision">): TranslateResult => ({ articleId, revision: row.revision, ...r });
   if (!row.selected || row.visibility !== "public" || row.body_mode !== "full") return result({ status: "skipped", reason: "not a selected full-text item" });

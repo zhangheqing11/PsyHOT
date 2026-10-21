@@ -9,7 +9,9 @@ import { upsertMaterial } from "@aihot/backend/content/materials";
 import { auditMaterialIdentities, repairMaterialIdentities, rebuildMaterialIdentityRepairs } from "@aihot/backend/content/repair-identities";
 import { hotCandidates } from "@aihot/backend/events/hot";
 import { groupArticle } from "@aihot/backend/events/group";
-import { queueProcessing } from "@aihot/backend/jobs/content";
+import { queueProcessing, processArticle } from "@aihot/backend/jobs/content";
+import { extractArticleBody } from "@aihot/backend/content/extract";
+import { translateArticle } from "@aihot/backend/editorial/translate";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { publishArticle } from "@aihot/backend/publication/publish";
 import { loadItemDetail } from "@aihot/backend/publication/detail";
@@ -81,6 +83,10 @@ test("repair all signed-note variants, consolidate source evidence and rebuild a
     assert.equal((await publishArticle(id))!.visibility, "withdrawn", "a republish cannot resurrect the duplicate");
     assert.equal((await groupArticle(id)).verdict, "skipped");
     assert.equal(await queueProcessing(id), null, "aliases never reach paid processing");
+    assert.equal((await processArticle(id)).state, "missing", "already queued analyses also skip aliases");
+    await sql`UPDATE articles SET body_status = 'pending' WHERE id = ${id}`;
+    assert.equal(await extractArticleBody(id), "skipped", "already queued extraction does not fetch again");
+    assert.equal((await translateArticle(id)).status, "skipped");
   }
   assert.equal((await itemAvailability([ids[0]!]))[ids[0]!], "public");
   const again = await upsertMaterial({

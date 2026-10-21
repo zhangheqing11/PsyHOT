@@ -96,7 +96,7 @@ export async function settleNonEditorial(articleId: string): Promise<{ group: bo
 /** attemptTag makes an explicit re-evaluation a new (paid) request; the same tag reuses its receipt. */
 export async function processArticle(articleId: string, opts: { attemptTag?: string } = {}): Promise<{ state: string }> {
   const [found] = await sql<{ participation_mode: string; processing_state: string; revision: number; backfill: boolean; published_at: Date | null; discovered_at: Date }[]>`
-    SELECT s.participation_mode, a.processing_state, a.revision, a.backfill, a.published_at, a.discovered_at FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
+    SELECT s.participation_mode, a.processing_state, a.revision, a.backfill, a.published_at, a.discovered_at FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId} AND a.duplicate_of IS NULL`;
   if (!found) return { state: "missing" };
   const row = { ...found, historical: isHistorical(found) };
   if (row.participation_mode !== "editorial") {

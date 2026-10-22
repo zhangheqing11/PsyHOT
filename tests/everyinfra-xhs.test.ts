@@ -54,8 +54,8 @@ test("a keyword search becomes candidates with their counts, through one receipt
 
 test("a budget that runs out during note details keeps the paid listing's notes with their excerpts", async () => {
   const id = `test-xhs-budget-${T}`;
-  await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, next_fetch_at) VALUES (${id}, 'XHS budget test', 'json_list',
-    ${sql.json({ adapter: "everyinfra_xhs", everyinfraAction: "search", everyinfraParams: { keyword: `预算 ${T}` }, everyinfraDetail: true, summaryIsBody: true } as never)}, 'T2', 'editorial', '2100-01-01')`;
+  await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, interval_minutes, next_fetch_at) VALUES (${id}, 'XHS budget test', 'json_list',
+    ${sql.json({ adapter: "everyinfra_xhs", everyinfraAction: "search", everyinfraParams: { keyword: `预算 ${T}` }, everyinfraDetail: true, summaryIsBody: true } as never)}, 'T2', 'editorial', 1440, '2100-01-01')`;
   // Room for the listing only: the note detail that follows hits the minute budget.
   const [{ n }] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM receipt_attempts WHERE service = 'everyinfra' AND origin = 'live' AND started_at > now() - interval '1 minute'`;
   await sql`UPDATE budgets SET per_minute = ${n + 1} WHERE service = 'everyinfra'`;

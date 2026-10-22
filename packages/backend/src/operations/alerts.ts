@@ -198,7 +198,10 @@ const PROVIDERS: Record<string, { name: string; stops: string; where: string }> 
   socialdata: { name: "SocialData", stops: "X（推特）上的新内容收不到", where: "SocialData 后台" },
   jina: { name: "Jina", stops: "部分文章取不到正文", where: "Jina 后台" },
   dajiala: { name: "极致了（Dajiala）", stops: "公众号新文章收不到", where: "极致了后台" },
-  everyinfra: { name: "EveryInfra", stops: "公众号候选发现、小红书或 X 检索不可用", where: "EveryInfra 控制台" },
+  everyinfra: { name: "EveryInfra", stops: "公众号、小红书和 X 主题检索的新内容收不到", where: "EveryInfra 控制台" },
+  "everyinfra:xiaohongshu": { name: "EveryInfra 小红书", stops: "小红书新笔记收不到", where: "EveryInfra 控制台" },
+  "everyinfra:wechat_oa": { name: "EveryInfra 公众号", stops: "公众号新文章收不到", where: "EveryInfra 控制台" },
+  "everyinfra:twitter": { name: "EveryInfra X 检索", stops: "X 主题检索的新帖收不到", where: "EveryInfra 控制台" },
 };
 export const providerName = (service: string) => PROVIDERS[service]?.name ?? service;
 export const providerStops = (service: string) => PROVIDERS[service]?.stops ?? "相关功能停了";
@@ -225,7 +228,7 @@ async function providerFindings(): Promise<Finding[]> {
   }
   const capped = await sql<{ service: string; per_day: number; used: number }[]>`
     SELECT b.service, b.per_day, count(a.id)::int AS used FROM budgets b
-    JOIN receipt_attempts a ON a.service = b.service AND a.origin = 'live' AND a.started_at > now() - interval '1 day'
+    JOIN receipt_attempts a ON (a.service = b.service OR a.pool = b.service) AND a.origin = 'live' AND a.started_at > now() - interval '1 day'
     WHERE b.per_day > 0 GROUP BY 1, 2 HAVING count(a.id) >= b.per_day`;
   for (const c of capped) {
     out.push({

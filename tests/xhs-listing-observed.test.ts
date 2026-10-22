@@ -29,12 +29,12 @@ after(async () => { await provider.close(); await stopBoss(); await closeDb(); }
 
 test("a keyword listing: no goods notes, the author as participant, counts refreshed on the next pass", async () => {
   const id = `xhs-observed-${T}`;
-  const [budget] = await sql<{ per_minute: number; per_hour: number; per_day: number }[]>`SELECT per_minute, per_hour, per_day FROM budgets WHERE service = 'everyinfra'`;
-  await sql`UPDATE budgets SET per_minute = 10000, per_hour = 10000, per_day = 10000 WHERE service = 'everyinfra'`;
+  const budgets = await sql<{ service: string; per_minute: number; per_hour: number; per_day: number }[]>`SELECT service, per_minute, per_hour, per_day FROM budgets WHERE service LIKE 'everyinfra%'`;
+  await sql`UPDATE budgets SET per_minute = 10000, per_hour = 10000, per_day = 10000 WHERE service LIKE 'everyinfra%'`;
   try {
-    await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, next_fetch_at)
+    await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, interval_minutes, next_fetch_at)
       VALUES (${id}, ${id}, 'json_list', ${sql.json({ adapter: "everyinfra_xhs", everyinfraAction: "search",
-        everyinfraParams: { keyword: id }, everyinfraDetail: false, summaryIsBody: true } as never)}, 'T2', 'hot_signal', '2100-01-01')`;
+        everyinfraParams: { keyword: id }, everyinfraDetail: false, summaryIsBody: true } as never)}, 'T2', 'hot_signal', 1440, '2100-01-01')`;
     const first = await collectSource(id);
     assert.equal(first.created, 1, "the goods note is not ingested");
     assert.equal((await sql`SELECT 1 FROM articles WHERE identity_key = ${`xhs:${goodsId}`}`).length, 0);
@@ -49,6 +49,6 @@ test("a keyword listing: no goods notes, the author as participant, counts refre
     assert.equal(row!.raw.comment_count, 2);
     assert.equal(row!.revision, 1, "counts alone are no new revision");
   } finally {
-    if (budget) await sql`UPDATE budgets SET per_minute = ${budget.per_minute}, per_hour = ${budget.per_hour}, per_day = ${budget.per_day} WHERE service = 'everyinfra'`;
+    for (const b of budgets) await sql`UPDATE budgets SET per_minute = ${b.per_minute}, per_hour = ${b.per_hour}, per_day = ${b.per_day} WHERE service = ${b.service}`;
   }
 });

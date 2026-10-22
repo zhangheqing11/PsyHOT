@@ -7,7 +7,7 @@ import { republishKey } from "../jobs/publication.ts";
 import { normalizeUrl } from "../lib/url.ts";
 import { fetchJsonList } from "../sources/json-list.ts";
 import { fetchRss } from "../sources/rss.ts";
-import { assertSupportedConfig } from "../sources/config-keys.ts";
+import { assertPaidInterval, assertSupportedConfig } from "../sources/config-keys.ts";
 import type { SourceRow } from "../sources/types.ts";
 import { fetchWebList } from "../sources/web-list.ts";
 import { fetchXSearch } from "../sources/x.ts";
@@ -93,7 +93,7 @@ const EDITABLE = z
   .object({
     name: z.string().min(1).max(200),
     enabled: z.boolean(),
-    interval_minutes: z.number().int().min(1).max(1440),
+    interval_minutes: z.number().int().min(1).max(10080),
     tier: z.enum(["T1", "T1_5", "T2", "EXCLUDE_MP"]),
     participation_mode: z.enum(["editorial", "hot_signal", "isolated"]),
     signal_group_id: z.string().max(120).nullable(),
@@ -116,6 +116,7 @@ export async function updateSource(id: string, input: { patch: unknown; version:
     if (!before) return null;
     if (new Date(before.updated_at as Date).toISOString() !== input.version) throw new Conflict("信源已被其他操作修改，请刷新后再改");
     if (patch.config) assertSupportedConfig(before.kind as SourceRow["kind"], patch.config);
+    assertPaidInterval(before.kind as SourceRow["kind"], patch.config ?? before.config, patch.interval_minutes ?? before.interval_minutes);
     const keys = Object.keys(patch) as Array<keyof typeof patch>;
     if (!keys.length) return before;
     const values = Object.fromEntries(keys.map((k) => [k, k === "config" ? tx.json(patch.config as never) : patch[k]]));
@@ -146,7 +147,7 @@ const CreateSchema = z
     config: z.record(z.string(), z.unknown()),
     tier: z.enum(["T1", "T1_5", "T2", "EXCLUDE_MP"]).default("T2"),
     participation_mode: z.enum(["editorial", "hot_signal", "isolated"]).default("editorial"),
-    interval_minutes: z.number().int().min(1).max(1440).default(30),
+    interval_minutes: z.number().int().min(1).max(10080).default(30),
     first_party: z.boolean().default(false),
     tags: z.array(z.string()).default([]),
     site_fulltext: z.boolean().default(false),
@@ -181,6 +182,7 @@ export async function findDuplicateSource(kind: string, config: Record<string, u
 export async function createSource(input: unknown, actor: string) {
   const s = CreateSchema.parse(input);
   assertSupportedConfig(s.kind, s.config);
+  assertPaidInterval(s.kind, s.config, s.interval_minutes);
   const dup = await findDuplicateSource(s.kind, s.config);
   if (dup) return { created: false as const, duplicate: dup };
   const [row] = await sql`

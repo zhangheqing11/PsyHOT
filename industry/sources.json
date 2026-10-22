@@ -5658,7 +5658,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -5735,7 +5735,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -5758,7 +5758,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -5835,7 +5835,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -5844,7 +5844,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-search-depression-research",
@@ -5858,7 +5859,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -5935,7 +5936,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -5958,7 +5959,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6035,7 +6036,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6058,7 +6059,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6135,7 +6136,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6158,7 +6159,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6235,7 +6236,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6258,7 +6259,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6335,7 +6336,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "mixed",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6358,7 +6359,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6435,7 +6436,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "industry",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6444,7 +6445,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-search-ai-mental-health",
@@ -6458,7 +6460,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6535,7 +6537,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "mixed",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6544,7 +6546,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-search-digital-therapeutics",
@@ -6558,7 +6561,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6635,7 +6638,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "industry",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6644,7 +6647,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-creator-bohe-ai-mental-health",

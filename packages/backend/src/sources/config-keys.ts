@@ -68,3 +68,19 @@ export function assertSupportedConfig(kind: SourceRow["kind"], config: Record<st
   const bad = unsupportedConfig(kind, config);
   if (bad.length) throw new UnsupportedConfig(`不支持的配置项：${bad.join("、")}`);
 }
+
+/**
+ * The shortest interval a source paid per listing may have (EveryInfra bills each listing call).
+ * Mirrored by the sources_paid_interval_floor constraint (database/migrations/0048), so no writer
+ * (the admin, a script, the nightly interval adaptation) can poll one faster.
+ */
+export function paidIntervalFloor(kind: SourceRow["kind"], config: Record<string, unknown>): number | null {
+  if (config?.adapter === "everyinfra_xhs") return 720;
+  if (config?.adapter === "everyinfra_x") return 360;
+  return null;
+}
+
+export function assertPaidInterval(kind: SourceRow["kind"], config: Record<string, unknown>, intervalMinutes: number): void {
+  const floor = paidIntervalFloor(kind, config);
+  if (floor !== null && intervalMinutes < floor) throw new UnsupportedConfig(`按次付费的信源抓取间隔不能短于 ${floor} 分钟`);
+}

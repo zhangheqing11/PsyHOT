@@ -44,15 +44,22 @@ export async function everyInfraCall<T = unknown>(opts: {
       subject: opts.subject,
       identity: { platform: opts.platform, action: opts.action, params, window: opts.window ?? null },
       requestSummary: { platform: opts.platform, action: opts.action, params },
+      // Each platform has its own share of the daily budget: one cannot use up another's.
+      pool: `everyinfra:${opts.platform}`,
     },
     async () => {
+      // The API never redirects; a redirect is refused before the key or the request goes anywhere else.
       const res = await guardedFetch(`${apiBase()}/api/v1/social`, {
         method: "POST",
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ platform: opts.platform, action: opts.action, params }),
         timeoutMs: 60_000,
         maxBytes: 16 * 1024 * 1024,
+        maxRedirects: 0,
         route: "direct",
+      }).catch((error: unknown) => {
+        if (error instanceof Error && error.message.startsWith("Too many redirects")) throw new ProviderRejectedError("everyinfra answered with a redirect", null, false);
+        throw error;
       });
       const text = res.text();
       if (res.status === 401 || res.status === 402 || res.status === 422) {

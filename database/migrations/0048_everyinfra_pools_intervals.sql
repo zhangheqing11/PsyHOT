@@ -5,8 +5,9 @@ CREATE INDEX receipt_attempts_pool_time_idx ON receipt_attempts (pool, started_a
 
 INSERT INTO budgets (service, per_minute, per_hour, per_day, note) VALUES
   ('everyinfra:xiaohongshu', 10, 40, 25, 'EveryInfra 小红书：关键词与博主列表、博主新笔记正文'),
-  ('everyinfra:wechat_oa', 10, 60, 50, 'EveryInfra 公众号：文章列表、新文章正文、账号查找'),
-  ('everyinfra:twitter', 5, 10, 15, 'EveryInfra X 主题检索')
+  ('everyinfra:wechat_oa', 10, 60, 50, 'EveryInfra 公众号：文章列表、新文章正文'),
+  ('everyinfra:twitter', 5, 10, 15, 'EveryInfra X 主题检索'),
+  ('everyinfra:discovery', 10, 60, 60, 'EveryInfra 公众号候选发现与账号查找（运营手动运行）')
 ON CONFLICT (service) DO NOTHING;
 
 -- Intervals up to a week (quiet paid accounts are listed every few days). Paid listings have a floor

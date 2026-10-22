@@ -140,7 +140,7 @@ async function refreshObserved(db: Db, articleId: string, raw: MaterialInput["ra
     UPDATE articles SET raw = CASE WHEN ${participant}::text IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('participant', ${participant}::text) END
                               || coalesce(raw, '{}'::jsonb) || ${db.json(counts as never)}
     WHERE id = ${articleId}
-      AND NOT (coalesce(raw, '{}'::jsonb) @> ${db.json(counts as never)} AND (${participant}::text IS NULL OR raw ? 'participant'))`;
+      AND NOT (coalesce(raw, '{}'::jsonb) @> ${db.json(counts as never)} AND (${participant}::text IS NULL OR coalesce(raw, '{}'::jsonb) ? 'participant'))`;
 }
 
 export async function upsertMaterial(m: MaterialInput, db: Db = sql): Promise<MaterialResult> {

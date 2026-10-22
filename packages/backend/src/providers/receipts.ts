@@ -90,7 +90,7 @@ async function checkBudget(tx: Db, service: string, pool?: string): Promise<void
   const [refused] = await tx<{ n: number }[]>`
     SELECT count(*)::int AS n FROM receipt_attempts
     WHERE service = ${service} AND status = 'failed' AND started_at > now() - interval '1 hour'
-      AND error ~* '(HTTP 402\M|quota_exhausted|insufficient|balance|arrear|欠费|余额)'`;
+      AND error ~* '(HTTP 402\\M|quota_exhausted|insufficient|balance|arrear|欠费|余额)'`;
   if (refused!.n >= 3) throw new BudgetExceededError(service, "balance", 3600);
   await checkWindow(tx, service, "service");
   if (pool) await checkWindow(tx, pool, "pool");

@@ -202,6 +202,7 @@ const PROVIDERS: Record<string, { name: string; stops: string; where: string }> 
   "everyinfra:xiaohongshu": { name: "EveryInfra 小红书", stops: "小红书新笔记收不到", where: "EveryInfra 控制台" },
   "everyinfra:wechat_oa": { name: "EveryInfra 公众号", stops: "公众号新文章收不到", where: "EveryInfra 控制台" },
   "everyinfra:twitter": { name: "EveryInfra X 检索", stops: "X 主题检索的新帖收不到", where: "EveryInfra 控制台" },
+  "everyinfra:discovery": { name: "EveryInfra 公众号查找", stops: "公众号候选发现和账号查找暂停", where: "EveryInfra 控制台" },
 };
 export const providerName = (service: string) => PROVIDERS[service]?.name ?? service;
 export const providerStops = (service: string) => PROVIDERS[service]?.stops ?? "相关功能停了";

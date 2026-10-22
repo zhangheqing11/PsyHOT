@@ -34,6 +34,8 @@ export async function everyInfraCall<T = unknown>(opts: {
   subject: string;
   purpose: string;
   window?: string;
+  /** The budget share; the platform's by default. */
+  pool?: string;
 }): Promise<{ results: T; receiptId: number; reused: boolean; response: EveryInfraEnvelope<T> }> {
   const key = apiKey();
   const params = opts.params ?? {};
@@ -45,7 +47,7 @@ export async function everyInfraCall<T = unknown>(opts: {
       identity: { platform: opts.platform, action: opts.action, params, window: opts.window ?? null },
       requestSummary: { platform: opts.platform, action: opts.action, params },
       // Each platform has its own share of the daily budget: one cannot use up another's.
-      pool: `everyinfra:${opts.platform}`,
+      pool: opts.pool ?? `everyinfra:${opts.platform}`,
     },
     async () => {
       // The API never redirects; a redirect is refused before the key or the request goes anywhere else.
@@ -92,7 +94,7 @@ export interface EveryInfraMpPost {
 }
 
 /** An account's latest articles: link, title and time only (no digest); each body is a separate call. */
-export async function everyInfraMpHistory(account: string, opts: { subject: string; window: string }) {
+export async function everyInfraMpHistory(account: string, opts: { subject: string; window: string; pool?: string }) {
   const call = await everyInfraCall<unknown[]>({
     platform: "wechat_oa",
     action: "account_articles",
@@ -100,6 +102,7 @@ export async function everyInfraMpHistory(account: string, opts: { subject: stri
     subject: opts.subject,
     purpose: "mp_history",
     window: opts.window,
+    pool: opts.pool,
   });
   const rows: unknown[] = Array.isArray(call.results) ? call.results : [];
   const posts = rows.flatMap((row): EveryInfraMpPost[] => {
@@ -132,11 +135,14 @@ export async function everyInfraMpArticle(articleUrl: string, opts: { subject: s
   };
 }
 
+/** Operator-run account discovery and resolution have their own share: they never take collection's. */
+export const DISCOVERY_POOL = "everyinfra:discovery";
+
 /** Paid discovery only: results remain candidates until their identity/quality is reviewed. */
 export async function discoverWechatAccounts(keyword: string, window: string) {
   if (!keyword.trim()) throw new Error("WeChat discovery keyword required");
   return everyInfraCall<unknown[]>({ platform: "wechat_oa", action: "account_search",
-    params: { keyword: keyword.trim() }, subject: "wechat-discovery", purpose: "wechat_discovery", window });
+    params: { keyword: keyword.trim() }, subject: "wechat-discovery", purpose: "wechat_discovery", window, pool: DISCOVERY_POOL });
 }
 
 export async function everyInfraXhsNote(noteUrl: string, opts: { subject: string; identity: string }) {

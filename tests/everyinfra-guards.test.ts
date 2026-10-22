@@ -31,7 +31,7 @@ test("after three balance refusals within the hour the provider is not asked aga
   let sent = 0;
   const refuse = async (): Promise<never> => {
     sent += 1;
-    throw new ProviderRejectedError('everyinfra HTTP 402: {"error":{"code":"quota_exhausted"}}', 402, false);
+    throw new ProviderRejectedError('everyinfra HTTP 402: {"error":{"code":"payment_required"}}', 402, false);
   };
   for (let n = 1; n <= 3; n++) await assert.rejects(paidRequest(request(service, undefined, n), refuse), ProviderRejectedError);
   await assert.rejects(paidRequest(request(service, undefined, 4), refuse), (e: unknown) => e instanceof BudgetExceededError && /balance/.test(e.message));

@@ -4,7 +4,7 @@
 // node --env-file=.env scripts/resolve-wechat-accounts.ts [--apply]
 import { parseArgs } from "node:util";
 import { closeDb, sql } from "@aihot/backend/db";
-import { everyInfraCall, everyInfraMpHistory } from "@aihot/backend/providers/everyinfra";
+import { DISCOVERY_POOL, everyInfraCall, everyInfraMpHistory } from "@aihot/backend/providers/everyinfra";
 import { articleBiz } from "@aihot/backend/sources/mp";
 
 const { values } = parseArgs({ options: { apply: { type: "boolean", default: false } } });
@@ -38,12 +38,12 @@ try {
 async function resolve(s: (typeof sources)[number]) {
   const name = s.config.nickname ?? s.name;
   const search = await everyInfraCall<unknown[]>({ platform: "wechat_oa", action: "account_search", params: { keyword: name },
-    subject: s.id, purpose: "wechat_discovery", window: day });
+    subject: s.id, purpose: "wechat_discovery", window: day, pool: DISCOVERY_POOL });
   const found = candidates(search.results);
   let match = found.find((c) => c.biz === s.config.wechatBiz) ?? null;
   // Without a biz in the search result, a listing shows whose articles an account id returns.
   for (const c of match ? [] : found.slice(0, MAX_LISTINGS)) {
-    const listing = await everyInfraMpHistory(c.ghid, { subject: s.id, window: `resolve:${day}` });
+    const listing = await everyInfraMpHistory(c.ghid, { subject: s.id, window: `resolve:${day}`, pool: DISCOVERY_POOL });
     if (listing.posts.some((p) => articleBiz(p.url) === s.config.wechatBiz)) { match = c; break; }
   }
   console.log(JSON.stringify({ source: s.id, name, candidates: found.map((c) => `${c.ghid} ${c.name}`), match: match?.ghid ?? null }));

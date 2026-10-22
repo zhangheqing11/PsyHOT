@@ -112,7 +112,8 @@ API key、计费回执和失败重试由后端统一处理。
 关键词信源默认作热度证据（`hot_signal`），只用搜索摘要；固定博主进精选，新笔记取一次正文。
 
 EveryInfra 每次调用都计费（约 $0.0056）。`budgets` 表里 `everyinfra` 是总上限，`everyinfra:xiaohongshu`、
-`everyinfra:wechat_oa`、`everyinfra:twitter` 是各平台的份额，一个平台用完不影响其他平台。一小时内三次因余额被拒，
+`everyinfra:wechat_oa`、`everyinfra:twitter` 是各平台的份额，一个平台用完不影响其他平台；手动运行的公众号候选发现和账号查找用
+`everyinfra:discovery`，不占采集的份额。一小时内三次因余额被拒，
 这一小时剩下的时间不再调用；充值后自动继续。
 
 ### X 主题检索（EveryInfra）

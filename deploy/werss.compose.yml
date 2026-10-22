@@ -12,6 +12,7 @@ services:
       - ./deploy/werss/start.sh:/app/psyhot/start.sh:ro
       - ./deploy/werss/run.py:/app/psyhot/run.py:ro
       - ./deploy/werss/auth_adapter.py:/app/psyhot/auth_adapter.py:ro
+      - ./deploy/werss/async_collect.py:/app/psyhot/async_collect.py:ro
       - ./deploy/werss/verified_weread.py:/app/psyhot/verified_weread.py:ro
       - ./deploy/werss/weread_session.py:/app/psyhot/weread_session.py:ro
       - ./deploy/werss/web_collector.py:/app/core/wx/model/web.py:ro

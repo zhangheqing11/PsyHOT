@@ -33,6 +33,8 @@ install(WX_API)
 from verified_weread import install as install_verified_weread
 install_verified_weread()
 from web import app
+from async_collect import install as install_async_collect
+install_async_collect(app)
 
 
 def install_fixed_jobs(accounts):

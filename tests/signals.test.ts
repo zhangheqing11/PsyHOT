@@ -7,7 +7,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
-import { groupArticle } from "@aihot/backend/events/group";
+import { groupArticle, participantKey } from "@aihot/backend/events/group";
 import { queueProcessing, settleNonEditorial } from "@aihot/backend/jobs/content";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { publishArticle } from "@aihot/backend/publication/publish";
@@ -15,6 +15,7 @@ import { publishArticle } from "@aihot/backend/publication/publish";
 const T = tag();
 const EDITORIAL = `test-sig-ed-${T}`;
 const SIGNAL = `test-sig-hs-${T}`;
+const SIGNAL_SEARCH = `test-sig-search-${T}`;
 const TOPIC = `WL${T}`;
 /** Text of its own: close to nothing stored. */
 const ALONE = `ZZ${T}`;
@@ -55,7 +56,8 @@ before(async () => {
   await sql`UPDATE budgets SET per_minute = 1000, per_hour = 10000, per_day = 100000 WHERE service IN ('dashscope', 'deepseek')`;
   await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at) VALUES
             (${EDITORIAL}, 'Test editorial', 'rss', 'T1', 'editorial', '2100-01-01'),
-            (${SIGNAL}, 'Test signal', 'rss', 'T2', 'hot_signal', '2100-01-01')`;
+            (${SIGNAL}, 'Test signal', 'rss', 'T2', 'hot_signal', '2100-01-01'),
+            (${SIGNAL_SEARCH}, 'Test keyword search', 'rss', 'T2', 'hot_signal', '2100-01-01')`;
 });
 after(async () => {
   await provider.close();
@@ -158,4 +160,27 @@ test("a discussion post linking a paper we hold joins its story without a model 
 
   const unknown = await groupArticle(await post("c", `${ALONE}\n\nhttps://doi.org/10.9999/unknown-${T}`), { signalOnly: true });
   assert.notEqual(unknown.verdict, "signal-link", "a paper we do not hold links nothing");
+});
+
+test("one author found through two keyword searches is one participant; a signal group still wins", async () => {
+  const { articleId: paperId } = await upsertMaterial({ sourceId: EDITORIAL, url: `https://journals.sagepub.com/doi/full/10.1177/author-${T}`, title: `Author paper ${T}`, bodyText: "Abstract.", bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
+  await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected, output)
+            VALUES (${paperId}, 1, 'rule', 'pass', 'research', ${`作者论文 ${T}`}, '摘要', 80, false, ${sql.json({ fact: { title: "作者论文" } })})`;
+  await publishArticle(paperId);
+  const paper = await groupArticle(paperId);
+  const note = async (sourceId: string, suffix: string) => {
+    const { articleId } = await upsertMaterial({
+      sourceId, url: `https://example.com/note-${suffix}-${T}`, title: `${ALONE} note ${suffix}`, bodyText: `${ALONE}\n\nhttps://doi.org/10.1177/author-${T}`,
+      bodyStatus: "ok", via: "fetch", publishedAt: new Date(), raw: { participant: `xhs-author:a${T}` },
+    });
+    await settleNonEditorial(articleId);
+    assert.equal((await groupArticle(articleId, { signalOnly: true })).storyId, paper.storyId);
+    return articleId;
+  };
+  const notes = [await note(SIGNAL, "a"), await note(SIGNAL_SEARCH, "b")];
+  const keys = await sql<{ participant_key: string }[]>`
+    SELECT DISTINCT participant_key FROM story_signals WHERE story_id = ${paper.storyId!} AND article_id IN ${sql(notes)}`;
+  assert.deepEqual(keys.map((k) => k.participant_key), [`xhs-author:a${T}`]);
+  assert.equal(participantKey({ id: "s", signal_group_id: "society" }, "xhs-author:x"), "group:society");
+  assert.equal(participantKey({ id: "s", signal_group_id: null }, null), "source:s");
 });

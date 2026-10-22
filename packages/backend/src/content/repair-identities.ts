@@ -4,6 +4,7 @@ import { sql, type Db } from "../db.ts";
 import { identityKeyForUrl, xhsNoteIdFromUrl } from "../lib/url.ts";
 import { publishArticleTx } from "../publication/publish.ts";
 import { backfillStoryHeat, computeHotRanking } from "../events/hot.ts";
+import { participantKey } from "../events/group.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 
 interface MaterialRow {
@@ -12,6 +13,7 @@ interface MaterialRow {
   identity_key: string;
   source_id: string;
   signal_group_id: string | null;
+  participant: string | null;
   discovered_at: Date;
   body_chars: number;
   summary_chars: number;
@@ -23,7 +25,7 @@ interface MaterialRow {
 
 async function groups(db: Db) {
   const rows = await db<MaterialRow[]>`
-    SELECT a.id, a.url, a.identity_key, a.source_id, s.signal_group_id, a.discovered_at,
+    SELECT a.id, a.url, a.identity_key, a.source_id, s.signal_group_id, nullif(a.raw->>'participant', '') AS participant, a.discovered_at,
            length(coalesce(a.body_text, '')) AS body_chars, length(coalesce(p.summary, '')) AS summary_chars,
            coalesce(p.eligible, false) AS eligible, o.article_id IS NOT NULL AS manual,
            CASE o.visibility WHEN 'withdrawn' THEN 2 WHEN 'summary-only' THEN 1 ELSE 0 END AS restricted,
@@ -112,7 +114,7 @@ export async function repairMaterialIdentities(): Promise<{ normalized: number; 
       // All search entrances are discoveries of one note, not independent editorial participants.
       await tx`DELETE FROM story_signals WHERE article_id = ANY(${ids}::text[])`;
       for (const signal of signals) {
-        const key = keep.signal_group_id ? `group:${keep.signal_group_id}` : `source:${keep.source_id}`;
+        const key = participantKey({ id: keep.source_id, signal_group_id: keep.signal_group_id }, keep.participant);
         await tx`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
           SELECT ${signal.story_id}, ${keep.id}, ${key}, ${keep.source_id},
                  CASE WHEN s.participation_mode = 'editorial' THEN 'editorial' ELSE 'signal' END, ${signal.observed_at}

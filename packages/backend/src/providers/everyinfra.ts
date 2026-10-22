@@ -84,6 +84,54 @@ export async function everyInfraCall<T = unknown>(opts: {
   return { results: response.results as T, receiptId: receipt.receiptId, reused: receipt.reused, response };
 }
 
+export interface EveryInfraMpPost {
+  url: string;
+  title: string;
+  postedAt: Date | null;
+  ghid: string | null;
+}
+
+/** An account's latest articles: link, title and time only (no digest); each body is a separate call. */
+export async function everyInfraMpHistory(account: string, opts: { subject: string; window: string }) {
+  const call = await everyInfraCall<unknown[]>({
+    platform: "wechat_oa",
+    action: "account_articles",
+    params: { account, limit: 30 },
+    subject: opts.subject,
+    purpose: "mp_history",
+    window: opts.window,
+  });
+  const rows: unknown[] = Array.isArray(call.results) ? call.results : [];
+  const posts = rows.flatMap((row): EveryInfraMpPost[] => {
+    if (!row || typeof row !== "object") return [];
+    const r = row as Record<string, unknown>;
+    if (typeof r.url !== "string" || typeof r.title !== "string" || !r.url || !r.title) return [];
+    const posted = typeof r.posted_at === "string" || typeof r.posted_at === "number" ? Date.parse(String(r.posted_at)) : NaN;
+    return [{ url: r.url, title: r.title, postedAt: Number.isFinite(posted) ? new Date(posted) : null,
+      ghid: typeof r.account_ghid === "string" ? r.account_ghid : null }];
+  });
+  return { posts, receiptId: call.receiptId, reused: call.reused };
+}
+
+export async function everyInfraMpArticle(articleUrl: string, opts: { subject: string; identity: string }) {
+  const call = await everyInfraCall<Record<string, unknown>>({
+    platform: "wechat_oa",
+    action: "article_detail",
+    params: { url: articleUrl },
+    subject: opts.subject,
+    purpose: "mp_article",
+    window: opts.identity,
+  });
+  const row = call.results && typeof call.results === "object" ? call.results : {};
+  return {
+    html: typeof row.content_html === "string" && row.content_html ? row.content_html : null,
+    text: typeof row.content_text === "string" && row.content_text ? row.content_text : null,
+    author: typeof row.author === "string" && row.author ? row.author : null,
+    digest: typeof row.digest === "string" && row.digest ? row.digest : null,
+    receiptId: call.receiptId,
+  };
+}
+
 /** Paid discovery only: results remain candidates until their identity/quality is reviewed. */
 export async function discoverWechatAccounts(keyword: string, window: string) {
   if (!keyword.trim()) throw new Error("WeChat discovery keyword required");

@@ -19,7 +19,8 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   ],
   // X accounts are mostly read in shards, which apply only these.
   x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType"],
-  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter", "werssFeedId", "wechatBiz"],
+  // wechatBiz: the account's __biz; every listed article must carry it (sources/mp.ts).
+  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter", "wechatBiz"],
   external: [],
 };
 
@@ -75,7 +76,7 @@ export function assertSupportedConfig(kind: SourceRow["kind"], config: Record<st
  * (the admin, a script, the nightly interval adaptation) can poll one faster.
  */
 export function paidIntervalFloor(kind: SourceRow["kind"], config: Record<string, unknown>): number | null {
-  if (config?.adapter === "everyinfra_xhs") return 720;
+  if (kind === "mp_account" || config?.adapter === "everyinfra_xhs") return 720;
   if (config?.adapter === "everyinfra_x") return 360;
   return null;
 }

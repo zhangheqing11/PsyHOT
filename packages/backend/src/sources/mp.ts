@@ -1,56 +1,187 @@
-// Fixed WeChat accounts read their cached WeRSS feed. Discovery is a separate, explicit paid action.
+// Fixed WeChat official accounts through EveryInfra (paid per call): one listing per account per its
+// interval, then one body call for each new article that passes the account's filter. The listing
+// carries no digest, so a body is what makes an article worth analysing.
 import { sql } from "../db.ts";
 import { upsertMaterial } from "../content/materials.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { queueProcessing } from "../jobs/content.ts";
-import { readWeRss } from "../providers/werss.ts";
+import { stripTags } from "../lib/text.ts";
+import { sanitizeBody } from "../content/sanitize.ts";
+import { identityKeyForUrl } from "../lib/url.ts";
+import { everyInfraMpArticle, everyInfraMpHistory, type EveryInfraMpPost } from "../providers/everyinfra.ts";
+import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
 import { noiseFiltered } from "./collect.ts";
-import type { SourceRow } from "./types.ts";
+import type { Candidate, SourceRow } from "./types.ts";
+
+const MAX_NEW_PER_CHECK = 8;
+/** Later checks take what appeared since the previous one, with this margin for late listings. */
+const SINCE_MARGIN_MS = 2 * 86400_000;
+/** However long an account was not checked, nothing older than this is bought. */
+const MAX_WINDOW_MS = 10 * 86400_000;
+/** A body missing for a passing reason is fetched again on later checks: this often, while the post is this recent. */
+const BODY_RETRIES = 3;
+const BODY_RETRY_WINDOW_MS = 3 * 86400_000;
+/** How long an account the provider cannot list now waits before the next try (failed calls are not billed). */
+const UNAVAILABLE_RETRY_MS = 60 * 60_000;
+/** A listing of another account than the configured one: the operator has to fix the account id. */
+const MISMATCH_RETRY_MS = 7 * 86400_000;
+
+interface MpSource {
+  id: string;
+  name: string;
+  config: { wxid?: string; ghid?: string; nickname?: string; wechatBiz?: string; ingestNoiseFilter?: Record<string, string[]> };
+  cursor: Record<string, unknown> | null;
+  enabled: boolean;
+  participation_mode: string;
+}
+
+/** The account a WeChat article link belongs to (its __biz), when the link is a real article address. */
+export function articleBiz(url: string): string | null {
+  let u: URL;
+  try { u = new URL(url); } catch { return null; }
+  if (u.hostname !== "mp.weixin.qq.com" || u.pathname !== "/s" || u.username || u.password) return null;
+  return u.searchParams.get("mid") && u.searchParams.get("idx") ? u.searchParams.get("__biz") : null;
+}
+
+/**
+ * The posts of this check: the configured account's own, newer than the previous check, newest first.
+ * The first check only verifies the account and sets the mark: what it lists is history, which
+ * would be archived (not news) and is not worth a body each.
+ */
+export function postsToTake(posts: EveryInfraMpPost[], biz: string | null, cursor: Record<string, unknown> | null, now = Date.now()) {
+  const last = typeof cursor?.lastCheckedAt === "string" ? Date.parse(cursor.lastCheckedAt) : NaN;
+  const own = biz ? posts.filter((p) => articleBiz(p.url) === biz) : posts.filter((p) => articleBiz(p.url));
+  // Every listed article belongs to another account: the account id points at the wrong account.
+  const mismatch = posts.length > 0 && own.length === 0;
+  if (!Number.isFinite(last)) return { mismatch, take: [] };
+  const since = Math.max(last - SINCE_MARGIN_MS, now - MAX_WINDOW_MS);
+  return {
+    mismatch,
+    take: own.filter((p) => p.postedAt && p.postedAt.getTime() >= since && p.postedAt.getTime() <= now + 3600_000)
+      .sort((a, b) => b.postedAt!.getTime() - a.postedAt!.getTime()),
+  };
+}
+
+/** The article body, and when it is missing for a reason that may pass (rate limit, server error, lost answer), that reason. */
+async function fetchBody(url: string, sourceId: string, identity: string) {
+  try {
+    return { body: await everyInfraMpArticle(url, { subject: sourceId, identity }), passing: null };
+  } catch (error) {
+    if (error instanceof BudgetExceededError) throw error;
+    const final = error instanceof ProviderRejectedError && !error.retryable;
+    return { body: null, passing: final ? null : String(error instanceof Error ? error.message : error).slice(0, 200) };
+  }
+}
 
 export async function checkMpAccount(sourceId: string, reason: "schedule" | "manual") {
-  const [source] = await sql<SourceRow[]>`SELECT * FROM sources WHERE id = ${sourceId} AND kind = 'mp_account'`;
+  const [source] = await sql<MpSource[]>`SELECT id, name, config, cursor, enabled, participation_mode FROM sources WHERE id = ${sourceId} AND kind = 'mp_account'`;
   if (!source) return { sourceId, status: "missing" as const };
-  if (!source.enabled) return { sourceId, status: "paused" as const };
-  const [run] = await sql<{ id: number }[]>`INSERT INTO fetch_runs (source_id, detail)
-    VALUES (${sourceId}, ${sql.json({ reason, collector: "werss" })}) RETURNING id`;
-  let created = 0, revised = 0;
+  if (!source.enabled && reason !== "manual") return { sourceId, status: "paused" as const };
+  const account = source.config.ghid ?? source.config.wxid;
+  if (!account) {
+    await sql`UPDATE sources SET health = 'failing', last_error = '没有配置公众号 ghid，无法抓取', updated_at = now() WHERE id = ${sourceId}`;
+    return { sourceId, status: "unconfigured" as const };
+  }
+  const [run] = await sql<{ id: number }[]>`INSERT INTO fetch_runs (source_id, detail) VALUES (${sourceId}, ${sql.json({ reason, collector: "everyinfra" })}) RETURNING id`;
+  let created = 0;
   try {
-    const candidates = await readWeRss(source);
-    const first = !source.cursor?.werssInitialized;
-    for (const c of candidates.filter((c) => !noiseFiltered(c, source)).slice(0, 60)) {
-      const result = await upsertMaterial({ ...c, sourceId, language: "zh", via: "fetch", backfill: first ? "werss-first-import" : null });
-      created += Number(result.created);
-      revised += Number(result.revised);
-      if (result.created || result.revised) await queueProcessing(result.articleId);
+    // One paid list call per account per 10-minute window, whoever asks.
+    const window = `${reason === "schedule" ? "s" : "m"}:${Math.floor(Date.now() / 600_000)}`;
+    const history = await everyInfraMpHistory(account, { subject: sourceId, window });
+    const { mismatch, take } = postsToTake(history.posts, source.config.wechatBiz ?? null, source.cursor);
+    if (mismatch) {
+      const message = `公众号身份不符：列表里的文章不属于配置的账号（__biz ${source.config.wechatBiz}），请核对 ghid`;
+      await sql`UPDATE sources SET last_fetch_at = now(), last_error = ${message}, fail_count = fail_count + 1, health = 'failing',
+        cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + MISMATCH_RETRY_MS).toISOString() })}, updated_at = now()
+        WHERE id = ${sourceId}`;
+      await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${history.posts.length}, error = ${message} WHERE id = ${run!.id}`;
+      return { sourceId, status: "failed" as const, error: message };
     }
-    const cursor: Record<string, unknown> = { ...source.cursor, werssInitialized: true, lastCheckedAt: new Date().toISOString() };
+    let fetched = 0;
+    for (const p of take) {
+      if (fetched >= MAX_NEW_PER_CHECK) break;
+      // A broad account (a government health account) keeps only what is on topic; the paid body is not fetched for the rest.
+      if (noiseFiltered({ title: p.title, excerpt: null, url: p.url } as Candidate, source as unknown as SourceRow)) continue;
+      // Same identity rule as every entrance: the long link without tracking parameters. A known post is
+      // skipped, unless its body failed for a passing reason: then it is tried again a few times.
+      const key = identityKeyForUrl(p.url);
+      const [known] = key
+        ? await sql<{ id: string; body_status: string; discovered_at: Date; retry: { attempts: number } | null }[]>`
+            SELECT id, body_status, discovered_at, raw->'everyinfra'->'bodyRetry' AS retry FROM articles WHERE identity_key = ${key} LIMIT 1`
+        : [];
+      const retryBody = !!known?.retry && known.body_status === "none" && known.retry.attempts < BODY_RETRIES && Date.now() - known.discovered_at.getTime() < BODY_RETRY_WINDOW_MS;
+      if (known && !retryBody) continue;
+      fetched += 1;
+      // Without a body the post is listed anyway; analysis works from its title.
+      const { body, passing } = await fetchBody(p.url, sourceId, key ?? p.url);
+      const content = body?.html ?? body?.text ?? null;
+      if (known && !content) {
+        const retry = passing ? sql`jsonb_set(raw, '{everyinfra,bodyRetry}', ${sql.json({ attempts: known.retry!.attempts + 1, error: passing })})` : sql`raw #- '{everyinfra,bodyRetry}'`;
+        await sql`UPDATE articles SET raw = ${retry} WHERE id = ${known.id}`;
+        continue;
+      }
+      const html = body?.html ? sanitizeBody(body.html, p.url) : null;
+      const text = body?.html
+        ? stripTags(body.html.replace(/<\/p>|<br\s*\/?>/gi, "\n")).replace(/\n{3,}/g, "\n\n").trim()
+        : body?.text?.trim() ?? null;
+      const res = await upsertMaterial({
+        sourceId,
+        url: p.url,
+        title: p.title,
+        author: body?.author ?? source.name,
+        language: "zh",
+        publishedAt: p.postedAt,
+        excerpt: body?.digest ?? null,
+        bodyHtml: html,
+        bodyText: text || null,
+        bodyStatus: text ? "ok" : "none",
+        via: "fetch",
+        raw: { everyinfra: { ghid: p.ghid, ...(passing ? { bodyRetry: { attempts: 1, error: passing } } : {}) } },
+      });
+      // A body fetched again arrives as a new revision (analysed again); stop retrying it.
+      if (known) await sql`UPDATE articles SET raw = raw #- '{everyinfra,bodyRetry}' WHERE id = ${known.id}`;
+      if (res.created || res.revised) {
+        created += res.created ? 1 : 0;
+        await queueProcessing(res.articleId);
+      }
+    }
+    const cursor: Record<string, unknown> = { ...(source.cursor ?? {}), lastCheckedAt: new Date().toISOString() };
     delete cursor.retryAt;
-    await sql`UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL,
-      health = 'ok', cursor = ${sql.json(cursor as never)}, next_fetch_at = now() + make_interval(mins => interval_minutes), updated_at = now()
+    await sql`
+      UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok', cursor = ${sql.json(cursor as never)},
+        next_fetch_at = now() + make_interval(mins => interval_minutes), updated_at = now()
       WHERE id = ${sourceId}`;
-    await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${candidates.length}, new_count = ${created} WHERE id = ${run!.id}`;
-    return { sourceId, status: "ok" as const, found: candidates.length, created, revised };
+    await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${history.posts.length}, new_count = ${created} WHERE id = ${run!.id}`;
+    return { sourceId, status: "ok" as const, found: history.posts.length, created, reused: history.reused };
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).slice(0, 500);
-    const retryAt = new Date(Date.now() + 60 * 60_000).toISOString();
-    await sql`UPDATE sources SET last_fetch_at = now(), last_error = ${message}, fail_count = fail_count + 1,
-      health = CASE WHEN fail_count + 1 >= 3 THEN 'failing' ELSE 'degraded' END,
-      cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt })}, updated_at = now() WHERE id = ${sourceId}`;
+    const soft = error instanceof BudgetExceededError || (error instanceof ProviderRejectedError && error.retryable);
+    await sql`
+      UPDATE sources SET last_fetch_at = now(), last_error = ${message},
+        fail_count = CASE WHEN ${soft} THEN fail_count ELSE fail_count + 1 END,
+        health = CASE WHEN ${soft} THEN health WHEN fail_count + 1 >= 3 THEN 'failing' ELSE 'degraded' END, updated_at = now()
+      WHERE id = ${sourceId}`;
     await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
+    // The provider cannot list this account now (EveryInfra answers 503 for some accounts for hours):
+    // try again in an hour rather than on every reconcile, whose attempts would use up the budget.
+    if (error instanceof ProviderRejectedError && error.retryable) {
+      await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + UNAVAILABLE_RETRY_MS).toISOString() })} WHERE id = ${sourceId}`;
+      return { sourceId, status: "failed" as const, error: message };
+    }
+    if (soft) throw error; // over budget: retried by the queue
     return { sourceId, status: "failed" as const, error: message };
   }
 }
 
-/** Polling WeRSS's cached feed does not contact WeChat or a paid collection provider. */
+/** Every enabled account is checked once per its interval (the paid list call is the cost). */
 export async function scheduleMpReconcile(now = new Date()) {
-  const rows = await sql<{ id: string; last: string | null; retry: string | null; interval_minutes: number }[]>`
-    SELECT id, cursor->>'lastCheckedAt' AS last, cursor->>'retryAt' AS retry, interval_minutes
-    FROM sources WHERE kind = 'mp_account' AND enabled`;
+  const rows = await sql<{ id: string; last: string | null; retry_at: string | null; interval_minutes: number }[]>`
+    SELECT id, cursor->>'lastCheckedAt' AS last, cursor->>'retryAt' AS retry_at, interval_minutes FROM sources WHERE kind = 'mp_account' AND enabled`;
   let enqueued = 0;
   for (const s of rows) {
-    if (s.retry && Date.parse(s.retry) > now.getTime()) continue;
     const since = s.last ? now.getTime() - Date.parse(s.last) : Infinity;
     if (since <= s.interval_minutes * 60_000) continue;
+    if (s.retry_at && Date.parse(s.retry_at) > now.getTime()) continue;
     await enqueue(QUEUES.mpCheck, { sourceId: s.id, reason: "schedule" }, { singletonKey: `mp:${s.id}` });
     enqueued += 1;
   }

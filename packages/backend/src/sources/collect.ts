@@ -54,11 +54,11 @@ async function loadSource(id: string): Promise<SourceRow | null> {
   return s ?? null;
 }
 
-/** Titles of the articles already stored under these URLs. */
-async function storedTitles(urls: string[]): Promise<Map<string, string>> {
-  if (urls.length === 0) return new Map();
-  const rows = await sql<{ url: string; title: string }[]>`SELECT url, title FROM articles WHERE url IN ${sql(urls)}`;
-  return new Map(rows.map((r) => [r.url, r.title]));
+/** Known material is keyed by identity, not a signed URL that changes on every listing. */
+async function storedTitles(keys: string[]): Promise<Map<string, string>> {
+  if (keys.length === 0) return new Map();
+  const rows = await sql<{ identity_key: string; title: string }[]>`SELECT identity_key, title FROM articles WHERE identity_key IN ${sql(keys)} AND duplicate_of IS NULL`;
+  return new Map(rows.map((r) => [r.identity_key, r.title]));
 }
 
 const DAY_MS = 86_400_000;
@@ -144,12 +144,20 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     // EveryInfra's XHS search/user_posts responses contain an excerpt. When requested, upgrade only
     // unseen notes to full text through the paid `note` action; existing identities do not incur a
     // second detail charge on every scheduled listing check.
-    const known = await storedTitles(candidates.map((c) => c.url));
+    const keyOf = (c: Candidate) => identityKeyFor({ ...c, sourceId, via: "fetch" });
+    const known = await storedTitles(candidates.map(keyOf));
     if (source.kind === "json_list" && source.config.adapter === "everyinfra_xhs" && source.config.everyinfraDetail === true) {
       for (const c of candidates) {
-        if (known.has(c.url)) continue;
+        if (known.has(keyOf(c))) {
+          // A search excerpt must not replace the full note fetched during its first discovery.
+          c.title = known.get(keyOf(c))!;
+          c.bodyText = undefined;
+          c.bodyHtml = undefined;
+          c.bodyStatus = undefined;
+          continue;
+        }
         try {
-          const note = await everyInfraXhsNote(c.url, { subject: source.id, identity: c.url });
+          const note = await everyInfraXhsNote(c.url, { subject: source.id, identity: keyOf(c) });
           if (note.title) c.title = note.title;
           if (note.text) {
             c.bodyText = note.text;
@@ -177,7 +185,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     for (const c of candidates) {
       // Listing dates the source marks unreliable are dropped; the detail page's rule decides.
       if (d?.publishedAtAuthoritative === true) c.publishedAt = null;
-      const stored = known.get(c.url);
+      const stored = known.get(keyOf(c));
       if (stored !== undefined) {
         // The title came from the detail page: the listing's own rendering must not revise it back.
         if (d?.titleSelector || d?.titleRegex) c.title = stored;

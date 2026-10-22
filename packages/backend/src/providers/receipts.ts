@@ -58,6 +58,8 @@ export interface ReceiptRequest {
   requestSummary?: Record<string, unknown>;
   /** Distinguishes an explicit re-run (e.g. admin "re-evaluate") from recovery of the same request. */
   attemptTag?: string;
+  /** A share of the service's budget (a budgets row of this name), e.g. one platform of a multi-platform API. */
+  pool?: string;
 }
 
 export interface ReceiptResult {
@@ -81,9 +83,23 @@ interface ReceiptRow {
   updated_at: Date;
 }
 
-async function checkBudget(tx: Db, service: string): Promise<void> {
+async function checkBudget(tx: Db, service: string, pool?: string): Promise<void> {
+  // A provider that refused us for its balance three times within the hour (the alert's threshold,
+  // operations/alerts.ts) is not asked again before the hour is over: the refusals cost nothing but
+  // would mark every source failing. Recharging resumes collection on its own.
+  const [refused] = await tx<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM receipt_attempts
+    WHERE service = ${service} AND status = 'failed' AND started_at > now() - interval '1 hour'
+      AND error ~* '(HTTP 402\\M|quota_exhausted|insufficient|balance|arrear|欠费|余额)'`;
+  if (refused!.n >= 3) throw new BudgetExceededError(service, "balance", 3600);
+  await checkWindow(tx, service, "service");
+  if (pool) await checkWindow(tx, pool, "pool");
+}
+
+/** One budgets row against the attempts counted for it: a whole service, or one pool of it. */
+async function checkWindow(tx: Db, name: string, column: "service" | "pool"): Promise<void> {
   const [budget] = await tx<{ per_minute: number; per_hour: number; per_day: number }[]>`
-    SELECT per_minute, per_hour, per_day FROM budgets WHERE service = ${service}`;
+    SELECT per_minute, per_hour, per_day FROM budgets WHERE service = ${name}`;
   if (!budget) return; // default rows come with the migrations; a service an operator removed is unlimited
   // Every request sent counts, retries of the same logical request included.
   const [counts] = await tx<{ minute: number; hour: number; day: number }[]>`
@@ -92,14 +108,14 @@ async function checkBudget(tx: Db, service: string): Promise<void> {
       count(*) FILTER (WHERE started_at > now() - interval '1 hour') AS hour,
       count(*) AS day
     FROM receipt_attempts
-    WHERE service = ${service} AND origin = 'live' AND started_at > now() - interval '1 day'`;
+    WHERE ${tx(column)} = ${name} AND origin = 'live' AND started_at > now() - interval '1 day'`;
   const c = counts!;
   if (budget.per_minute <= 0 || budget.per_hour <= 0 || budget.per_day <= 0) {
-    throw new BudgetExceededError(service, "stopped", 3600);
+    throw new BudgetExceededError(name, "stopped", 3600);
   }
-  if (c.minute >= budget.per_minute) throw new BudgetExceededError(service, "minute", 60);
-  if (c.hour >= budget.per_hour) throw new BudgetExceededError(service, "hour", 600);
-  if (c.day >= budget.per_day) throw new BudgetExceededError(service, "day", 3600);
+  if (c.minute >= budget.per_minute) throw new BudgetExceededError(name, "minute", 60);
+  if (c.hour >= budget.per_hour) throw new BudgetExceededError(name, "hour", 600);
+  if (c.day >= budget.per_day) throw new BudgetExceededError(name, "day", 3600);
 }
 
 /**
@@ -123,13 +139,13 @@ export async function paidRequest(req: ReceiptRequest, call: () => Promise<CallO
       }
       if (existing.status === "unknown") return { kind: "unknown" as const, row: existing };
       // failed: the provider did not take the request, or its answer was unusable; a new attempt is allowed.
-      await checkBudget(tx, req.service);
+      await checkBudget(tx, req.service, req.pool);
       const [r] = await tx<{ attempts: number }[]>`
         UPDATE receipts SET status = 'pending', attempts = attempts + 1, error = NULL, updated_at = now() WHERE id = ${existing.id} RETURNING attempts`;
       const attemptId = await startAttempt(tx, existing.id, r!.attempts, req);
       return { kind: "call" as const, id: existing.id, attemptId };
     }
-    await checkBudget(tx, req.service);
+    await checkBudget(tx, req.service, req.pool);
     const [row] = await tx<{ id: number }[]>`
       INSERT INTO receipts (logical_key, service, model, purpose, subject, status, request, attempts)
       VALUES (${logicalKey}, ${req.service}, ${req.model ?? null}, ${req.purpose}, ${req.subject ?? null}, 'pending',
@@ -186,7 +202,7 @@ export async function paidRequest(req: ReceiptRequest, call: () => Promise<CallO
 
 async function startAttempt(tx: Db, receiptId: number, attempt: number, req: ReceiptRequest): Promise<number> {
   const [row] = await tx<{ id: number }[]>`
-    INSERT INTO receipt_attempts (receipt_id, attempt, service, model, status) VALUES (${receiptId}, ${attempt}, ${req.service}, ${req.model ?? null}, 'pending')
+    INSERT INTO receipt_attempts (receipt_id, attempt, service, model, pool, status) VALUES (${receiptId}, ${attempt}, ${req.service}, ${req.model ?? null}, ${req.pool ?? null}, 'pending')
     RETURNING id`;
   return row!.id;
 }

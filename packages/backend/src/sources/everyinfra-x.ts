@@ -22,7 +22,8 @@ export function everyInfraXCandidate(value: unknown): Candidate | null {
     publishedAt: Number.isFinite(at) ? new Date(at) : null,
     xPost: { tweetId: id, handle, authorName: typeof row.author_name === "string" ? row.author_name : handle,
       avatarUrl: null, text, lang: null, replyTo: null, media: [], quoted: null },
-    raw: { collector: "everyinfra", favorite: count("like_count"), retweet: count("retweet_count"),
+    // The account, not the search that found it, is the participant.
+    raw: { collector: "everyinfra", participant: `x-author:${handle.toLowerCase()}`, favorite: count("like_count"), retweet: count("retweet_count"),
       views: count("view_count"), like_count: count("like_count"), share_count: count("retweet_count"), comment_count: count("reply_count") },
   };
 }

@@ -5658,7 +5658,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -5735,7 +5735,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -5758,7 +5758,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -5835,7 +5835,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -5844,7 +5844,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-search-depression-research",
@@ -5858,7 +5859,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -5935,7 +5936,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -5958,7 +5959,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6035,7 +6036,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6058,7 +6059,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6135,7 +6136,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6158,7 +6159,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6235,7 +6236,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "academic",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6258,7 +6259,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6335,7 +6336,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "mixed",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6358,7 +6359,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6435,7 +6436,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "industry",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6444,7 +6445,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-search-ai-mental-health",
@@ -6458,7 +6460,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6535,7 +6537,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "mixed",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6544,7 +6546,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-search-digital-therapeutics",
@@ -6558,7 +6561,7 @@
      "date_range": "last_7_days",
      "sort": "newest"
     },
-    "everyinfraDetail": true,
+    "everyinfraDetail": false,
     "summaryIsBody": true,
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6635,7 +6638,7 @@
    "tier": "T2",
    "first_party": false,
    "owner_entity_id": null,
-   "participation_mode": "editorial",
+   "participation_mode": "hot_signal",
    "track": "industry",
    "region": "domestic",
    "interval_minutes": 1440,
@@ -6644,7 +6647,8 @@
     "关键词"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "xhs-creator-bohe-ai-mental-health",
@@ -6810,7 +6814,6 @@
    "config": {
     "ghid": "gh_d1f7488e321b",
     "nickname": "中国心理卫生协会",
-    "werssFeedId": "MP_WXS_3529028237",
     "wechatBiz": "MzUyOTAyODIzNw=="
    },
    "tier": "T1",
@@ -6819,11 +6822,10 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "学会",
-    "werss"
+    "学会"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -6854,7 +6856,6 @@
       "脑"
      ]
     },
-    "werssFeedId": "MP_WXS_2396268083",
     "wechatBiz": "MjM5NjI2ODA4Mw=="
    },
    "tier": "T1",
@@ -6863,12 +6864,11 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
     "政府",
-    "政策",
-    "werss"
+    "政策"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -6878,7 +6878,6 @@
    "name": "中国药闻",
    "kind": "mp_account",
    "config": {
-    "ghid": "gh_be9781dfc193",
     "nickname": "中国药闻",
     "ingestNoiseFilter": {
      "requireMarkers": [
@@ -6899,7 +6898,6 @@
       "脑"
      ]
     },
-    "werssFeedId": "MP_WXS_3928204688",
     "wechatBiz": "MzkyODIwNDY4OA=="
    },
    "tier": "T1",
@@ -6908,12 +6906,11 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
     "政府",
-    "药品监管",
-    "werss"
+    "药品监管"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -6925,7 +6922,6 @@
    "config": {
     "ghid": "gh_7927243faac6",
     "nickname": "中科院心理所",
-    "werssFeedId": "MP_WXS_3078232913",
     "wechatBiz": "MzA3ODIzMjkxMw=="
    },
    "tier": "T1",
@@ -6934,11 +6930,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "研究机构",
-    "werss"
+    "研究机构"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -6950,7 +6945,6 @@
    "config": {
     "ghid": "gh_aa36afcdc88f",
     "nickname": "中国心理学会",
-    "werssFeedId": "MP_WXS_3094558164",
     "wechatBiz": "MzA5NDU1ODE2NA=="
    },
    "tier": "T1",
@@ -6959,11 +6953,10 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "学会",
-    "werss"
+    "学会"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -6975,7 +6968,6 @@
    "config": {
     "ghid": "gh_cb2c4f4d1eac",
     "nickname": "CPS 注册系统",
-    "werssFeedId": "MP_WXS_3873845201",
     "wechatBiz": "Mzg3Mzg0NTIwMQ=="
    },
    "tier": "T1",
@@ -6984,12 +6976,11 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
     "学会",
-    "执业",
-    "werss"
+    "执业"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7001,7 +6992,6 @@
    "config": {
     "ghid": "gh_b4788a78419e",
     "nickname": "心理学报",
-    "werssFeedId": "MP_WXS_3244786766",
     "wechatBiz": "MzI0NDc4Njc2Ng=="
    },
    "tier": "T1",
@@ -7010,11 +7000,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "期刊",
-    "werss"
+    "期刊"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7026,7 +7015,6 @@
    "config": {
     "ghid": "gh_d04323ecacdb",
     "nickname": "心理科学进展",
-    "werssFeedId": "MP_WXS_3204787135",
     "wechatBiz": "MzIwNDc4NzEzNQ=="
    },
    "tier": "T1",
@@ -7035,11 +7023,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "期刊",
-    "werss"
+    "期刊"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7049,9 +7036,7 @@
    "name": "心理科学",
    "kind": "mp_account",
    "config": {
-    "ghid": "gh_83562d53280a",
     "nickname": "心理科学",
-    "werssFeedId": "MP_WXS_3933391715",
     "wechatBiz": "MzkzMzM5MTcxNQ=="
    },
    "tier": "T1",
@@ -7060,11 +7045,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "期刊",
-    "werss"
+    "期刊"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7074,10 +7058,9 @@
    "name": "心理学通讯",
    "kind": "mp_account",
    "config": {
-    "wxid": "心理学通讯",
     "nickname": "心理学通讯",
-    "werssFeedId": "MP_WXS_3581564114",
-    "wechatBiz": "MzU4MTU2NDExNA=="
+    "wechatBiz": "MzU4MTU2NDExNA==",
+    "ghid": "gh_74c602011cdd"
    },
    "tier": "T1",
    "first_party": true,
@@ -7085,11 +7068,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "期刊",
-    "werss"
+    "期刊"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7099,10 +7081,9 @@
    "name": "心理学开放科学平台",
    "kind": "mp_account",
    "config": {
-    "wxid": "心理学开放科学平台",
     "nickname": "心理学开放科学平台",
-    "werssFeedId": "MP_WXS_3564778256",
-    "wechatBiz": "MzU2NDc3ODI1Ng=="
+    "wechatBiz": "MzU2NDc3ODI1Ng==",
+    "ghid": "gh_cb553e387533"
    },
    "tier": "T2",
    "first_party": false,
@@ -7110,11 +7091,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "开放科学",
-    "werss"
+    "开放科学"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7126,7 +7106,6 @@
    "config": {
     "wxid": "LIBPSY",
     "nickname": "LIBPSY",
-    "werssFeedId": "MP_WXS_3535989134",
     "wechatBiz": "MzUzNTk4OTEzNA=="
    },
    "tier": "T2",
@@ -7135,11 +7114,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false,
@@ -7150,10 +7128,9 @@
    "name": "PsyBrain 脑心前沿",
    "kind": "mp_account",
    "config": {
-    "wxid": "PSY-Brain_Frontier",
     "nickname": "PsyBrain 脑心前沿",
-    "werssFeedId": "MP_WXS_3621195298",
-    "wechatBiz": "MzYyMTE5NTI5OA=="
+    "wechatBiz": "MzYyMTE5NTI5OA==",
+    "ghid": "gh_302c0940c5ff"
    },
    "tier": "T2",
    "first_party": false,
@@ -7161,11 +7138,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7175,10 +7151,9 @@
    "name": "脑人言",
    "kind": "mp_account",
    "config": {
-    "wxid": "脑人言",
     "nickname": "脑人言",
-    "werssFeedId": "MP_WXS_3286640207",
-    "wechatBiz": "MzI4NjY0MDIwNw=="
+    "wechatBiz": "MzI4NjY0MDIwNw==",
+    "ghid": "gh_d8921b41959a"
    },
    "tier": "T2",
    "first_party": false,
@@ -7186,11 +7161,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 2880,
    "tags": [
     "公众号",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7200,9 +7174,7 @@
    "name": "情感计算",
    "kind": "mp_account",
    "config": {
-    "wxid": "情感计算",
     "nickname": "情感计算",
-    "werssFeedId": "MP_WXS_3931328140",
     "wechatBiz": "MzkzMTMyODE0MA=="
    },
    "tier": "T2",
@@ -7211,11 +7183,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "AI心理健康",
-    "werss"
+    "AI心理健康"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7225,10 +7196,9 @@
    "name": "医脉通精神科",
    "kind": "mp_account",
    "config": {
-    "wxid": "医脉通精神科",
     "nickname": "医脉通精神科",
-    "werssFeedId": "MP_WXS_2395247680",
-    "wechatBiz": "MjM5NTI0NzY4MA=="
+    "wechatBiz": "MjM5NTI0NzY4MA==",
+    "ghid": "gh_c5042bf4d403"
    },
    "tier": "T2",
    "first_party": false,
@@ -7236,12 +7206,11 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
     "精神医学",
-    "媒体",
-    "werss"
+    "媒体"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7253,7 +7222,6 @@
    "config": {
     "ghid": "gh_04251f4c2ba8",
     "nickname": "MindSeek",
-    "werssFeedId": "MP_WXS_3191532380",
     "wechatBiz": "MzE5MTUzMjM4MA=="
    },
    "tier": "T2",
@@ -7262,11 +7230,10 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7276,9 +7243,7 @@
    "name": "观心日记",
    "kind": "mp_account",
    "config": {
-    "wxid": "观心日记",
     "nickname": "观心日记",
-    "werssFeedId": "MP_WXS_3635882422",
     "wechatBiz": "MzYzNTg4MjQyMg=="
    },
    "tier": "T2",
@@ -7287,11 +7252,10 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7303,7 +7267,6 @@
    "config": {
     "ghid": "gh_66b4582d5496",
     "nickname": "中华精神科杂志",
-    "werssFeedId": "MP_WXS_3007510586",
     "wechatBiz": "MzAwNzUxMDU4Ng=="
    },
    "tier": "T1",
@@ -7312,12 +7275,11 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
     "期刊",
-    "精神医学",
-    "werss"
+    "精神医学"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7329,7 +7291,6 @@
    "config": {
     "ghid": "gh_beb25b22b537",
     "nickname": "精神医学新观点",
-    "werssFeedId": "MP_WXS_3572822140",
     "wechatBiz": "MzU3MjgyMjE0MA=="
    },
    "tier": "T2",
@@ -7338,12 +7299,11 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 2880,
    "tags": [
     "公众号",
     "精神医学",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7355,7 +7315,6 @@
    "config": {
     "ghid": "gh_670f884340a6",
     "nickname": "精神医学导航",
-    "werssFeedId": "MP_WXS_3548678859",
     "wechatBiz": "MzU0ODY3ODg1OQ=="
    },
    "tier": "T2",
@@ -7364,11 +7323,10 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
-    "精神医学",
-    "werss"
+    "精神医学"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7380,7 +7338,6 @@
    "config": {
     "ghid": "gh_2899cec8d333",
     "nickname": "医学界精神心理频道",
-    "werssFeedId": "MP_WXS_3226952005",
     "wechatBiz": "MzIyNjk1MjAwNQ=="
    },
    "tier": "T2",
@@ -7389,12 +7346,11 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 1440,
    "tags": [
     "公众号",
     "精神医学",
-    "媒体",
-    "werss"
+    "媒体"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7406,7 +7362,6 @@
    "config": {
     "ghid": "gh_d19b45c46493",
     "nickname": "认知神经科学前沿",
-    "werssFeedId": "MP_WXS_3862885772",
     "wechatBiz": "Mzg2Mjg4NTc3Mg=="
    },
    "tier": "T2",
@@ -7415,12 +7370,11 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
     "神经科学",
-    "研究解读",
-    "werss"
+    "研究解读"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7441,7 +7395,6 @@
       "成交"
      ]
     },
-    "werssFeedId": "MP_WXS_3016398840",
     "wechatBiz": "MzAxNjM5ODg0MA=="
    },
    "tier": "T1",
@@ -7450,12 +7403,11 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
     "政府",
-    "精神卫生",
-    "werss"
+    "精神卫生"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7467,7 +7419,6 @@
    "config": {
     "ghid": "gh_1d10e7c55e22",
     "nickname": "精神卫生686",
-    "werssFeedId": "MP_WXS_3623281353",
     "wechatBiz": "MzYyMzI4MTM1Mw=="
    },
    "tier": "T1",
@@ -7476,12 +7427,11 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 2880,
    "tags": [
     "公众号",
     "政府",
-    "精神卫生",
-    "werss"
+    "精神卫生"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7493,7 +7443,6 @@
    "config": {
     "ghid": "gh_5522be47a326",
     "nickname": "中国临床心理学杂志",
-    "werssFeedId": "MP_WXS_3944720968",
     "wechatBiz": "Mzk0NDcyMDk2OA=="
    },
    "tier": "T1",
@@ -7502,12 +7451,11 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 2880,
    "tags": [
     "公众号",
     "期刊",
-    "临床心理",
-    "werss"
+    "临床心理"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7517,7 +7465,6 @@
    "name": "OpenScience",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3511048448",
     "wechatBiz": "MzUxMTA0ODQ0OA==",
     "nickname": "OpenScience"
    },
@@ -7527,10 +7474,9 @@
    "signal_group_id": "cosn",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7540,7 +7486,6 @@
    "name": "神经前研",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3283748947",
     "wechatBiz": "MzI4Mzc0ODk0Nw==",
     "nickname": "神经前研"
    },
@@ -7550,10 +7495,9 @@
    "signal_group_id": "neureality",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7563,7 +7507,6 @@
    "name": "神经现实",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3917863916",
     "wechatBiz": "MzkxNzg2MzkxNg==",
     "nickname": "神经现实"
    },
@@ -7573,10 +7516,9 @@
    "signal_group_id": "neureality",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7586,7 +7528,6 @@
    "name": "PsyCulture&Science",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3252628173",
     "wechatBiz": "MzI1MjYyODE3Mw==",
     "nickname": "PsyCulture&Science"
    },
@@ -7596,10 +7537,9 @@
    "signal_group_id": "psyculture",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7609,7 +7549,6 @@
    "name": "Dr昕理学",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3510313283",
     "wechatBiz": "MzUxMDMxMzI4Mw==",
     "nickname": "Dr昕理学"
    },
@@ -7619,10 +7558,9 @@
    "signal_group_id": "drxin",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7632,7 +7570,6 @@
    "name": "叶浩生",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3578670356",
     "wechatBiz": "MzU3ODY3MDM1Ng==",
     "nickname": "叶浩生"
    },
@@ -7642,10 +7579,9 @@
    "signal_group_id": "ye-haosheng",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7655,7 +7591,6 @@
    "name": "集智俱乐部",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3232427490",
     "wechatBiz": "MzIzMjQyNzQ5MA==",
     "nickname": "集智俱乐部"
    },
@@ -7665,10 +7600,9 @@
    "signal_group_id": "swarma",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
@@ -7678,7 +7612,6 @@
    "name": "中国科学院心理所微表情实验室",
    "kind": "mp_account",
    "config": {
-    "werssFeedId": "MP_WXS_3863764501",
     "wechatBiz": "Mzg2Mzc2NDUwMQ==",
     "nickname": "中国科学院心理所微表情实验室"
    },
@@ -7688,10 +7621,9 @@
    "signal_group_id": "psych-cas",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 30,
+   "interval_minutes": 4320,
    "tags": [
-    "公众号",
-    "werss"
+    "公众号"
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false

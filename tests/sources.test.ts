@@ -13,7 +13,7 @@ import { fetchDetail, fetchWebList, fromHtml, fromMarkdown } from "@aihot/backen
 import { fetchRss } from "@aihot/backend/sources/rss";
 import { fetchJsonList } from "@aihot/backend/sources/json-list";
 import { noiseFiltered } from "@aihot/backend/sources/collect";
-import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
+import { paidIntervalFloor, unsupportedConfig } from "@aihot/backend/sources/config-keys";
 
 const source = (config: Record<string, unknown>) => ({ id: "test-list", config }) as never;
 
@@ -248,6 +248,7 @@ test("industry/sources.json: every seed source passes its config check and the t
   assert.equal(new Set(sources.map((s) => s.id)).size, sources.length, "ids are unique");
   for (const s of sources) {
     assert.deepEqual(unsupportedConfig(s.kind as never, s.config), [], s.id);
-    assert.ok((s.interval_minutes ?? 60) >= 1 && (s.interval_minutes ?? 60) <= 1440, `${s.id}: interval between 1 and 1440 minutes`);
+    assert.ok((s.interval_minutes ?? 60) >= 1 && (s.interval_minutes ?? 60) <= 10080, `${s.id}: interval between 1 and 10080 minutes`);
+    assert.ok((s.interval_minutes ?? 60) >= (paidIntervalFloor(s.kind as never, s.config) ?? 0), `${s.id}: not shorter than its paid floor`);
   }
 });

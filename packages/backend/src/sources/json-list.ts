@@ -146,6 +146,11 @@ function engagementOf(item: unknown): Record<string, number> {
   return out;
 }
 
+function xhsParticipant(item: unknown): { participant?: string } {
+  const id = getPath(item, "author_id");
+  return typeof id === "string" && /^[0-9a-z]{6,40}$/i.test(id) ? { participant: `xhs-author:${id.toLowerCase()}` } : {};
+}
+
 export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
   const c = source.config;
   let everyInfraData: unknown = null;
@@ -202,6 +207,8 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
   for (const item of items) {
     if (c.requireBoolean && getPath(item, c.requireBoolean.path) !== c.requireBoolean.equals) continue;
     if (c.minNumeric && !(Number(getPath(item, c.minNumeric.path)) >= Number(c.minNumeric.min))) continue;
+    // A goods note is an advertisement, whatever its words: never ingested.
+    if (c.adapter === "everyinfra_xhs" && getPath(item, "is_goods_note") === true) continue;
     const title = firstString(item, c.titlePaths ?? (c.adapter === "everyinfra_xhs" ? ["title"] : undefined));
     const url = (c.urlTemplate && renderTemplate(c.urlTemplate, item)) || (c.urlTemplateFallback && renderTemplate(c.urlTemplateFallback, item)) ||
       (c.adapter === "everyinfra_xhs" ? renderTemplate("{raw:url}", item) : null);
@@ -220,7 +227,8 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       bodyText: summaryIsBody ? stripTags(unmark(summary!)) : null,
       bodyStatus: summaryIsBody ? "ok" : "pending",
       // Xiaohongshu's public counts at listing time: the hot ranking weighs a participant by them.
-      raw: { externalId: externalId ?? null, ...(c.adapter === "everyinfra_xhs" ? engagementOf(item) : {}) },
+      // The note's author, not the keyword that found it, is the participant.
+      raw: { externalId: externalId ?? null, ...(c.adapter === "everyinfra_xhs" ? { ...engagementOf(item), ...xhsParticipant(item) } : {}) },
     });
   }
   if (items.length > 0 && out.length === 0 && !c.requireBoolean && !c.minNumeric) throw new FetchError("no items mapped (check title/url paths)");

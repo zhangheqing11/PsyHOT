@@ -48,7 +48,7 @@ async function evaluate(rows: GoldRow[], providers: { prefilter: string; score: 
   try {
     const gold = path.join(dir, "gold.jsonl");
     writeFileSync(gold, rows.map((item) => JSON.stringify(item)).join("\n"));
-    const args = ["scripts/eval-selection.ts", "--gold", gold, "--concurrency", "6", "--no-import"];
+    const args = ["scripts/eval-selection.ts", "--now", "--gold", gold, "--concurrency", "6", "--no-import"];
     if (opts.split) args.push("--split", opts.split);
     const { stdout } = await exec(process.execPath, args, {
       cwd: REPO_ROOT,

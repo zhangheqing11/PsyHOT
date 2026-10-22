@@ -59,6 +59,8 @@ export interface GuardedResponse {
 /** How the collectors introduce themselves: the site's own crawler name and address (industry/site.ts). */
 export const DEFAULT_UA = `Mozilla/5.0 (compatible; ${SITE.crawlerName}/1.0; +${config.siteUrl}/about)`;
 
+const SENSITIVE_HEADERS = new Set(["authorization", "proxy-authorization", "cookie", "x-api-key", "api-key"]);
+
 export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}): Promise<GuardedResponse> {
   // One budget includes DNS, every redirect and the body. Restarting it at each hop allowed a
   // nominal 20 s image request to occupy the API for minutes.
@@ -70,11 +72,14 @@ export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}
   let url = await check(input);
   const maxRedirects = opts.maxRedirects ?? 5;
   const maxBytes = opts.maxBytes ?? 8 * 1024 * 1024;
+  let headers: Record<string, string> = { "user-agent": DEFAULT_UA, "accept-language": "zh-CN,zh;q=0.9,en;q=0.8", ...(opts.headers ?? {}) };
+  let method = opts.method ?? "GET";
+  let requestBody = opts.body;
   for (let hop = 0; ; hop++) {
     const res = await undiciFetch(url, {
-      method: opts.method ?? "GET",
-      headers: { "user-agent": DEFAULT_UA, "accept-language": "zh-CN,zh;q=0.9,en;q=0.8", ...(opts.headers ?? {}) },
-      body: opts.body,
+      method,
+      headers,
+      body: requestBody,
       redirect: "manual",
       dispatcher: dispatcherFor(proxied(url, route)),
       signal,
@@ -83,7 +88,18 @@ export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}
       // Release the connection even when the next URL is refused or the redirect limit is reached.
       await res.body?.cancel();
       if (hop >= maxRedirects) throw new Error(`Too many redirects for ${input}`);
-      url = await check(new URL(res.headers.get("location")!, url).toString());
+      const next = await check(new URL(res.headers.get("location")!, url).toString());
+      // Credentials and a request body belong to the origin they were meant for (a paid API's key).
+      if (next.origin !== url.origin) {
+        if (requestBody !== undefined && (res.status === 307 || res.status === 308)) throw new Error(`Refused to resend a request body to another origin (${input})`);
+        headers = Object.fromEntries(Object.entries(headers).filter(([k]) => !SENSITIVE_HEADERS.has(k.toLowerCase())));
+      }
+      // 303, and 301/302 after a POST, continue as a GET without the body (as browsers do).
+      if (res.status === 303 || ((res.status === 301 || res.status === 302) && method === "POST")) {
+        method = "GET";
+        requestBody = undefined;
+      }
+      url = next;
       continue;
     }
     const chunks: Buffer[] = [];

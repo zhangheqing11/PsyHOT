@@ -67,7 +67,7 @@ export default function NewSource() {
               </Select>
             </Field>
             <Field label="采集间隔（分钟）">
-              <Input type="number" min={1} max={1440} value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: Number(e.target.value) })} />
+              <Input type="number" min={1} max={10080} value={form.interval_minutes} onChange={(e) => setForm({ ...form, interval_minutes: Number(e.target.value) })} />
             </Field>
             <Field label="参与方式">
               <Select value={form.participation_mode} onChange={(e) => setForm({ ...form, participation_mode: e.target.value })}>

@@ -12,7 +12,7 @@ import { tierRank, type HotEntry } from "./hot-read.ts";
 const WINDOW_HOURS = HOT.windowHours;
 const HALF_LIFE_HOURS = HOT.halfLifeHours;
 const MIN_PARTICIPANTS = 2;
-export const HOT_RULE_VERSION = `heat-v5-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality-tracks-engagement-byheat`;
+export const HOT_RULE_VERSION = `heat-v6-${WINDOW_HOURS}h-halflife${HALF_LIFE_HOURS}h-quality-tracks-engagement-byheat-material-identity`;
 
 /** A count in the stored listing item (EveryInfra names them like_count, collect_count…); 0 when absent. */
 const count = (key: string) => sql`(CASE WHEN jsonb_typeof(a.raw->${key}) = 'number' THEN greatest((a.raw->>${key})::numeric, 0) ELSE 0 END)`;
@@ -78,7 +78,7 @@ async function heatRows(at: Date, behind: string[] = []): Promise<HeatRow[]> {
              bool_or(ss.source_id = ANY(${behind}::text[])) AS behind,
              max(${ENGAGEMENT_WEIGHT}) AS w
       FROM story_signals ss LEFT JOIN articles a ON a.id = ss.article_id
-      WHERE ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
+      WHERE a.duplicate_of IS NULL AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
       GROUP BY ss.story_id, ss.participant_key
     ), agg AS (
       SELECT story_id,
@@ -294,7 +294,7 @@ export async function backfillStoryHeat(storyId: number, hours = 7 * 24): Promis
     for (const r of rows) {
       await sql`INSERT INTO story_heat_hourly (story_id, hour, heat, participants, cohort, complete)
                 VALUES (${storyId}, ${new Date(t)}, ${heatIndex(Number(r.heat))}, ${Number(r.participants)}, ${Number(r.editorial_participants)}, ${Number(r.behind_participants) === 0})
-                ON CONFLICT (story_id, hour) DO UPDATE SET heat = EXCLUDED.heat, participants = EXCLUDED.participants, complete = EXCLUDED.complete`;
+                ON CONFLICT (story_id, hour) DO UPDATE SET heat = EXCLUDED.heat, participants = EXCLUDED.participants, cohort = EXCLUDED.cohort, complete = EXCLUDED.complete`;
       n += 1;
     }
   }

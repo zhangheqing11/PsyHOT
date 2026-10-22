@@ -31,7 +31,7 @@ async function evaluate(rows: RelationGoldRow[], providerUrl: string, concurrenc
     const gold = path.join(dir, "gold.jsonl");
     writeFileSync(gold, rows.map((item) => JSON.stringify(item)).join("\n"));
     const { stdout } = await exec(process.execPath, [
-      "scripts/eval-relations.ts", "--gold", gold, "--models", "deepseek-flash", "--concurrency", String(concurrency),
+      "scripts/eval-relations.ts", "--now", "--gold", gold, "--models", "deepseek-flash", "--concurrency", String(concurrency),
     ], {
       cwd: REPO_ROOT,
       env: { ...process.env, MODEL_CALLS_ENABLED: "true", DEEPSEEK_BASE_URL: `${providerUrl}/v1`, DEEPSEEK_API_KEY: "test-key" },

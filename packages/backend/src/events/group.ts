@@ -45,6 +45,7 @@ const SIGNAL_AUTO_COSINE = 0.92;
 const SIGNAL_TOP_FACTS = 4;
 
 interface ArticleRow {
+  duplicate_of: string | null;
   id: string;
   title: string;
   url: string;
@@ -76,8 +77,12 @@ interface Recalled {
   score: number;
 }
 
-export function participantKey(source: { id: string; signal_group_id: string | null }): string {
-  return source.signal_group_id ? `group:${source.signal_group_id}` : `source:${source.id}`;
+/**
+ * Who reported: a source's signal group, else the author an entrance found (a Xiaohongshu note's
+ * author, an X account in a topic search; the collector stores it as raw.participant), else the source.
+ */
+export function participantKey(source: { id: string; signal_group_id: string | null }, participant?: string | null): string {
+  return source.signal_group_id ? `group:${source.signal_group_id}` : participant || `source:${source.id}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -326,7 +331,9 @@ async function createFact(db: Db, storyId: number, title: string, frame: Record<
 async function recordSignal(db: Db, storyId: number, articleId: string, source: { id: string; signal_group_id: string | null }, kind: "editorial" | "signal", observedAt: Date) {
   await db`
     INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
-    VALUES (${storyId}, ${articleId}, ${participantKey(source)}, ${source.id}, ${kind}, ${observedAt})
+    SELECT ${storyId}, ${articleId}, coalesce(${source.signal_group_id ? participantKey(source) : null}::text, nullif(raw->>'participant', ''), ${participantKey(source)}),
+           ${source.id}, ${kind}, ${observedAt}
+    FROM articles WHERE id = ${articleId} AND duplicate_of IS NULL
     ON CONFLICT (story_id, article_id) DO NOTHING`;
   await db`UPDATE stories SET latest_at = GREATEST(coalesce(latest_at, ${observedAt}), ${observedAt}),
               first_report_at = LEAST(coalesce(first_report_at, ${observedAt}), ${observedAt}), updated_at = now()
@@ -643,11 +650,11 @@ export async function groupArticle(articleId: string, opts: GroupOptions = {}): 
 
 async function decide(articleId: string, opts: GroupOptions): Promise<GroupResult> {
   const [a] = await sql<ArticleRow[]>`
-    SELECT a.id, a.title, a.url, a.published_at, a.discovered_at, a.grouped_at, a.body_text, a.x_post, a.backfill,
+    SELECT a.id, a.title, a.url, a.published_at, a.discovered_at, a.grouped_at, a.body_text, a.x_post, a.backfill, a.duplicate_of,
            s.id AS source_id, s.name AS source_name, s.signal_group_id, s.first_party, s.participation_mode,
            EXISTS (SELECT 1 FROM regroup_pending rp WHERE rp.article_id = a.id) AS regroup_pending
     FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
-  if (!a) return { verdict: "skipped" };
+  if (!a || a.duplicate_of) return { verdict: "skipped" };
   const observedAt = a.published_at ?? a.discovered_at;
   const source = { id: a.source_id, signal_group_id: a.signal_group_id };
 

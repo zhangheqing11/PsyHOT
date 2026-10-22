@@ -205,7 +205,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
                 <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
               </Field>
               <Field label="采集间隔（分钟）">
-                <Input type="number" min={1} max={1440} value={draft.interval_minutes} onChange={(e) => setDraft({ ...draft, interval_minutes: Number(e.target.value) })} />
+                <Input type="number" min={1} max={10080} value={draft.interval_minutes} onChange={(e) => setDraft({ ...draft, interval_minutes: Number(e.target.value) })} />
               </Field>
               <Field label="参与方式" hint="氛围只作热点讨论证据，不单独成为内容">
                 <Select value={draft.participation_mode} onChange={(e) => setDraft({ ...draft, participation_mode: e.target.value })}>

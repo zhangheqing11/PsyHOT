@@ -19,7 +19,8 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   ],
   // X accounts are mostly read in shards, which apply only these.
   x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType"],
-  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter", "werssFeedId", "wechatBiz"],
+  // wechatBiz: the account's __biz; every listed article must carry it (sources/mp.ts).
+  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter", "wechatBiz"],
   external: [],
 };
 
@@ -67,4 +68,20 @@ export class UnsupportedConfig extends Error {
 export function assertSupportedConfig(kind: SourceRow["kind"], config: Record<string, unknown>): void {
   const bad = unsupportedConfig(kind, config);
   if (bad.length) throw new UnsupportedConfig(`不支持的配置项：${bad.join("、")}`);
+}
+
+/**
+ * The shortest interval a source paid per listing may have (EveryInfra bills each listing call).
+ * Mirrored by the sources_paid_interval_floor constraint (database/migrations/0048), so no writer
+ * (the admin, a script, the nightly interval adaptation) can poll one faster.
+ */
+export function paidIntervalFloor(kind: SourceRow["kind"], config: Record<string, unknown>): number | null {
+  if (kind === "mp_account" || config?.adapter === "everyinfra_xhs") return 720;
+  if (config?.adapter === "everyinfra_x") return 360;
+  return null;
+}
+
+export function assertPaidInterval(kind: SourceRow["kind"], config: Record<string, unknown>, intervalMinutes: number): void {
+  const floor = paidIntervalFloor(kind, config);
+  if (floor !== null && intervalMinutes < floor) throw new UnsupportedConfig(`按次付费的信源抓取间隔不能短于 ${floor} 分钟`);
 }

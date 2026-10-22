@@ -9,8 +9,9 @@ export async function itemAvailability(ids: string[]): Promise<Record<string, "p
   for (const id of clean) out[id] = "unavailable";
   if (clean.length === 0) return out;
   const rows = await sql<{ id: string; visibility: string; source_mode: string }[]>`
-    SELECT p.article_id AS id, p.visibility, s.participation_mode AS source_mode
-    FROM publications p JOIN sources s ON s.id = p.source_id WHERE p.article_id IN ${sql(clean)}`;
+    SELECT a.id, p.visibility, s.participation_mode AS source_mode
+    FROM articles a JOIN publications p ON p.article_id = coalesce(a.duplicate_of, a.id)
+    JOIN sources s ON s.id = p.source_id WHERE a.id IN ${sql(clean)}`;
   for (const r of rows) {
     if (!hasItemPage({ visibility: r.visibility, sourceMode: r.source_mode })) continue;
     out[r.id] = r.visibility === "summary-only" ? "summary-only" : "public";

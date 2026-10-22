@@ -147,7 +147,7 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
   return { candidates: parseRss(res.text(), source, url), validator, notModified: false };
 }
 
-/** Shared parsing for public feeds and the operator-owned WeRSS service. */
+/** Shared parsing for public feeds. */
 export function parseRss(xml: string, source: SourceRow, url: string): Candidate[] {
   let doc: Record<string, any>;
   try {

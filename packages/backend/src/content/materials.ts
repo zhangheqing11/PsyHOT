@@ -2,7 +2,7 @@
 // It owns identity, revisions and the timeline rule, so no entrance can bypass them.
 import { sql, type Db } from "../db.ts";
 import { newArticleId, sha256 } from "../lib/ids.ts";
-import { identityKeyForUrl } from "../lib/url.ts";
+import { identityKeyForUrl, xhsNoteIdFromUrl } from "../lib/url.ts";
 import { collapseWhitespace } from "../lib/text.ts";
 
 export interface MediaItem {
@@ -112,6 +112,7 @@ function sameBarringLoss(a: string | null | undefined, b: string | null | undefi
 }
 
 export function identityKeyFor(m: MaterialInput): string {
+  if (xhsNoteIdFromUrl(m.url)) return identityKeyForUrl(m.url)!;
   if (m.identityKey) return m.identityKey;
   if (m.xPost?.tweetId) return `x:${m.xPost.tweetId}`;
   const fromUrl = identityKeyForUrl(m.url);

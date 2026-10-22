@@ -91,7 +91,7 @@ export function pageFetchable(url: string, sourceKind: string): boolean {
 /** Fetches and stores the body of one article. Unconfirmed bodies are recorded as such. */
 export async function extractArticleBody(articleId: string, allowJina = process.env.JINA_BODY_FALLBACK !== "false"): Promise<"ok" | "unconfirmed" | "skipped"> {
   const [a] = await sql<{ id: string; url: string; body_status: string; revision: number; x_post: { tweetId?: string } | null }[]>`
-    SELECT id, url, body_status, revision, x_post FROM articles WHERE id = ${articleId}`;
+    SELECT id, url, body_status, revision, x_post FROM articles WHERE id = ${articleId} AND duplicate_of IS NULL`;
   if (!a || a.body_status === "ok") return "skipped";
   if (a.x_post?.tweetId) return extractXArticle(a.id, a.x_post.tweetId);
   const got = await extractFromUrl(a.url, { allowJina, subject: `article:${a.id}` });
@@ -101,7 +101,7 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   }
   // The body is new content: a new revision, so an analysis of the body-less input counts as stale.
   await sql.begin(async (tx) => {
-    const [row] = await tx<{ title: string; excerpt: string | null }[]>`SELECT title, excerpt FROM articles WHERE id = ${articleId} FOR UPDATE`;
+    const [row] = await tx<{ title: string; excerpt: string | null }[]>`SELECT title, excerpt FROM articles WHERE id = ${articleId} AND duplicate_of IS NULL FOR UPDATE`;
     if (!row) return;
     const hash = contentHash({ title: row.title, bodyText: got.text, excerpt: row.excerpt });
     const [r] = await tx<{ revision: number }[]>`

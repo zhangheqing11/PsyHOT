@@ -1,4 +1,48 @@
 """Compatibility fixes for the pinned upstream HTTP login adapter."""
+import time
+from pathlib import Path
+
+
+def qr_login(self, callback=None, notice=None):
+    """Backport upstream a76517b's startlogin flow; never invent a server UUID."""
+    self.__init__()
+    if self.check_lock():
+        return {'code': None, 'is_exists': False, 'msg': '登录二维码正在使用'}
+    with self._lock:
+        self.login_callback = callback
+        self.notice_callback = notice
+        try:
+            self.fingerprint = self._generate_uuid()
+            response = self.session.post(
+                self.base_url + '/cgi-bin/bizlogin', params={'action': 'startlogin'},
+                data={'fingerprint': self.fingerprint, 'token': '', 'lang': 'zh_CN',
+                      'f': 'json', 'ajax': '1', 'login_type': '3',
+                      'redirect_url': '/cgi-bin/home?t=home/index&lang=zh_CN'}, timeout=15)
+            response.raise_for_status()
+            uuid = self.session.cookies.get('uuid')
+            if not uuid:
+                return {'code': None, 'is_exists': False, 'msg': '登录握手未返回会话标识'}
+            self.cookies = {'fingerprint': self.fingerprint}
+            response = self.session.get(
+                self.base_url + '/cgi-bin/scanloginqrcode',
+                params={'action': 'getqrcode', 'uuid': uuid, 'random': int(time.time() * 1000)},
+                timeout=15, allow_redirects=False)
+            response.raise_for_status()
+            png_or_jpeg = response.content.startswith((b'\x89PNG\r\n\x1a\n', b'\xff\xd8'))
+            if 'image/' not in response.headers.get('Content-Type', '') or not png_or_jpeg:
+                return {'code': None, 'is_exists': False, 'msg': '登录服务未返回二维码图片'}
+            target = Path(self.qr_code_path)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(response.content)
+            target.chmod(0o600)
+            self.set_lock()
+            self._start_login_check(uuid)
+            if notice:
+                notice()
+            return {'code': str(target), 'is_exists': True, 'msg': '请扫描并选择微信公众号'}
+        except Exception as exc:
+            # Remote response text can contain login identifiers; expose the class only.
+            return {'code': None, 'is_exists': False, 'msg': '二维码生成失败: ' + type(exc).__name__}
 
 
 def install(adapter):
@@ -7,6 +51,7 @@ def install(adapter):
         return
 
     original_account_info = WeChatAPI._get_account_info
+    WeChatAPI.get_qr_code = qr_login
 
     def account_info(self):
         info = original_account_info(self)

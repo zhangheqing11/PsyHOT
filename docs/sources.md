@@ -173,6 +173,8 @@ Content-Type: application/json
 在服务器 `.data/werss/runtime.env` 中设置随机 `SECRET_KEY`、`USERNAME`、`PASSWORD`，
 以及 `WERSS_AUTH_WEB=True`（公众号后台扫码）、`HEADLESS=true`、`GATHER.MODEL=weread_mp`、`GATHER.CONTENT=True`、`THREADS=1`。
 微信读书需要在 `/weread` 单独扫码授权，公众号后台授权不等于微信读书授权。
+公众号后台二维码使用 `bizlogin/startlogin` 返回的会话标识获取图片，不再依赖旧登录页的 HTML。
+手动微信读书采集在独立工作线程中串行执行，等待上游时状态接口仍可响应；HTTP 请求取消也不会让仍在运行的采集与下一次采集并发。
 服务启动及每半小时会用正常浏览器访问书架维护会话，并通过书架接口验证后保存新的凭据；
 验证失败只记录状态，不把缓存的“已登录”当作有效授权。
 PsyHOT 的 `.env` 设置 `WECHAT_RSS_BASE_URL=http://werss:8001`。

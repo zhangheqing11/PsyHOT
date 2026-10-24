@@ -7451,7 +7451,7 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 2880,
+   "interval_minutes": 4320,
    "tags": [
     "公众号",
     "期刊",
@@ -7459,6 +7459,97 @@
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psychstatisticia",
+   "name": "PsychStatisticia",
+   "kind": "mp_account",
+   "config": {
+    "nickname": "PsychStatisticia"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "心理统计",
+    "研究方法"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "enabled": false
+  },
+  {
+   "id": "wechat-yuexingxing428",
+   "name": "岳行行428",
+   "kind": "mp_account",
+   "config": {
+    "nickname": "岳行行428"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "心理学",
+    "研究方法"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "enabled": false
+  },
+  {
+   "id": "wechat-psychology-exploration",
+   "name": "Psychology心理探寻",
+   "kind": "mp_account",
+   "config": {
+    "nickname": "Psychology心理探寻"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 2880,
+   "tags": [
+    "公众号",
+    "心理学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "enabled": false
+  },
+  {
+   "id": "wechat-weicao-psy",
+   "name": "苇草psy",
+   "kind": "mp_account",
+   "config": {
+    "nickname": "苇草psy"
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 2880,
+   "tags": [
+    "公众号",
+    "心理学",
+    "人工智能"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "wechat-openscience",

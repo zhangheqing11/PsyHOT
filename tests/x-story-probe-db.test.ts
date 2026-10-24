@@ -44,7 +44,8 @@ test("probe CLI samples reports read-only, reuses paid receipts, and respects bu
     await sql`INSERT INTO fact_articles (fact_id, article_id) VALUES (${fact!.id}, ${articleId})`;
     await sql`INSERT INTO hot_rankings (rule_version, entries) VALUES ('test-x-probe', ${sql.json([{ storyId: story!.id, rank: 1, track: 'combined' }])})`;
     const counts = async () => (await sql`SELECT (SELECT count(*) FROM articles) AS articles, (SELECT count(*) FROM story_signals) AS signals,
-      (SELECT count(*) FROM processing_state) AS processing, (SELECT count(*) FROM analyses) AS analyses`)[0];
+      (SELECT jsonb_object_agg(processing_state, n) FROM (SELECT processing_state, count(*) AS n FROM articles GROUP BY processing_state) states) AS processing,
+      (SELECT count(*) FROM analyses) AS analyses`)[0];
     const before = await counts();
     const path = join(dir, "plan.json");
     await cli("--plan", path);

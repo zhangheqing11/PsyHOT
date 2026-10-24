@@ -384,3 +384,36 @@ test("minimal sync projection preserves snapshot fields, pagination bindings and
   const removed = await getChanges(minimalChanges.cursor);
   assert.ok(removed.changes.some((c: any) => c.op === 'remove' && c.id === id));
 });
+
+test("changing a source pool floor republishes scores and search without affecting high-scoring selections", async () => {
+  const low = await article();
+  const boundary = await article();
+  const unscored = await article();
+  const selected = await article();
+  await sql`UPDATE analyses SET score = 39.9, selected = false WHERE article_id = ${low}`;
+  await sql`UPDATE analyses SET score = 40, selected = false WHERE article_id = ${boundary}`;
+  await sql`UPDATE analyses SET score = NULL, selected = false WHERE article_id = ${unscored}`;
+  for (const id of [low, boundary, unscored, selected]) await publishArticle(id, released());
+  const [source] = await sql<{ updated_at: Date; config: Record<string, unknown> }[]>`SELECT updated_at, config FROM sources WHERE id = ${SOURCE}`;
+  try {
+    await updateSource(SOURCE, { patch: { config: { ...source!.config, poolMinScore: 40 } }, version: source!.updated_at.toISOString() }, "test");
+    const [queued] = await sql<{ value: { status: string } }[]>`SELECT value FROM settings WHERE key = ${`republish.source:${SOURCE}`}`;
+    assert.equal(queued?.value.status, "queued", "changing the pool floor queues a republish");
+    await republishSource(SOURCE);
+    const rows = await sql<{ article_id: string; eligible: boolean; selected: boolean }[]>`
+      SELECT article_id, eligible, selected FROM publications WHERE article_id = ANY(${[low, boundary, unscored, selected]}::text[])`;
+    const byId = new Map(rows.map((r) => [r.article_id, r]));
+    assert.equal(byId.get(low)?.eligible, false);
+    assert.equal(byId.get(unscored)?.eligible, false);
+    assert.equal(byId.get(boundary)?.eligible, true);
+    assert.equal(byId.get(selected)?.selected, true);
+    for (const id of [low, unscored]) {
+      assert.equal((await sql`SELECT 1 FROM pool_search WHERE article_id = ${id}`).length, 0, "ineligible entries leave search too");
+      assert.equal((await get(`/api/site/items/${id}`)).status, 200, "the editorial detail page remains available");
+    }
+    assert.equal((await sql`SELECT 1 FROM pool_search WHERE article_id = ${boundary}`).length, 1);
+  } finally {
+    await sql`UPDATE sources SET config = ${sql.json(source!.config as never)} WHERE id = ${SOURCE}`;
+    await republishSource(SOURCE);
+  }
+});

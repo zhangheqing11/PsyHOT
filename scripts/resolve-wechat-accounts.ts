@@ -6,21 +6,10 @@ import { parseArgs } from "node:util";
 import { closeDb, sql } from "@aihot/backend/db";
 import { DISCOVERY_POOL, everyInfraCall, everyInfraMpHistory } from "@aihot/backend/providers/everyinfra";
 import { articleBiz } from "@aihot/backend/sources/mp";
+import { candidates, matchingCandidate } from "./resolve-wechat-accounts-logic.ts";
 
 const { values } = parseArgs({ options: { apply: { type: "boolean", default: false } } });
 const MAX_LISTINGS = 3;
-
-function candidates(results: unknown): Array<{ ghid: string; name: string; biz: string | null }> {
-  const rows = Array.isArray(results) ? results : [];
-  return rows.flatMap((row) => {
-    if (!row || typeof row !== "object") return [];
-    const r = row as Record<string, unknown>;
-    const ghid = [r.ghid, r.account_ghid, r.username, r.id].find((v): v is string => typeof v === "string" && /^gh_[0-9a-f]{12}$/.test(v));
-    const name = [r.name, r.nickname, r.account_name].find((v): v is string => typeof v === "string") ?? "";
-    const biz = [r.biz, r.__biz].find((v): v is string => typeof v === "string") ?? null;
-    return ghid ? [{ ghid, name, biz }] : [];
-  });
-}
 
 const sources = await sql<{ id: string; name: string; config: { nickname?: string; wechatBiz?: string } }[]>`
   SELECT id, name, config FROM sources WHERE kind = 'mp_account' AND enabled
@@ -40,7 +29,7 @@ async function resolve(s: (typeof sources)[number]) {
   const search = await everyInfraCall<unknown[]>({ platform: "wechat_oa", action: "account_search", params: { keyword: name },
     subject: s.id, purpose: "wechat_discovery", window: day, pool: DISCOVERY_POOL });
   const found = candidates(search.results);
-  let match = found.find((c) => c.biz === s.config.wechatBiz) ?? null;
+  let match = matchingCandidate(found, s.config.wechatBiz);
   // Without a biz in the search result, a listing shows whose articles an account id returns.
   for (const c of match ? [] : found.slice(0, MAX_LISTINGS)) {
     const listing = await everyInfraMpHistory(c.ghid, { subject: s.id, window: `resolve:${day}`, pool: DISCOVERY_POOL });

@@ -3,6 +3,7 @@
 import { FEATURES } from "@aihot/industry/features";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { isCategoryKey, isChannelKey, isRegionKey, isTrackKey, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
+import type { SourceScope } from "@aihot/contracts/site";
 import { InvalidCursorError } from "@aihot/backend/lib/cursor";
 import { exportMarkdown, loadItemDetail, siteItemDetail } from "@aihot/backend/publication/detail";
 import { loadPool, SearchBusyError } from "@aihot/backend/publication/pool";
@@ -61,12 +62,13 @@ export interface FilterParams {
   category: CategoryKey | null;
   track?: TrackKey;
   region?: RegionKey;
+  source?: SourceScope;
   tag: string | null;
   topic: string | null;
   topicTags: string[] | null;
 }
 
-export async function parseFilters(q: Record<string, string>): Promise<FilterParams> {
+export async function parseFilters(q: Record<string, string>, options: { allowSource?: boolean } = {}): Promise<FilterParams> {
   const channel = q.channel ?? "all";
   if (!isChannelKey(channel)) throw new BadRequest("invalid channel");
   const category = q.category ?? null;
@@ -75,6 +77,8 @@ export async function parseFilters(q: Record<string, string>): Promise<FilterPar
   if (track !== null && !isTrackKey(track)) throw new BadRequest("invalid track");
   const region = q.region?.trim() || null;
   if (region !== null && !isRegionKey(region)) throw new BadRequest("invalid region");
+  const source = q.source?.trim() || null;
+  if (source !== null && (!options.allowSource || source !== "wechat")) throw new BadRequest("invalid source");
   const tag = q.tag?.trim() ? q.tag.trim().slice(0, 60) : null;
   const topic = q.topic?.trim() || null;
   let topicTags: string[] | null = null;
@@ -84,6 +88,7 @@ export async function parseFilters(q: Record<string, string>): Promise<FilterPar
   }
   return {
     channel, category: category as CategoryKey | null, tag, topic, topicTags,
+    ...(source ? { source: source as SourceScope } : {}),
     ...(track ? { track } : {}),
     ...(region ? { region } : {}),
   };
@@ -112,7 +117,7 @@ export function registerSite(app: FastifyInstance) {
 
   app.get("/api/site/pool", siteHandler(async (req, reply) => {
     const q = looseQuery(req);
-    const filters = await parseFilters(q);
+    const filters = await parseFilters(q, { allowSource: true });
     const page = Math.min(Math.max(Number(q.page) || 1, 1), 50);
     const search = q.q?.trim() ? q.q.trim().slice(0, 200) : null;
     const tab = q.tab === "relevance" ? "relevance" : "time";

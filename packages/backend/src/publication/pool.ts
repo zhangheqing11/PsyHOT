@@ -1,9 +1,9 @@
 // Public pool (/all) with numeric pages, and search in its two orderings.
-import type { PoolResponse, TimelineFilters } from "@aihot/contracts/site";
+import type { PoolResponse, TimelineFilters, SourceScope } from "@aihot/contracts/site";
 import { beijingDate, beijingMidnight } from "@aihot/contracts/time";
 import { one, sql, withCustomPlans, type Db } from "../db.ts";
 import {
-  categoryCondition, channelCondition, ITEM_COLUMNS, ITEM_FROM, listedCondition, regionCondition, tagCondition, toFeedItemSummary, topicCondition, trackCondition,
+  categoryCondition, channelCondition, ITEM_COLUMNS, ITEM_FROM, listedCondition, regionCondition, sourceScopeCondition, tagCondition, toFeedItemSummary, topicCondition, trackCondition,
   type ItemRow,
 } from "./items.ts";
 
@@ -103,6 +103,7 @@ async function poolCount(key: string | null, query: () => Promise<Array<{ n: num
 }
 
 export interface PoolQuery extends TimelineFilters {
+  source?: SourceScope | null;
   q?: string | null;
   tab?: "time" | "relevance";
   page?: number;
@@ -116,11 +117,11 @@ export async function loadPool(query: PoolQuery): Promise<PoolResponse> {
   const q = query.q?.trim() || null;
   const tab = q && query.tab === "relevance" ? "relevance" : "time";
   const terms = q ? searchTerms(q) : [];
-  const filters = sql`${channelCondition(query.channel)} ${categoryCondition(query.category)} ${trackCondition(query.category ? null : query.track)} ${regionCondition(query.region)} ${tagCondition(query.tag)} ${topicCondition(query.topicTags)}`;
+  const filters = sql`${channelCondition(query.channel)} ${categoryCondition(query.category)} ${trackCondition(query.category ? null : query.track)} ${regionCondition(query.region)} ${sourceScopeCondition(query.source)} ${tagCondition(query.tag)} ${topicCondition(query.topicTags)}`;
   const offset = (page - 1) * POOL_PAGE_SIZE;
   const cap = POOL_MAX_PAGES * POOL_PAGE_SIZE;
   // A fixed clock (tests, replays) never shares cached totals.
-  const filterKey = query.now ? null : JSON.stringify([query.channel, query.category, query.track ?? null, query.region ?? null, query.tag, query.topicTags ?? null]);
+  const filterKey = query.now ? null : JSON.stringify([query.channel, query.category, query.track ?? null, query.region ?? null, query.source ?? null, query.tag, query.topicTags ?? null]);
 
   // Searches go through pool_search (eligible items only): trigram indexes for longer terms, a small
   // table to scan for one- and two-character ones.
@@ -198,6 +199,7 @@ export async function loadPool(query: PoolQuery): Promise<PoolResponse> {
   return {
     filters: {
       channel: query.channel, category: query.category, tag: query.tag, topic: query.topic ?? null, q, tab,
+      ...(query.source ? { source: query.source } : {}),
       ...(query.track ? { track: query.track } : {}),
       ...(query.region ? { region: query.region } : {}),
     },

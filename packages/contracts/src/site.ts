@@ -4,6 +4,9 @@ import type { CategoryKey, ChannelKey, RegionKey, TrackKey } from "./taxonomy.ts
 
 export type SourceKind = "rss" | "web_list" | "json_list" | "x_search" | "mp_account" | "external";
 
+/** Internal site views that scope an existing public feed by source family. */
+export type SourceScope = "wechat";
+
 export interface SourceRef {
   id: string;
   name: string;
@@ -127,7 +130,7 @@ export interface TimelineResponse {
 }
 
 export interface PoolResponse {
-  filters: TimelineFilters & { q: string | null; tab: "time" | "relevance" };
+  filters: TimelineFilters & { source?: SourceScope; q: string | null; tab: "time" | "relevance" };
   items: FeedItemSummary[];
   page: number;
   pageCount: number;

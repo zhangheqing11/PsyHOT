@@ -8,10 +8,10 @@ import { after, before, test } from "node:test";
 import { HOT } from "@aihot/industry/selection";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
-import { combinedSelection, hotCandidates, rankByHeat } from "@aihot/backend/events/hot";
+import { combinedSelection, computeHotRanking, hotCandidates, rankByHeat } from "@aihot/backend/events/hot";
 import type { HotEntry } from "@aihot/backend/events/hot-read";
 import { stopBoss } from "@aihot/backend/jobs/queue";
-import { publishArticle } from "@aihot/backend/publication/publish";
+import { publishArticle, republishSource } from "@aihot/backend/publication/publish";
 
 const T = tag();
 const SOURCE = `test-hot-${T}`;
@@ -27,14 +27,15 @@ after(async () => {
 
 let n = 0;
 /** A story whose reports come from `participants` independent participants, last seen `hoursAgo`. */
-async function story(o: { participants: number; score: number; selected: boolean; hoursAgo: number; raw?: Record<string, unknown> }): Promise<number> {
+async function story(o: { participants: number; score: number; selected: boolean; hoursAgo: number; raw?: Record<string, unknown>; sources?: string[] }): Promise<number> {
   const [st] = await sql<{ id: number }[]>`
     INSERT INTO stories (public_id, title, first_report_at, latest_at) VALUES (${randomUUID()}, ${`HOT-${T}`}, now() - make_interval(hours => ${o.hoursAgo}), now()) RETURNING id`;
   const [fact] = await sql<{ id: number }[]>`INSERT INTO facts (public_id, story_id, title) VALUES (${`fact-${randomUUID()}`}, ${st!.id}, ${`HOT-${T}`}) RETURNING id`;
   for (let i = 0; i < o.participants; i++) {
     n += 1;
+    const sourceId = o.sources?.[i] ?? SOURCE;
     const { articleId } = await upsertMaterial({
-      sourceId: SOURCE, url: `https://example.com/hot-${T}-${n}`, title: `Hot ${n}`, bodyText: BODY, bodyStatus: "ok", via: "fetch", publishedAt: new Date(),
+      sourceId, url: `https://example.com/hot-${T}-${n}`, title: `Hot ${n}`, bodyText: BODY, bodyStatus: "ok", via: "fetch", publishedAt: new Date(),
     } as never);
     await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
               VALUES (${articleId}, 1, 'rule', 'pass', 'research', ${`热点${n}-${T}`}, ${`摘要${n}`}, '理由', ${o.score}, ${o.selected})`;
@@ -42,7 +43,7 @@ async function story(o: { participants: number; score: number; selected: boolean
     await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
     await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${fact!.id}, ${articleId}, 'report')`;
     await sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
-              VALUES (${st!.id}, ${articleId}, ${`participant-${T}-${n}`}, ${SOURCE}, 'editorial', now() - make_interval(hours => ${o.hoursAgo}))`;
+              VALUES (${st!.id}, ${articleId}, ${`participant-${T}-${n}`}, ${sourceId}, 'editorial', now() - make_interval(hours => ${o.hoursAgo}))`;
   }
   return Number(st!.id);
 }
@@ -62,6 +63,46 @@ test("one selected report enters, an unselected one needs a second participant; 
   for (const id of [best, covered, good, older]) assert.ok(at(id) >= 0, `story ${id} is a candidate`);
   assert.ok(at(best) < at(covered) && at(covered) < at(good), "two sources outweigh a lower score; a higher score outranks a lower one");
   assert.ok(at(good) < at(older), "heat decays with age");
+});
+
+test("republishing a demoted source changes its old heat records and reporting names; promotion restores only eligible reports", async () => {
+  const demoted = `test-demoted-${T}`;
+  const name = `Demoted source ${T}`;
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at)
+            VALUES (${demoted}, ${name}, 'rss', 'T1', 'editorial', '2100-01-01')`;
+  const mixed = await story({ participants: 2, score: 100, selected: false, hoursAgo: 0, sources: [SOURCE, demoted] });
+  const only = await story({ participants: 2, score: 100, selected: false, hoursAgo: 0, sources: [demoted, demoted] });
+  const ranking = async () => {
+    const { id } = await computeHotRanking();
+    const [row] = await sql<{ entries: HotEntry[] }[]>`SELECT entries FROM hot_rankings WHERE id = ${id}`;
+    return row!.entries.find((e) => Number(e.storyId) === mixed);
+  };
+  assert.ok((await ranking())?.sourceNames.includes(name));
+  await sql`UPDATE sources SET participation_mode = 'hot_signal' WHERE id = ${demoted}`;
+  await republishSource(demoted);
+  const rows = await sql<{ kind: string }[]>`SELECT kind FROM story_signals WHERE source_id = ${demoted}`;
+  assert.ok(rows.length > 0 && rows.every((r) => r.kind === 'signal'));
+  const entry = await ranking();
+  assert.ok(entry, "a real reporter plus a signal still ranks");
+  assert.equal(entry.sourceNames.includes(name), false);
+  assert.ok(entry.participants.some((p) => p.name === name && p.kind === 'signal'));
+  assert.equal((await hotCandidates(new Date())).some((r) => Number(r.story_id) === only), false, "signals alone are not reporting");
+
+  // The source may already have been republished by an older release: only the heat record is stale.
+  await sql`UPDATE story_signals SET kind = 'editorial' WHERE source_id = ${demoted}`;
+  const repaired = await republishSource(demoted);
+  assert.equal(repaired.reduced, 0);
+  assert.ok(repaired.signalsChanged > 0, "the worker must re-rank even when no publication changed");
+  assert.equal((await republishSource(demoted)).signalsChanged, 0, "repeating the repair is harmless");
+
+  const [invalid] = await sql<{ article_id: string }[]>`SELECT article_id FROM story_signals WHERE source_id = ${demoted} LIMIT 1`;
+  await sql`UPDATE analyses SET relevance = 'block' WHERE article_id = ${invalid!.article_id}`;
+  await sql`UPDATE sources SET participation_mode = 'editorial' WHERE id = ${demoted}`;
+  await republishSource(demoted);
+  const restored = await sql<{ kind: string; eligible: boolean }[]>`
+    SELECT ss.kind, p.eligible FROM story_signals ss JOIN publications p ON p.article_id = ss.article_id WHERE ss.source_id = ${demoted}`;
+  assert.ok(restored.some((r) => !r.eligible));
+  for (const row of restored) assert.equal(row.kind, row.eligible ? 'editorial' : 'signal');
 });
 
 test("likes, saves, comments and shares weigh a participant up to a cap, never in place of a second one", async () => {

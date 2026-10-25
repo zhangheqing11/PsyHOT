@@ -26,7 +26,7 @@ after(async () => {
   await closeDb();
 });
 
-async function article(sourceId: string, slug: string) {
+async function article(sourceId: string, slug: string, fields: { category?: string; tags?: string[] } = {}) {
   const { articleId } = await upsertMaterial({
     sourceId,
     url: `https://example.com/${slug}-${T}`,
@@ -36,8 +36,8 @@ async function article(sourceId: string, slug: string) {
     via: "fetch",
     publishedAt: new Date(),
   });
-  await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, title_zh, summary_zh, selected)
-            VALUES (${articleId}, 1, 'rule', 'pass', ${`公众号标题 ${slug}`}, ${`公众号摘要 ${slug}`}, false)`;
+  await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, tags, title_zh, summary_zh, selected)
+            VALUES (${articleId}, 1, 'rule', 'pass', ${fields.category ?? null}, ${fields.tags ?? []}, ${`公众号标题 ${slug}`}, ${`公众号摘要 ${slug}`}, false)`;
   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
   return articleId;
 }
@@ -64,4 +64,18 @@ test("source=wechat returns all public mp_account articles and excludes other so
 test("source=wechat rejects an unknown source scope", async () => {
   const result = await app.inject({ method: "GET", url: "/api/site/pool?source=not-a-scope" });
   assert.equal(result.statusCode, 400);
+});
+
+test("source=wechat combines with existing track, category and topic filters", async () => {
+  const research = await article(WECHAT, "research", { category: "research", tags: ["研究发现", "抑郁"] });
+  const industry = await article(WECHAT, "industry", { category: "industry", tags: ["行业动态"] });
+  const academic = await get("/api/site/pool?source=wechat&track=academic");
+  const academicIds = academic.body.items?.map((item) => item.id) ?? [];
+  assert.ok(academicIds.includes(research));
+  assert.ok(!academicIds.includes(industry));
+
+  const filtered = await get("/api/site/pool?source=wechat&category=research&tag=%E6%8A%91%E9%83%81");
+  const filteredIds = filtered.body.items?.map((item) => item.id) ?? [];
+  assert.ok(filteredIds.includes(research));
+  assert.ok(!filteredIds.includes(industry));
 });

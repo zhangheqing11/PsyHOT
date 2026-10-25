@@ -21,8 +21,11 @@ export function isPoolEligible(input: {
   relevance: string | null;
   title: string | null;
   summary: string | null;
+  score?: number | null;
+  poolMinScore?: number;
 }): boolean {
-  return input.participationMode === "editorial" && input.relevance === "pass" && !!input.title && !!input.summary;
+  return input.participationMode === "editorial" && input.relevance === "pass" && !!input.title && !!input.summary &&
+    (input.poolMinScore === undefined || (input.score != null && input.score >= input.poolMinScore));
 }
 
 /**

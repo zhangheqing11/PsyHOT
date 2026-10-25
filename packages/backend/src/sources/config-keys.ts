@@ -4,7 +4,7 @@
 import type { SourceRow } from "./types.ts";
 
 // Rules applied in collect.ts to every kind read through collectSource.
-const COLLECTED = ["_aihot", "allowUrlPrefixes", "denyUrlPrefixes", "ingestNoiseFilter", "itemUrlPrefixRewrite", "sortByPublishedAt", "detail", "fetchPublicContent", "userAgent"];
+const COLLECTED = ["_aihot", "allowUrlPrefixes", "denyUrlPrefixes", "ingestNoiseFilter", "itemUrlPrefixRewrite", "sortByPublishedAt", "detail", "fetchPublicContent", "userAgent", "poolMinScore"];
 
 const KEYS: Record<SourceRow["kind"], string[]> = {
   rss: [...COLLECTED, "feedUrl", "summaryIsBody", "preserveUrlFragment", "allowCategories", "denyCategories"],
@@ -18,10 +18,10 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
     "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric", "everyinfraAction", "everyinfraParams", "everyinfraDetail", "everyinfraLookbackDays",
   ],
   // X accounts are mostly read in shards, which apply only these.
-  x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType"],
+  x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType", "poolMinScore"],
   // wechatBiz: the account's __biz; every listed article must carry it (sources/mp.ts).
-  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter", "wechatBiz"],
-  external: [],
+  mp_account: ["wxid", "ghid", "nickname", "ingestNoiseFilter", "wechatBiz", "poolMinScore"],
+  external: ["poolMinScore"],
 };
 
 // Objects with fixed keys (headers and bodyJson are request data, free-form).
@@ -52,6 +52,7 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
   const out: string[] = [];
   for (const [key, value] of Object.entries(config ?? {})) {
     if (!allowed.has(key)) out.push(key);
+    else if (key === "poolMinScore" && (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100)) out.push("poolMinScore（须为 0–100 的数字）");
     else if ((KIND_VALUES[kind]?.[key] ?? VALUES[key])?.includes(String(value)) === false) out.push(`${key}=${String(value)}`);
     else if (NESTED[key] && value && typeof value === "object") {
       for (const sub of Object.keys(value)) if (!NESTED[key]!.includes(sub)) out.push(`${key}.${sub}`);

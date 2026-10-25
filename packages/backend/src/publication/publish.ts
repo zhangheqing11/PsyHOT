@@ -158,8 +158,8 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
   // release stamped before their cutoff cannot commit after their candidate snapshot.
   await tx`SELECT pg_advisory_xact_lock_shared(hashtext('report_candidates'))`;
   const now = options.now ?? new Date(); // sample after both locks, which may span a report cutoff
-  const [source] = await tx<SourceFacts[]>`
-    SELECT id, name, kind, tier, participation_mode, first_party, site_fulltext, syndicate_fulltext FROM sources WHERE id = ${article.source_id}`;
+  const [source] = await tx<(SourceFacts & { config: { poolMinScore?: number } })[]>`
+    SELECT id, name, kind, tier, participation_mode, first_party, site_fulltext, syndicate_fulltext, config FROM sources WHERE id = ${article.source_id}`;
   if (!source) return null;
   const [analysis] = await tx<AnalysisRow[]>`
     SELECT id, relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected, (output->>'promotion')::boolean AS promotion
@@ -187,7 +187,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
   // Material from an isolated source reaches no public surface at all: not even a detail page.
   const visibility = article.duplicate_of || source.participation_mode === "isolated" ? "withdrawn" : (override?.visibility ?? "public");
 
-  const eligible = !article.duplicate_of && isPoolEligible({ participationMode: source.participation_mode, relevance, title, summary });
+  const eligible = !article.duplicate_of && isPoolEligible({ participationMode: source.participation_mode, relevance, title, summary, score, poolMinScore: source.config.poolMinScore });
   const promotion = isPromotion(f.promotion, analysis?.promotion);
   const selected = isSelectable(eligible, judgedSelected, source.tier, promotion);
   const reason = selected ? pickString(f.reason, analysis?.reason_zh ?? null) : null;
@@ -340,7 +340,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
  * Re-derives every published article of one source (after its participation, licences, tier or name
  * changed) without calling models. Runs in the worker; progress goes to the callback.
  */
-export async function republishSource(sourceId: string, onProgress?: (done: number, total: number) => Promise<void>): Promise<{ total: number; changed: number; reduced: number }> {
+export async function republishSource(sourceId: string, onProgress?: (done: number, total: number) => Promise<void>): Promise<{ total: number; changed: number; reduced: number; signalsChanged: number }> {
   const { total } = one(await sql<{ total: number }[]>`SELECT count(*)::int AS total FROM publications WHERE source_id = ${sourceId}`);
   let after = "";
   let done = 0;
@@ -361,5 +361,18 @@ export async function republishSource(sourceId: string, onProgress?: (done: numb
     after = batch[batch.length - 1]!.article_id;
     await onProgress?.(done, total);
   }
-  return { total, changed, reduced };
+  // Heat evidence stores the source's participation at attachment time. A source change must also
+  // reach those old records, including signal-only articles without a publication. On promotion,
+  // only articles that still meet the pool rules become reporting evidence again.
+  const signals = await sql`
+    UPDATE story_signals ss SET kind = CASE
+      WHEN s.participation_mode = 'editorial' AND EXISTS (
+        SELECT 1 FROM publications p WHERE p.article_id = ss.article_id AND p.eligible
+      ) THEN 'editorial' ELSE 'signal' END
+    FROM sources s
+    WHERE s.id = ${sourceId} AND ss.source_id = s.id AND ss.kind IS DISTINCT FROM (CASE
+      WHEN s.participation_mode = 'editorial' AND EXISTS (
+        SELECT 1 FROM publications p WHERE p.article_id = ss.article_id AND p.eligible
+      ) THEN 'editorial' ELSE 'signal' END)`;
+  return { total, changed, reduced, signalsChanged: signals.count };
 }

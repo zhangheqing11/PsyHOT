@@ -82,3 +82,11 @@ node --env-file=.env scripts/eval-selection.ts --gold .data/gold.jsonl --split d
 ## 换模型
 
 后台“模型与评测”页能看到每一步当前用哪个模型、近期的成功率、耗时和 token 用量，也能直接切换（只影响之后的新任务）。换评分模型之前，先用 `--models` 在同一批样本上比一比。
+
+## 后台标注队列的快照与并发
+
+后台“标注”页沿用五类队列：`sample`、`promotion`、`blocked`、`near_threshold`、`manual`。入队时按文章 ID 稳定分到 80% 的 `development` 和 20% 的 `holdout`；队列行同时保存文章正文、来源事实、PsyHOT 视角、最新分析结果和公开投影的上下文快照。后续文章修订不会改写这份快照，导出的 gold JSONL 因而可以复现当时的判断输入。
+
+标注按钮和备注保存会带上行版本号。两个后台页面同时编辑同一行时，后提交者会收到冲突并需要刷新，避免覆盖前一个人的决定。备注只留在后台和审计记录中，不写进 gold JSONL；未标注行也不会出现在导出文件中。导出链接支持 `queue`、`split`、`decision` 筛选，`decision=unlabeled` 返回空文件。
+
+迁移 `0050_selection_label_context.sql` 只给已有 `0042_selection_labels` 队列增加快照、操作者、版本和更新时间字段，不改公共精选门槛，也不触发发布或模型调用。

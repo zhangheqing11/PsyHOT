@@ -23,7 +23,7 @@ interface Chain {
   decisions: Row[];
   deliveries: Row[];
   history: Row[];
-  label: { queue: string; split: string; decision: string | null; note: string | null; labeled_by: string | null; labeled_at: string | null } | null;
+  label: { queue: string; split: string; decision: string | null; note: string | null; labeled_by: string | null; labeled_at: string | null; version?: number } | null;
 }
 
 export async function loader({ request, params }: Route.LoaderArgs) {
@@ -285,7 +285,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
         <div className="space-y-5">
           <Card title="标注" right={c.label?.decision ? <span>{c.label.labeled_by} · {bj(c.label.labeled_at!)}</span> : c.label ? <span>在待标注队列里</span> : undefined}>
             <div className="text-[12.5px] text-ink-3">这条该不该进精选？标注用来校准门槛（后台“标注”页可导出）。</div>
-            <div className="mt-2"><LabelButtons id={a.id} decision={c.label?.decision ?? null} /></div>
+            <div className="mt-2"><LabelButtons id={a.id} decision={c.label?.decision ?? null} version={c.label?.version} /></div>
           </Card>
           <Card title="原始信息">
             <KV

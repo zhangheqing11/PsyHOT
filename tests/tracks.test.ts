@@ -204,12 +204,26 @@ test("labels: the weekly batch queues promotions, blocks and near-threshold scor
   assert.ok(pending.rows.some((r) => r.id === near && r.track === "industry"));
   await setLabel(near, { decision: "select", note: "新规" }, "test");
   await setLabel(blocked, { decision: "reject" }, "test");
+  const nearLabel = await labelOf(near);
+  assert.ok(nearLabel?.context?.material?.bodyOriginal?.includes("NEARSCORE"));
+  assert.ok((nearLabel?.version ?? 0) > 1);
+  await sql`UPDATE articles SET title = 'changed after label snapshot' WHERE id = ${near}`;
+  assert.equal((await labelOf(near))?.context.material.title, nearLabel?.context.material.title);
+  const blockedLabel = await labelOf(blocked);
+  assert.ok(blockedLabel);
+  const concurrent = await Promise.allSettled([
+    setLabel(blocked, { decision: "either", version: blockedLabel!.version }, "admin:a"),
+    setLabel(blocked, { decision: "select", version: blockedLabel!.version }, "admin:b"),
+  ]);
+  assert.equal(concurrent.filter((r) => r.status === "fulfilled").length, 1);
+  assert.equal(concurrent.filter((r) => r.status === "rejected").length, 1);
   const manual = await article(MIXED, "MANUALLABEL");
   await setLabel(manual, { decision: "either" }, "test");
   assert.equal((await labelOf(manual))?.queue, "manual");
   await setLabel(manual, { decision: null }, "test");
   assert.equal((await labelOf(manual))?.decision, null);
 
+  assert.equal(await exportGold({ decision: "unlabeled" }), "");
   const lines = (await exportGold()).trim().split("\n").map((l) => JSON.parse(l));
   const nearCase = lines.find((l) => l.caseId === near);
   assert.equal(nearCase.gold.decision, "select");

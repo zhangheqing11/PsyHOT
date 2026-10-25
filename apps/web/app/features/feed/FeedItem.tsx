@@ -19,11 +19,9 @@ export interface FeedItemProps {
   onOpen?: (id: string) => void;
   /** Show category and tags under the text (全部动态, topics, search). */
   showTags?: boolean;
-  /** Keep tag/category links inside a scoped feed such as /wechat. */
-  filterBase?: string;
 }
 
-export const FeedItem = memo(function FeedItem({ item, group, filters, read = false, onOpen, showTags = false, filterBase = "/all" }: FeedItemProps) {
+export const FeedItem = memo(function FeedItem({ item, group, filters, read = false, onOpen, showTags = false }: FeedItemProps) {
   const isX = item.channel === "x" && !!item.x;
   const open = () => onOpen?.(item.id);
   const showSources = !!group && (group.additionalSourceCount > 0 || (group.developmentCount <= 1 && group.reportCount > 1));
@@ -76,12 +74,12 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
       {(tags.length > 0 || (showTags && item.category)) && (
         <div className="relative z-10 mt-2 hidden flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4 lg:flex">
           {showTags && item.category && (
-            <Link to={`${filterBase}?category=${item.category}`} className="hover:text-accent">
+            <Link to={`/all?category=${item.category}`} className="hover:text-accent">
               {CATEGORY_LABELS[item.category]}
             </Link>
           )}
           {tags.map((t) => (
-            <Link key={t} to={`${filterBase}?tag=${encodeURIComponent(t)}`} className="hover:text-accent">
+            <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="hover:text-accent">
               #{t}
             </Link>
           ))}

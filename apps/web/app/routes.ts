@@ -12,7 +12,6 @@ export default [
   route("daily", "routes/report-latest.tsx", { id: "daily-latest" }),
   route("daily/archive", "routes/daily-archive.tsx"),
   route("daily/:key", "routes/report-detail.tsx", { id: "daily-detail" }),
-  route("wechat", "routes/wechat.tsx"),
   route("weekly", "routes/report-latest.tsx", { id: "weekly-latest" }),
   route("weekly/:key", "routes/report-detail.tsx", { id: "weekly-detail" }),
   route("monthly", "routes/report-latest.tsx", { id: "monthly-latest" }),

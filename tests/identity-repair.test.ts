@@ -53,3 +53,13 @@ test("dry-run reports exact DOI candidates and leaves articles untouched", async
   assert.equal(run.status, "dry-run");
   assert.equal((await sql`SELECT duplicate_of FROM articles WHERE id = ${B}`)[0]!.duplicate_of, null);
 });
+
+test("apply is retired without creating a repair run", async () => {
+  const before = Number((await sql`SELECT count(*)::int AS n FROM material_identity_repair_runs`)[0]!.n);
+  await assert.rejects(
+    () => runIdentityRepair({ mode: "apply", actor: `admin:${ADMIN_ID}`, reason: "x" }),
+    /identity repair apply is retired/,
+  );
+  const after = Number((await sql`SELECT count(*)::int AS n FROM material_identity_repair_runs`)[0]!.n);
+  assert.equal(after, before);
+});

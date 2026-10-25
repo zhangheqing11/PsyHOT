@@ -7,7 +7,8 @@ repairs run through `scripts/repair-material-identities.ts --apply`.
 
 ## Candidate policy
 
-The scanner groups only deterministic identities:
+The dry-run scanner groups only deterministic identities found from the material URL, DOI and X
+identifiers:
 
 - an X/Twitter status id;
 - an exact DOI extracted from the material URL; or
@@ -35,7 +36,12 @@ authenticated admin actor, then runs the historical consolidation and rebuild ro
 their returned result in `audit_log` as `material.identity_repair.legacy_apply`. Running
 `scripts/identity-repair.ts apply` fails with a message directing operators to that legacy script.
 
-The legacy repair keeps the historical article rows and handles linked evidence, public projections,
-selection state and rebuild checkpoints using the established repair implementation. Review the
-dry-run evidence and the legacy script's audit row before running it; canonical deletion is outside
-this command.
+The legacy `repair-material-identities.ts --apply` path only merges URL/Xiaohongshu groups formed by
+`identityKeyForUrl`. It chooses the row to keep using its own ordering: withdrawal/restriction
+(`withdrawn` before `summary-only`), manual override, eligibility, body length, summary length,
+discovery time and finally article id. Its retained row therefore is not guaranteed to equal the
+`survivorId` shown by the dry-run scanner. DOI and X candidates are investigation evidence only;
+they are not automatically merged and require an operator's separate decision. The legacy repair
+keeps the historical article rows and handles linked evidence, public projections, selection state
+and rebuild checkpoints using the established repair implementation. Review the dry-run evidence
+and the legacy script's audit row before running it; canonical deletion is outside this command.

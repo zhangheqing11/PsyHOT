@@ -1,7 +1,5 @@
--- Deterministic material identity repair audit and resumable checkpoints.
--- `articles.duplicate_of` is provided by 0046_material_duplicates.sql.  A repair only writes that
--- tombstone; all revisions, analyses, translations, attempts, facts, signals, publications and
--- other article-linked history remain attached to the original article for auditability.
+-- These two tables record dry-run runs and candidates only. Actual merges are performed by the
+-- legacy repair path in scripts/repair-material-identities.ts.
 
 CREATE TABLE material_identity_repair_runs (
   id             bigserial PRIMARY KEY,

@@ -11,7 +11,7 @@ import { isHistorical } from "../content/materials.ts";
 import { publishArticle } from "../publication/publish.ts";
 import { BudgetExceededError, ProviderRejectedError, ReceiptBusyError, ReceiptUnknownError } from "../providers/receipts.ts";
 import { ModelOutputError } from "../providers/llm.ts";
-import { ensureQueue, enqueue, QUEUES, shutdownSignal } from "./queue.ts";
+import { ensureQueue, enqueue, QUEUES, runBudgetAware, shutdownSignal } from "./queue.ts";
 
 /** Minutes to wait after the n-th failed attempt; one more failure after the last ends in "failed". */
 const RETRY_MINUTES = [5, 10, 20, 40, 60, 120, 240, 360];
@@ -159,18 +159,23 @@ async function afterFailure(articleId: string, error: unknown): Promise<{ state:
 
 export async function registerContentJobs(boss: PgBoss, concurrency = Number(process.env.ANALYZE_CONCURRENCY || 6)) {
   await ensureQueue(QUEUES.analyze);
-  await boss.work<{ articleId: string; attemptTag?: string }>(QUEUES.analyze, { localConcurrency: concurrency, pollingIntervalSeconds: 2 }, async ([job]) => {
+  await boss.work<{ articleId: string; attemptTag?: string }>(QUEUES.analyze, { localConcurrency: concurrency, pollingIntervalSeconds: 2, includeMetadata: true }, async ([job]) => {
     if (!job) return;
-    const { articleId, attemptTag } = job.data;
-    try {
-      const result = await processArticle(articleId, { attemptTag });
-      if (result.state !== "unknown-receipt") {
-        await sql`UPDATE articles SET processing_attempts = 0, processing_retry_at = NULL, processing_queued_at = NULL WHERE id = ${articleId}`;
+    return runBudgetAware(job, async () => {
+      const { articleId, attemptTag } = job.data;
+      try {
+        const result = await processArticle(articleId, { attemptTag });
+        if (result.state !== "unknown-receipt") {
+          await sql`UPDATE articles SET processing_attempts = 0, processing_retry_at = NULL, processing_queued_at = NULL WHERE id = ${articleId}`;
+        }
+        return result;
+      } catch (error) {
+        // Budget pauses are handled by runBudgetAware so they do not consume article or pg-boss
+        // failure retries. Other errors retain the existing article retry/refusal classification.
+        if (error instanceof BudgetExceededError) throw error;
+        return afterFailure(articleId, error);
       }
-      return result;
-    } catch (error) {
-      return afterFailure(articleId, error);
-    }
+    });
   });
 }
 

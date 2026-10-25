@@ -12,6 +12,7 @@ import { z } from "zod";
 import { sql } from "../db.ts";
 import { sanitizeBody, textToHtml } from "../content/sanitize.ts";
 import { chatJson } from "../providers/llm.ts";
+import { BudgetExceededError } from "../providers/receipts.ts";
 import { collapseWhitespace } from "../lib/text.ts";
 import { sha256 } from "../lib/ids.ts";
 import { modelFor } from "./models.ts";
@@ -313,6 +314,7 @@ export async function translatePending(opts: { limit?: number; budgetMs?: number
       // A deploy stops between paid fragments, never aborts a sent request. Received answers stay
       // in receipts and are reused next run; do not mark an interrupted article terminal/partial.
       if (error instanceof TranslationInterruptedError) break;
+      if (error instanceof BudgetExceededError) throw error;
       const message = (error as Error).message;
       // Switched-off model calls or an exhausted budget: stop this run without counting an attempt.
       if (/disabled|not configured|budget/i.test(message)) break;
@@ -334,7 +336,9 @@ export async function translatePending(opts: { limit?: number; budgetMs?: number
     try {
       quotes = await translateQuotes({ budgetMs: left });
     } catch (error) {
-      if (error instanceof TranslationInterruptedError || /disabled|not configured|budget/i.test((error as Error).message)) return { done, quotes };
+      if (error instanceof TranslationInterruptedError) return { done, quotes };
+      if (error instanceof BudgetExceededError) throw error;
+      if (/disabled|not configured|budget/i.test((error as Error).message)) return { done, quotes };
       throw error;
     }
   }

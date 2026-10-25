@@ -157,7 +157,7 @@ async function vectorsFor(items: Array<{ id: string; text: string }>): Promise<M
 
 /**
  * Embeds every report of the recall window that has no stored vector yet, within the embedding
- * budget (waiting when it is exhausted). Run before a deploy that changes the embedded text or
+ * budget. A full budget defers the calling job so the same work resumes after the window opens. Run before a deploy that changes the embedded text or
  * before a regroup, so the first grouping job does not spend its retries on the backlog.
  */
 export async function warmRecallWindow(onProgress?: (done: number, total: number) => void): Promise<{ total: number; embedded: number }> {
@@ -173,16 +173,16 @@ export async function warmRecallWindow(onProgress?: (done: number, total: number
   let done = 0;
   for (let i = 0; i < missing.length; i += 100) {
     const batch = missing.slice(i, i + 100);
-    for (;;) {
-      try {
-        await ensureEmbeddings("article", batch);
-        break;
-      } catch (error) {
-        // The worker may be embedding the same texts for a live grouping job: that batch is covered.
-        if (error instanceof ReceiptBusyError) break;
-        if (!(error instanceof BudgetExceededError)) throw error;
-        await new Promise((r) => setTimeout(r, (error.retryAfterSeconds + 1) * 1000));
+    try {
+      await ensureEmbeddings("article", batch);
+    } catch (error) {
+      // The worker may be embedding the same texts for a live grouping job: that batch is covered.
+      if (error instanceof ReceiptBusyError) {
+        done += batch.length;
+        onProgress?.(done, missing.length);
+        continue;
       }
+      throw error;
     }
     done += batch.length;
     onProgress?.(done, missing.length);
@@ -759,6 +759,7 @@ async function decide(articleId: string, opts: GroupOptions): Promise<GroupResul
       }
     } catch (error) {
       // A failed identity call must not block publication: the report stays standalone for now.
+      if (error instanceof BudgetExceededError) throw error;
       await markGrouped(articleId);
       await publishArticle(articleId);
       throw error;
@@ -803,6 +804,7 @@ async function decide(articleId: string, opts: GroupOptions): Promise<GroupResul
       result.consolidated = await consolidate([...tied]);
       result.storyId = (await liveStory(written.storyId!)) ?? written.storyId!;
     } catch (error) {
+      if (error instanceof BudgetExceededError) throw error;
       result.consolidationError = String(error).slice(0, 300);
     }
   }
@@ -822,6 +824,7 @@ async function decide(articleId: string, opts: GroupOptions): Promise<GroupResul
     try {
       result.rematched = await rematchSignals(articleId, reportText(title, an.summary_zh));
     } catch (error) {
+      if (error instanceof BudgetExceededError) throw error;
       result.rematchError = String(error).slice(0, 300);
     }
   }

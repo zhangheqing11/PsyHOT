@@ -112,7 +112,10 @@ export async function registerSchedules(boss: PgBoss) {
     await ensureQueue(queue, { policy: "singleton", retryLimit: 1, expireInSeconds: 3600 });
     await boss.schedule(queue, s.cron, {}, { tz: "Asia/Shanghai", missed: s.missed ?? "skip" });
     // Schedules fire at minute boundaries; a 15 s pickup keeps them on time with a third of the polling.
-    await boss.work(queue, { pollingIntervalSeconds: 15 }, async () => recordRun(s.name, s.run));
+    await boss.work(queue, { pollingIntervalSeconds: 15, includeMetadata: true }, async ([job]) => {
+      if (!job) return;
+      return recordRun(s.name, s.run, job);
+    });
   }
   // A schedule removed from the table (a module switched off) must not keep firing from an earlier run.
   const names = new Set(SCHEDULES.map((s) => `cron.${s.name}`));

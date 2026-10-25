@@ -11,10 +11,15 @@ import { sha256, stableJson } from "../lib/ids.ts";
 
 export class BudgetExceededError extends Error {
   readonly service: string;
+  readonly period: string;
+  /** Backwards-compatible alias for callers that describe the window as a window. */
+  readonly window: string;
   readonly retryAfterSeconds: number;
   constructor(service: string, window: string, retryAfterSeconds: number) {
     super(`Budget for ${service} exhausted (${window})`);
     this.service = service;
+    this.period = window;
+    this.window = window;
     this.retryAfterSeconds = retryAfterSeconds;
   }
 }

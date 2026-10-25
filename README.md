@@ -139,6 +139,8 @@ PsyHOT 汇总的是研究和行业动态，只用于了解领域进展，不构�
 
 `docs/` 下是 AIHOT 框架的文档，同样适用于本项目：[定制](docs/customize.md) · [信源](docs/sources.md) · [精选与校准](docs/selection.md) · [事件归组](docs/grouping.md) · [部署](docs/deploy.md) · [架构](docs/architecture.md)。改代码前先读 [AGENTS.md](AGENTS.md)。
 
+身份异常的确定性扫描、dry-run、审计和保守合并见 [`docs/identity-repair.md`](docs/identity-repair.md)。确定性模块只做扫描和 dry-run；经管理员复核后，历史合并通过 `scripts/repair-material-identities.ts --apply --actor admin:<id> --reason "..."` 执行。
+
 技术栈：Node.js 24 · TypeScript · React Router（服务端渲染）· Fastify · PostgreSQL · pg-boss · Tailwind CSS · Docker Compose。内部包名沿用 `@aihot/*`，方便合并上游更新。
 
 ## 致谢与许可

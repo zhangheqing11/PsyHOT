@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { identityKeyForUrl, normalizeUrl, tweetIdFromUrl } from "../packages/backend/src/lib/url.ts";
+import { deterministicIdentityKey } from "../packages/backend/src/content/identity-repair.ts";
 
 test("X and Twitter status URL variants keep the same material identity", () => {
   for (const host of ["x.com", "twitter.com", "www.x.com", "www.twitter.com", "mobile.twitter.com", "m.twitter.com"]) {
@@ -46,6 +47,18 @@ test("invalid and non-HTTP URLs cannot acquire a tweet identity", () => {
     assert.equal(tweetIdFromUrl(url), null, url);
     assert.equal(identityKeyForUrl(url), null, url);
   }
+});
+
+test("identity repair uses deterministic URL, DOI and X keys, never titles", () => {
+  const doi = "https://publisher.example/article?utm_source=feed&doi=10.1234/ABC.7";
+  assert.deepEqual(deterministicIdentityKey(doi), { key: "doi:10.1234/abc.7", kind: "doi" });
+  const tweet = "https://twitter.com/researcher/status/987654321?ref=home";
+  assert.deepEqual(deterministicIdentityKey(tweet), { key: "x:987654321", kind: "x" });
+  const url = "https://example.org/study?utm_campaign=one&b=2&a=1";
+  assert.deepEqual(deterministicIdentityKey(url), { key: identityKeyForUrl(url), kind: "url" });
+  assert.deepEqual(deterministicIdentityKey("https://example.org/changelog#2026-10", "url:https://example.org/changelog#2026-10"), {
+    key: "url:https://example.org/changelog#2026-10", kind: "url",
+  });
 });
 
 test("Xiaohongshu signed links and mobile paths identify a note, never its search token", () => {

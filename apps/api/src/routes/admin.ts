@@ -67,11 +67,17 @@ export function registerAdmin(app: FastifyInstance) {
   // Selection labels (docs/selection.md)
   app.get("/api/admin/labels", adminHandler(async (req) => {
     const f = q(req);
-    return listLabels({ status: f.status as LabelListFilters["status"], queue: f.queue, track: f.track, page: page(req) });
+    return listLabels({
+      status: f.status as LabelListFilters["status"], queue: f.queue, track: f.track, split: f.split,
+      decision: f.decision as LabelListFilters["decision"], q: f.q, page: page(req),
+    });
   }));
-  app.get("/api/admin/labels/export", adminHandler(async (_req, reply) => {
-    reply.header("content-type", "application/x-ndjson; charset=utf-8").header("content-disposition", 'attachment; filename="gold.jsonl"');
-    return exportGold();
+  app.get("/api/admin/labels/export", adminHandler(async (req, reply) => {
+    const f = q(req);
+    const split = f.split === "development" || f.split === "holdout" ? f.split : undefined;
+    const text = await exportGold({ queue: f.queue, split: f.split, decision: f.decision as "select" | "reject" | "either" | "unlabeled" | undefined });
+    reply.header("content-type", "application/x-ndjson; charset=utf-8").header("content-disposition", `attachment; filename="gold-${split ?? "all"}.jsonl"`);
+    return text;
   }));
   app.get("/api/admin/labels/:id", adminHandler(async (req) => ({ label: await labelOf(param(req, "id")) })));
   app.post("/api/admin/labels/:id", adminHandler(async (req, reply, admin) => orNotFound(req, reply, await setLabel(param(req, "id"), body(req), actorOf(admin)))));

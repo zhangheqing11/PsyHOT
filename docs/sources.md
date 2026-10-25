@@ -29,6 +29,8 @@
 
 可选：`summaryIsBody`（订阅里的摘要就是全文）、`allowCategories` / `denyCategories`（按订阅里的分类过滤）。
 
+BMJ Open 的官方 `https://bmjopen.bmj.com/rss/current.xml` 是 RDF RSS，`dc:subject` 带有期刊栏目；PsyHOT 的 BMJ Open 信源只允许 `Open access, Mental health`，不抓整本期刊。
+
 ### web_list
 
 ```json

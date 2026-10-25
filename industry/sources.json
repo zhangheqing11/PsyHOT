@@ -219,6 +219,35 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "rss-bmj-open",
+   "name": "BMJ Open · Mental health collection",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://bmjopen.bmj.com/rss/current.xml",
+    "allowCategories": [
+     "Open access, Mental health"
+    ],
+    "sortByPublishedAt": true,
+    "_aihot": {
+     "initialBackfillLimit": 10
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "期刊",
+    "心理健康",
+    "精神医学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "rss-american-journal-psychiatry",
    "name": "American Journal of Psychiatry",
    "kind": "json_list",

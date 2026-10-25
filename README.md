@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>每天读完心理学和精神医学的新研究，挑出值得看的几条。</b><br>
-  期刊、预印本、学会、监管机构和媒体，94 个公开信源，学界和业界都收；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
+  期刊、预印本、学会、监管机构和媒体，95 个公开信源，学界和业界都收；模型筛选、两次独立评分、中文摘要，每天早上 8 点出一份心理学日报。
 </p>
 
 <p align="center">
@@ -69,12 +69,12 @@ PsyHOT 基于 [AIHOT](https://github.com/KKKKhazix/AIHOT) 开源框架改造。�
 
 ## 信源
 
-94 个正文信源，另有 123 个只作热度信号、1 个暂停，全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊、学会和政府机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
+95 个正文信源，另有 123 个只作热度信号、1 个暂停，全部用项目自己的抓取代码验证过能抓到、最近仍在更新。期刊、学会和政府机构官网是 T1，预印本和媒体是 T2（预印本没有经过同行评审，入选门槛更高）。站内默认只显示摘要和原文链接。
 
 | 方向 | 信源 |
 |---|---|
 | 综合与综述 | Nature Human Behaviour、Communications Psychology、Nature Reviews Psychology、Psychological Science、Perspectives on Psychological Science、Current Directions in Psychological Science、Psychological Science in the Public Interest |
-| 精神医学与心理健康 | The Lancet Psychiatry、JAMA Psychiatry、American Journal of Psychiatry、World Psychiatry、Nature Mental Health、Biological Psychiatry |
+| 精神医学与心理健康 | The Lancet Psychiatry、BMJ Open（Mental health collection）、JAMA Psychiatry、American Journal of Psychiatry、World Psychiatry、Nature Mental Health、Biological Psychiatry |
 | 临床、治疗与咨询 | Clinical Psychological Science、Clinical Psychology Review、Behaviour Research and Therapy、Psychotherapy Research、Counselling and Psychotherapy Research、Journal of Counseling & Development |
 | 认知 | Trends in Cognitive Sciences、Cognition、Cognitive Psychology、Cognitive Science |
 | 社会、人格与跨文化 | Personality and Social Psychology Review、Journal of Experimental Social Psychology、Journal of Cross-Cultural Psychology |

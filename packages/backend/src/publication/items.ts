@@ -1,7 +1,7 @@
 // Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
 // items through these functions; visibility, release gate and body licences are applied here.
 import { categoryMembers, toPublicApiCategory, TRACK_CATEGORIES, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
-import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, SourceScope, XPostView } from "@aihot/contracts/site";
+import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
 import { sql, type Db } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 import { displayTags } from "./rules.ts";
@@ -120,13 +120,6 @@ export function regionCondition(region: RegionKey | null | undefined) {
   // Keep this condition usable in every publication query, including timeline CTEs that do not join
   // sources until hydration. The source table remains the single owner of the region attribute.
   return sql`AND p.source_id IN (SELECT id FROM sources WHERE region = ${region})`;
-}
-
-/** Internal site view for fixed WeChat accounts. Keep source family separate from article channel. */
-export function sourceScopeCondition(source: SourceScope | null | undefined) {
-  if (!source) return sql``;
-  if (source === "wechat") return sql`AND p.source_id IN (SELECT id FROM sources WHERE kind = 'mp_account')`;
-  return sql``;
 }
 
 export function tagCondition(tag: string | null | undefined) {

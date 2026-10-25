@@ -48,29 +48,18 @@ export function RegionTabs({ base, track, region, layoutId, size = "sm", classNa
   return <PillTabs items={[{ key: "all", label: "全部地区" }, { key: "domestic", label: "国内" }, { key: "international", label: "国际" }]} active={active} onSelect={go} layoutId={layoutId} label="地区" size={size} className={className} />;
 }
 
-export function CategoryTabs({ base, category, channel = "all", track, layoutId, size = "md", className = "", categoryKeys, includeChannels = true }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; layoutId: string; size?: "md" | "sm"; className?: string; categoryKeys?: readonly CategoryKey[]; includeChannels?: boolean }) {
+export function CategoryTabs({ base, category, channel = "all", track, layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
   const [params] = useSearchParams();
-  const candidates = categoryKeys ?? PUBLIC_API_CATEGORY_KEYS;
-  const visibleCategories = FEATURES.tracks
-    ? (track ? candidates.filter((key) => CATEGORY_TRACK[key] === track) : (categoryKeys ? [...candidates] : []))
-    : [...candidates];
+  const categoryKeys = FEATURES.tracks
+    ? (track ? PUBLIC_API_CATEGORY_KEYS.filter((key) => CATEGORY_TRACK[key] === track) : [])
+    : [...PUBLIC_API_CATEGORY_KEYS];
   const items = [
     { key: "all", label: "全部", to: hrefWith(base, params, { category: null, channel: null }) },
-    ...(includeChannels ? [{ key: "firstParty", label: CHANNEL_LABELS.firstParty, to: hrefWith(base, params, { category: null, channel: "firstParty" }) }] : []),
-    ...visibleCategories.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k, channel: null }) })),
+    { key: "firstParty", label: CHANNEL_LABELS.firstParty, to: hrefWith(base, params, { category: null, channel: "firstParty" }) },
+    ...categoryKeys.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k, channel: null }) })),
   ];
-  const active = includeChannels && channel === "firstParty" ? "firstParty" : (category ?? "all");
+  const active = channel === "firstParty" ? "firstParty" : (category ?? "all");
   return <PillTabs items={items} active={active} layoutId={layoutId} label="筛选" size={size} className={className} />;
-}
-
-/** Topic tags used by a page-specific view without making every site tag a global filter. */
-export function TagTabs({ base, tag, tags, layoutId, size = "sm", label = "领域", allLabel = "全部领域", className = "" }: { base: string; tag: string | null; tags: readonly string[]; layoutId: string; size?: "md" | "sm"; label?: string; allLabel?: string; className?: string }) {
-  const [params] = useSearchParams();
-  const items = [
-    { key: "all", label: allLabel, to: hrefWith(base, params, { tag: null }) },
-    ...tags.map((value) => ({ key: value, label: value, to: hrefWith(base, params, { tag: value }) })),
-  ];
-  return <PillTabs items={items} active={tag ?? "all"} layoutId={layoutId} label={label} size={size} className={className} />;
 }
 
 function useSlashFocus(ref: React.RefObject<HTMLInputElement | null>) {

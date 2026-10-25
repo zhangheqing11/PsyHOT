@@ -143,10 +143,22 @@ export interface OutlineEntry {
   level: number;
 }
 
+/** A source abstract and its optional worker-produced Chinese reading. */
+export interface AbstractView {
+  original: string;
+  translation: string | null;
+  language: string | null;
+  doi: string | null;
+  /** Open scholarly metadata provider, or "source" when the feed supplied the abstract. */
+  source: string | null;
+  translationStatus: "pending" | "translated" | "failed" | "skipped" | null;
+}
+
 export interface ItemDetail extends ItemSummary {
   readingMode: "full" | "summary-only";
   author: string | null;
   language: string | null;
+  abstract: AbstractView | null;
   /** Chinese body (translation or Chinese original) and original body, whitelisted HTML. */
   body: { zh: string | null; original: string | null; zhKind: "translation" | "original" | null; complete: boolean } | null;
   outline: OutlineEntry[];
@@ -402,8 +414,9 @@ export interface SiteStats {
 }
 
 /** A reading page transfers one language; the canonical item retains both for exports. */
-export interface SiteItemDetail extends Omit<ItemDetail, "x"> {
+export interface SiteItemDetail extends Omit<ItemDetail, "x" | "abstract"> {
   x: Omit<XPostView, "text" | "translation"> | null;
+  abstract: (Omit<AbstractView, "original" | "translation"> & { original: string | null; translation: string | null }) | null;
   hasTranslation: boolean;
   bodyLanguage: "zh" | "original";
 }

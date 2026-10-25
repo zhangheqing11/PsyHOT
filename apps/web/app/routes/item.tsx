@@ -121,6 +121,8 @@ export default function ItemPage() {
 
   const bodyHtml = lang === "zh" ? (item.body?.zh ?? item.body?.original) : (item.body?.original ?? item.body?.zh);
   const bodyLabel = !item.body ? null : lang === "zh" && item.body.zhKind === "translation" ? "正文 · AI 翻译" : lang === "original" && hasTranslation ? "正文 · 原文" : "正文";
+  const abstractText = lang === "zh" ? (item.abstract?.translation ?? item.abstract?.original) : (item.abstract?.original ?? item.abstract?.translation);
+  const abstractLabel = lang === "zh" && item.abstract?.translation ? "摘要 · AI 翻译" : "摘要 · 原文";
   const isX = item.channel === "x" && !!item.x;
   const publishedIso = item.publishedAt ?? item.discoveredAt;
   const summaryOnly = item.readingMode === "summary-only";
@@ -307,6 +309,31 @@ export default function ItemPage() {
             <section className={isX ? "mt-4" : "mt-7 xl:mt-8"}>
               <div className="mb-2 text-[12px] font-semibold text-accent">{summaryOnly ? "摘要" : "AI 导读"}</div>
               <p className="text-[18px] leading-[1.7] text-ink xl:text-[20px] xl:leading-[1.7]">{item.summary}</p>
+            </section>
+          )}
+
+          {item.abstract && abstractText && (
+            <section className="mt-7 border-t border-line pt-4 xl:mt-8">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="text-[12px] text-ink-4">{abstractLabel}</span>
+                {hasTranslation && (
+                  <PillTabs
+                    size="xs"
+                    layoutId="item-abstract-lang"
+                    label="摘要语言"
+                    active={lang}
+                    items={[
+                      { key: "zh", label: "中文", prefetch: "intent", replace: true, to: `/items/${item.id}` },
+                      { key: "original", label: "原文", prefetch: "intent", replace: true, to: `/items/${item.id}/original` },
+                    ]}
+                  />
+                )}
+              </div>
+              <p className="text-[16px] leading-[1.8] text-ink-2">{abstractText}</p>
+              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-4">
+                {item.abstract.doi && <span>DOI：{item.abstract.doi}</span>}
+                {item.abstract.source && <span>摘要来源：{item.abstract.source}</span>}
+              </div>
             </section>
           )}
 

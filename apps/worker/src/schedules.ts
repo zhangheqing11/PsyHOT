@@ -6,6 +6,7 @@ import { ensureQueue, recordRun } from "@aihot/backend/jobs/queue";
 import { sweepUnprocessed } from "@aihot/backend/jobs/content";
 import { enrichThinAbstracts } from "@aihot/backend/content/abstracts";
 import { translatePending } from "@aihot/backend/editorial/translate";
+import { translateAbstracts } from "@aihot/backend/editorial/abstract-translate";
 import { adaptIntervals, scheduleDueSources } from "@aihot/backend/sources/collect";
 import { scheduleMpReconcile } from "@aihot/backend/sources/mp";
 import { refreshSourceIcons } from "@aihot/backend/sources/icons";
@@ -42,6 +43,10 @@ export const SCHEDULES: Scheduled[] = [
   { name: "content.sweep", cron: "*/5 * * * *", run: sweepUnprocessed },
   // Full-text translations of newly selected items (model calls; off with MODEL_CALLS_ENABLED=false).
   { name: "content.translate", cron: "*/5 * * * *", run: () => translatePending() },
+  // Abstract translations for journal and preprint items. This reads only article.excerpt; page loads
+  // never call a model; the worker stays off until ABSTRACT_TRANSLATION_ENABLED=true. Full-text
+  // translations continue through content.translate unchanged.
+  { name: "content.abstract-translations", cron: "*/5 * * * *", run: () => translateAbstracts() },
   { name: "hot.rank", cron: "*/5 * * * *", run: () => computeHotRanking() },
   { name: "hot.snapshot", cron: "2 * * * *", run: () => snapshotHeat() },
   { name: "stories.status", cron: "7 * * * *", run: refreshStoryStatuses },

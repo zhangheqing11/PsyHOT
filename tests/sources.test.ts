@@ -222,6 +222,14 @@ test("noise words match whatever their case", () => {
   assert.equal(noiseFiltered(c("心理学研究课程报名", ""), search), true);
 });
 
+test("RSS category allowlists keep only the selected collection", () => {
+  const selected = { config: { allowCategories: ["Open access, Mental health"] } } as never;
+  const candidate = (categories: string[]) => ({ url: "https://example.org/a", title: "Article", excerpt: null, categories }) as never;
+  assert.equal(noiseFiltered(candidate(["Open access, Mental health"]), selected), false);
+  assert.equal(noiseFiltered(candidate(["Open access, Health informatics"]), selected), true);
+  assert.equal(noiseFiltered(candidate([]), selected), true);
+});
+
 test("search hit marks are no word breaks, and escaped CDATA wrappers keep their titles", async () => {
   const [policy] = await fetchJsonList({ id: "test-json", config: {
     url: `${site}/policy-search.json`, itemsPath: "searchVO.catMap.bumenfile.listVO", titlePaths: ["title"], summaryPaths: ["summary"],

@@ -1,6 +1,16 @@
 {
-  "latestVersion": "2026-10-25T14:09",
+  "latestVersion": "2026-10-25T16:59",
   "releases": [
+    {
+      "date": "2026-10-25",
+      "time": "16:59",
+      "kind": "更新",
+      "title": "新增 BMJ Open 心理健康信源",
+      "body": [
+        "接入 BMJ Open 官方 RSS，但只收录标为 Open access, Mental health 的条目，不把整本综合医学期刊的内容混入心理学信息流。",
+        "首次导入设为 10 篇，后续每 6 小时检查一次；站内仍只展示摘要和原文链接。"
+      ]
+    },
     {
       "date": "2026-10-25",
       "time": "14:09",

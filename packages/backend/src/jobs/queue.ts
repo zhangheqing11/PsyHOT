@@ -1,7 +1,8 @@
 // Job queue on PostgreSQL (pg-boss). Business code enqueues by name; the worker process owns handlers.
-import { PgBoss, type SendOptions } from "pg-boss";
+import { PgBoss, type Job, type SendOptions } from "pg-boss";
 import { config } from "../config.ts";
 import { sql, type Db } from "../db.ts";
+import { BudgetExceededError } from "../providers/receipts.ts";
 
 let boss: PgBoss | null = null;
 let starting: Promise<PgBoss> | null = null;
@@ -88,11 +89,78 @@ export async function enqueue(name: string, data: object, options: SendOptions =
   return b.send(name, data, options);
 }
 
+/** The small part of a pg-boss job needed by the budget wrapper. */
+export type BudgetAwareJob = Pick<Job, "id" | "name">;
+
+export interface BudgetSkipDetail {
+  reason: "budget";
+  service: string;
+  period: string;
+  retryAt: string;
+  retryAfterSeconds: number;
+}
+
+/**
+ * A budget rejection is a pause, not a failed attempt. Move the active pg-boss row back to retry in
+ * one statement so the id and retry_count survive, even when pg-boss's retry limit has been reached.
+ * The worker callback returns normally after this function, so pg-boss's subsequent complete() is a
+ * harmless no-op against the retry row. There is deliberately no send()/enqueue() here: creating a
+ * second job would race the active one and could spend the same receipt twice.
+ *
+ * When runId is supplied, the job transition and its skipped job_runs row are committed together.
+ * Without it, a new skipped row is recorded for queue workers that do not otherwise use recordRun.
+ */
+export async function deferBudgetJob(job: BudgetAwareJob, error: BudgetExceededError, runId?: number): Promise<BudgetSkipDetail | null> {
+  const seconds = Math.max(1, Math.ceil(error.retryAfterSeconds));
+  const retryAt = new Date(Date.now() + seconds * 1000);
+  const detail: BudgetSkipDetail = {
+    reason: "budget",
+    service: error.service,
+    period: error.period,
+    retryAt: retryAt.toISOString(),
+    retryAfterSeconds: seconds,
+  };
+
+  return sql.begin(async (tx) => {
+    // All application queues use pg-boss's unpartitioned default table. The WHERE state guard makes
+    // this safe when an operator cancelled the job or another process settled it first.
+    const [moved] = await tx<{ id: string }[]>`
+      UPDATE pgboss.job
+      SET state = 'retry', start_after = ${retryAt}, heartbeat_on = NULL, completed_on = NULL,
+          output = ${tx.json(detail as never)}
+      WHERE id = ${job.id} AND name = ${job.name} AND state = 'active'
+      RETURNING id`;
+    if (!moved) return null;
+    if (runId === undefined) {
+      await tx`
+        INSERT INTO job_runs (job, status, finished_at, detail)
+        VALUES (${job.name}, 'skipped', now(), ${tx.json(detail as never)})`;
+    } else {
+      await tx`
+        UPDATE job_runs SET status = 'skipped', finished_at = now(), detail = ${tx.json(detail as never)}, error = NULL
+        WHERE id = ${runId}`;
+    }
+    return detail;
+  });
+}
+
+/** Runs one queue callback and defers only an explicit budget rejection. */
+export async function runBudgetAware<T>(job: BudgetAwareJob, fn: () => Promise<T>): Promise<T | undefined> {
+  try {
+    return await fn();
+  } catch (error) {
+    if (!(error instanceof BudgetExceededError)) throw error;
+    const detail = await deferBudgetJob(job, error);
+    if (!detail) throw error;
+    return undefined;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Scheduled task bookkeeping: every run leaves a row, so operators see the latest result.
 // ---------------------------------------------------------------------------
 
-export async function recordRun<T>(job: string, fn: () => Promise<T>): Promise<T> {
+export async function recordRun<T>(job: string, fn: () => Promise<T>, pgBossJob?: BudgetAwareJob): Promise<T | undefined> {
   const [row] = await sql<{ id: number }[]>`INSERT INTO job_runs (job) VALUES (${job}) RETURNING id`;
   try {
     const result = await fn();
@@ -100,6 +168,10 @@ export async function recordRun<T>(job: string, fn: () => Promise<T>): Promise<T
     await sql`UPDATE job_runs SET status = 'ok', finished_at = now(), detail = ${sql.json(detail as never)} WHERE id = ${row!.id}`;
     return result;
   } catch (error) {
+    if (error instanceof BudgetExceededError && pgBossJob) {
+      const deferred = await deferBudgetJob(pgBossJob, error, row!.id);
+      if (deferred) return undefined;
+    }
     await sql`UPDATE job_runs SET status = 'failed', finished_at = now(), error = ${String(error).slice(0, 4000)} WHERE id = ${row!.id}`;
     throw error;
   }

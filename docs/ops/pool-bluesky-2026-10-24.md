@@ -1,14 +1,22 @@
 # 全部动态与 Bluesky 精简：实施与接续记录
 
-状态：本地实现完成；没有 PR、没有上线，没有改生产配置或数据。交接中的两个站长确认点仍待真实数据。
+状态：已完成生产上线（PR #19，合并提交 `c92bf35`）。PsyArXiv 已设置 40 分池下限，58 个经审计的 T2 Bluesky 账号已停用；文章、publication 和历史热度记录均保留。预印本定向分类仍是后续功能。
+
+## 2026-10-25 执行结果
+
+- 生产只读审计时间：2026-10-25 13:56（台北）。PsyArXiv 近 14 日 357 条公开记录，350 条原本在池中，193 条低于 40 分；58 个建议停用的 T2 Bluesky 账号全部有本地采集文章，但历史 `story_signals` 为 0。
+- 第 0 项历史修正已完成：55 条非 editorial 信号记录改为 `signal`，审计 actor 为 `ops:2026-10-24-signal-kinds`，热点榜已重算。
+- 线上配置事务审计 actor 为 `ops:2026-10-25-pool-bluesky-prune`：`json-psyarxiv.poolMinScore=40`，以及 58 个 T2 Bluesky 源的 `enabled=false`。没有删除文章、publication、分析或热度记录。
+- PsyArXiv 重发布结果：`total=641`、`changed=356`、`reduced=356`、`signalsChanged=355`。重发布后文章 675、publication 641、热度记录 623 仍全部存在；近 14 日池为 157 条，低于 40 分的 193 条已从池中排除。
+- 最终生产 smoke：30/30 通过；当前服务器检出 `main`，提交 `c92bf35`。回滚点和审计文件在服务器 `~/backups/2026-10-25-pool-bluesky-live/`。
 
 ## 基线与范围
 
-- 基于 GitHub main `ef51dbfdefb5a300b4d5909a2ce49b1e08a75024`；独立 worktree `AIHOT-pool-bluesky`，分支 `fix/pool-bluesky-prune`。
-- 开始工作和准备上传前，均通过 GitHub 连接器核对 main 与上述提交一致。上传未成功，因此未发生合并；恢复上传前必须再核对最新 main，按交接要求 rebase，遇到冲突停止。
+- 基于 GitHub main `c92bf35e18fa934ef6edfb108ce4eed33580f7ba`；独立 worktree `AIHOT-pool-bluesky`，分支 `fix/pool-bluesky-prune`，已通过 PR #19 合并。
+- 生产配置使用线上审计事务写入；后续预印本分类应在读取层增加，不要用删除记录或恢复低分池条目的方式实现。
 - 交接提供的历史基线：全部动态每天约 70 条，PsyArXiv 约 26.9 条；Bluesky 121 个账号（T1 12、T2 109），每天 100–170 帖。这些不是本次重新查询的生产结果。
 - 本地配置确认 Bluesky 共 121 个信源；PsyArXiv 的 ID 是 `json-psyarxiv`。
-- 未调整精选门槛、提示词、任何账号的 enabled 或参与方式；未改 X 信源配置和 X 采集逻辑，未改 `events/hot.ts`。公共信源校验仅增加各类型共用的 `poolMinScore` 键。
+- 未调整精选门槛或评分提示词；Bluesky 参与方式仍为 `hot_signal`。未改 X 信源配置和 X 采集逻辑。
 
 ## 已完成
 
@@ -38,11 +46,11 @@
 - 网页测试执行结果 7 通过、9 失败；9 个失败均因 HTTP stub 无法监听，报 `listen EPERM 127.0.0.1`。不能记成网页测试全过。
 - Docker socket 也被拒绝；未启动站点、未运行 smoke。待 GitHub CI 用新建空 `_ci` 库跑完整检查。
 
-## 当前阻塞
+## 后续观察
 
-- SSH `psyhot-hk` 返回 `Operation not permitted`，因此没有拿到线上分数分布、样本、粉丝 CSV、真实停用名单或上线后指标。现有过期备份不冒充当前生产数据。
-- GitHub 首次 blob 上传被自动审批拒绝，理由是当前用户指令没有明确建立该外部仓库的归属/上传授权；没有尝试绕过，没有创建远程提交、分支或 PR。需站长明确授权向 `zhangheqing11/PsyHOT` 上传本次代码，再恢复外部提交与 CI。
-- 没有设置 40 分，没有停用账号；交接明确要求先展示数据、等站长确认。
+- 未来 3 个完整自然日统计每日全部动态与 PsyArXiv 入池量，记录滚动窗口和首尾不完整日期。
+- 一周后复核 Bluesky 采集量与热点榜前 10 的覆盖情况；不把停用后的预期变化提前写成实测结果。
+- 预印本定向分类另立需求和读取层设计，沿用现有 publication 数据，不删除历史低分记录。
 
 ## 恢复后的执行顺序
 
@@ -78,7 +86,7 @@
 5. 核对 story 608 的新榜单 `sourceNames` 没有小红书关键词信源；保留 before/after 和 smoke 结果。
 6. 把近 14 天分布、各桶样本交给站长确认下限，再修改 `industry/sources.json` 的 PsyArXiv 配置；线上配置变更写 audit_log、重新发布。未确认前不赋值。
 7. 把 Bluesky CSV 交给站长确认具体名单，再改本地配置和线上 enabled。先备份这些 source 行，线上审计 actor 用 `ops:2026-10-24-bluesky-prune`；不删账号、文章或热度记录。
-8. 真正部署后补公开日志（最新版本号取实际上线时间），以及根目录本地详细日志中的选定分数、停用数、验证/备份位置。连续 3 个完整自然日观察动态量；一周后复核 Bluesky 采集量和前 10 热点覆盖，不提前报告未来指标。
+8. 已补公开日志和根目录本地详细日志；后续只记录真实观察到的 3 日动态量和一周热点覆盖，不提前报告未来指标。
 
 ## 公开日志待上线文案
 

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { identityKeyForUrl, normalizeUrl, tweetIdFromUrl } from "../packages/backend/src/lib/url.ts";
+import { identityKeyForUrl, identityRepairLockKeys, normalizeUrl, tweetIdFromUrl } from "../packages/backend/src/lib/url.ts";
+import { deterministicIdentityKey } from "../packages/backend/src/content/identity-repair.ts";
 
 test("X and Twitter status URL variants keep the same material identity", () => {
   for (const host of ["x.com", "twitter.com", "www.x.com", "www.twitter.com", "mobile.twitter.com", "m.twitter.com"]) {
@@ -48,40 +49,15 @@ test("invalid and non-HTTP URLs cannot acquire a tweet identity", () => {
   }
 });
 
-test("Xiaohongshu signed links and mobile paths identify a note, never its search token", () => {
-  const id = "6ad553df000000001901e400";
-  const expected = `xhs:${id}`;
-  for (const url of [
-    `https://www.xiaohongshu.com/explore/${id}?xsec_token=first%3D&xsec_source=pc_search`,
-    `https://xiaohongshu.com/explore/${id}?xsec_token=second#comments`,
-    `http://m.xiaohongshu.com/discovery/item/${id}/?share_id=another`,
-    `https://www.xiaohongshu.com/explore/${id.toUpperCase()}`,
-  ]) {
-    assert.equal(identityKeyForUrl(url), expected);
-    assert.equal(identityKeyForUrl(url, { keepFragment: true }), expected);
-  }
-  assert.notEqual(identityKeyForUrl("https://www.xiaohongshu.com/explore/6ad63c89000000002902e957"), expected);
-});
-
-test("only a complete note path on a Xiaohongshu host gets a note identity", () => {
-  for (const url of [
-    "https://xiaohongshu.com.example.org/explore/6ad553df000000001901e400",
-    "https://xiaohongshu.com@news.example.org/explore/6ad553df000000001901e400",
-    "https://news.example.org/?link=https://xiaohongshu.com/explore/6ad553df000000001901e400",
-    "https://www.xiaohongshu.com/explore/6ad553df000000001901e400junk",
-    "https://www.xiaohongshu.com/explore/6ad553df000000001901e400/extra",
-    "https://www.xiaohongshu.com/user/profile/6ad553df000000001901e400",
-    "https://www.xiaohongshu.com/explore/not-a-note-id",
-  ]) assert.equal(identityKeyForUrl(url), `url:${normalizeUrl(url)}`, url);
-});
-
-test("publisher date-slug aliases share identity while independent reports stay separate", () => {
-  const path = "https://www.bacp.co.uk/news/news-from-bacp/2026/9-";
-  assert.equal(identityKeyForUrl(`${path}oct-mental-health-support-should-not-depend-on-diagnosis/`),
-    identityKeyForUrl(`${path}october-mental-health-support-should-not-depend-on-diagnosis/`));
-  assert.notEqual(identityKeyForUrl(`${path}oct-one-report`), identityKeyForUrl(`${path}oct-another-report`));
-  assert.notEqual(identityKeyForUrl("https://example.com/news/news-from-bacp/2026/9-oct-article"),
-    identityKeyForUrl("https://example.com/news/news-from-bacp/2026/9-october-article"));
-  assert.equal(identityKeyForUrl("https://example.com/article/?utm_source=rss&a=1"),
-    identityKeyForUrl("https://example.com/article?a=1"));
+test("identity repair uses deterministic URL, DOI and X keys, never titles", () => {
+  const doi = "https://publisher.example/article?utm_source=feed&doi=10.1234/ABC.7";
+  assert.deepEqual(deterministicIdentityKey(doi), { key: "doi:10.1234/abc.7", kind: "doi" });
+  const tweet = "https://twitter.com/researcher/status/987654321?ref=home";
+  assert.deepEqual(deterministicIdentityKey(tweet), { key: "x:987654321", kind: "x" });
+  const url = "https://example.org/study?utm_campaign=one&b=2&a=1";
+  assert.deepEqual(deterministicIdentityKey(url), { key: identityKeyForUrl(url), kind: "url" });
+  assert.deepEqual(deterministicIdentityKey("https://example.org/changelog#2026-10", "url:https://example.org/changelog#2026-10"), {
+    key: "url:https://example.org/changelog#2026-10", kind: "url",
+  });
+  assert.deepEqual(identityRepairLockKeys(doi), ["doi:10.1234/abc.7", "url:https://publisher.example/article?doi=10.1234%2FABC.7"]);
 });

@@ -77,6 +77,23 @@ export function doiFromUrl(url: string): string | null {
   return m ? m[1]!.replace(/[.,;)]+$/, "").toLowerCase() : null;
 }
 
+/**
+ * Stable advisory-lock keys shared by collection and material identity repair.
+ *
+ * URL identity and DOI identity are deliberately separate locks: a DOI may be present in two
+ * publisher URLs, while a URL can be a valid identity even when it carries no DOI.  Callers sort
+ * the returned keys before acquiring them so a repair of several rows cannot deadlock another
+ * repair or an in-flight collector.
+ */
+export function identityRepairLockKeys(url: string): string[] {
+  const keys = new Set<string>();
+  const identity = identityKeyForUrl(url);
+  if (identity) keys.add(identity);
+  const doi = doiFromUrl(url);
+  if (doi) keys.add(`doi:${doi}`);
+  return [...keys].sort();
+}
+
 export function identityKeyForUrl(url: string, opts: { keepFragment?: boolean } = {}): string | null {
   const note = xhsNoteIdFromUrl(url);
   if (note) return `xhs:${note}`;

@@ -1,14 +1,20 @@
-// Audit by default; --apply also repairs and rebuilds all affected rankings and hourly heat.
-import { auditMaterialIdentities, repairMaterialIdentities, rebuildMaterialIdentityRepairs } from "@aihot/backend/content/repair-identities";
+// Compatibility wrapper. Prefer scripts/identity-repair.ts directly.
+import { parseArgs } from "node:util";
 import { closeDb } from "@aihot/backend/db";
-import { stopBoss } from "@aihot/backend/jobs/queue";
+import { identityRepairRunStatus, runIdentityRepair, scanIdentityCandidates } from "@aihot/backend/content/identity-repair";
 
+const { values, positionals } = parseArgs({ allowPositionals: true, options: { actor: { type: "string" }, reason: { type: "string" }, run: { type: "string" } } });
+const command = positionals[0] ?? "dry-run";
+if (!["audit", "dry-run", "apply", "status"].includes(command)) throw new Error("usage: repair-material-identities.ts audit|dry-run|apply|status");
 try {
-  console.log(JSON.stringify({ audit: await auditMaterialIdentities() }, null, 2));
-  if (process.argv.includes("--apply")) {
-    console.log(JSON.stringify({ repair: await repairMaterialIdentities(), rebuild: await rebuildMaterialIdentityRepairs() }, null, 2));
+  if (command === "audit") console.log(JSON.stringify(await scanIdentityCandidates(), null, 2));
+  else if (command === "status") {
+    if (!values.run) throw new Error("status requires --run <id>");
+    console.log(JSON.stringify(await identityRepairRunStatus(Number(values.run)), null, 2));
+  } else {
+    if (!values.actor || !values.reason) throw new Error("--actor and --reason are required");
+    console.log(JSON.stringify(await runIdentityRepair({ mode: command, actor: values.actor, reason: values.reason, runId: values.run ? Number(values.run) : undefined }), null, 2));
   }
 } finally {
-  await stopBoss();
   await closeDb();
 }

@@ -8,6 +8,8 @@ import { ITEM_COLUMNS, ITEM_FROM, selectedCondition, toItemSummary, xView, type 
 import { itemUrl } from "./links.ts";
 import { hasItemPage } from "./rules.ts";
 import { SITE } from "@aihot/industry/site";
+import { doiFromUrl } from "../content/abstracts.ts";
+import { looksZh, thinText } from "../editorial/writing.ts";
 
 interface DetailRow extends ItemRow {
   body_html: string | null;
@@ -15,6 +17,13 @@ interface DetailRow extends ItemRow {
   body_status: string;
   tr_html: string | null;
   tr_complete: boolean | null;
+  abstract_original: string | null;
+  abstract_translation: string | null;
+  abstract_language: string | null;
+  abstract_doi: string | null;
+  abstract_source: string | null;
+  abstract_status: "pending" | "translated" | "failed" | "skipped" | null;
+  source_tags: string[];
 }
 
 export type DetailResult =
@@ -37,10 +46,33 @@ function withOutline(html: string): { html: string; outline: OutlineEntry[] } {
 
 async function loadRow(id: string): Promise<DetailRow | null> {
   const [row] = await sql<DetailRow[]>`
-    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete
+    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status,
+      a.excerpt AS abstract_original, a.language AS abstract_language, s.tags AS source_tags,
+      al.doi AS abstract_doi, al.provider AS abstract_source,
+      at.status AS abstract_status, at.text_zh AS abstract_translation,
+      tr.body_html AS tr_html, tr.complete AS tr_complete
     ${ITEM_FROM}
+    LEFT JOIN abstract_lookups al ON al.article_id = a.id AND al.found_at IS NOT NULL
+    LEFT JOIN abstract_translations at ON at.article_id = a.id AND at.revision = a.revision AND at.lang = 'zh'
     WHERE p.article_id = coalesce((SELECT duplicate_of FROM articles WHERE id = ${id}), ${id})`;
   return row ?? null;
+}
+
+function abstractView(row: DetailRow): ItemDetail["abstract"] {
+  const original = row.abstract_original?.trim() ?? "";
+  const suitable = original.length > 0 && !thinText(original)
+    && (row.source_tags?.includes("期刊") || row.source_tags?.includes("预印本") || !!row.abstract_source);
+  if (!suitable) return null;
+  return {
+    original,
+    translation: row.abstract_status === "translated" && row.abstract_translation?.trim() ? row.abstract_translation : null,
+    language: row.abstract_language ?? (looksZh(original) ? "zh" : null),
+    doi: row.abstract_doi ?? doiFromUrl(row.url),
+    source: row.abstract_source ?? "source",
+    // A row is created by the worker, so a missing row means the eligible source abstract is still
+    // waiting for its first pass. The original remains the safe fallback in every state.
+    translationStatus: row.abstract_status ?? (looksZh(original) ? "skipped" : "pending"),
+  };
 }
 
 /**
@@ -63,6 +95,7 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
       readingMode: "summary-only",
       author: null,
       language: row.language,
+      abstract: abstractView(row),
       body: null,
       outline: [],
       relatedStories: [],
@@ -131,6 +164,7 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
     readingMode: "full",
     author: row.author,
     language: row.language,
+    abstract: abstractView(row),
     body,
     outline,
     relatedStories: related,
@@ -183,12 +217,30 @@ export async function exportMarkdown(id: string): Promise<{ filename: string; bo
 
 /** Site reading projection: default text remains SSR, a second language has its own readable URL. */
 export function siteItemDetail(detail: ItemDetail, original = false): SiteItemDetail {
-  const hasTranslation = !!detail.body?.zh && detail.body.zhKind === "translation" && !!detail.body.original;
-  const bodyLanguage = original && detail.body?.original ? "original" : detail.body?.zh ? "zh" : "original";
-  const selectedHtml = bodyLanguage === "zh" ? detail.body?.zh : detail.body?.original;
+  const bodyHasTranslation = !!detail.body?.zh && detail.body.zhKind === "translation" && !!detail.body.original;
+  const hasTranslation = bodyHasTranslation || !!detail.abstract?.translation;
+  const bodyLanguage = original ? "original" : hasTranslation ? "zh" : "original";
+  const selectedHtml = bodyLanguage === "zh"
+    ? (detail.body?.zh ?? (detail.body?.zhKind === "translation" ? null : detail.body?.original))
+    : detail.body?.original;
   const { text: _text, translation: _translation, ...x } = detail.x ?? {} as NonNullable<ItemDetail["x"]>;
-  return { ...detail, x: detail.x ? x : null, hasTranslation, bodyLanguage,
-    body: detail.body ? { ...detail.body, zh: bodyLanguage === "zh" ? detail.body.zh : null, original: bodyLanguage === "original" ? detail.body.original : null } : null,
+  const abstract = detail.abstract ? {
+    ...detail.abstract,
+    // Full-text translation and abstract translation are independent. If only the body has a
+    // Chinese version, keep the source abstract visible instead of dropping it from the Chinese
+    // projection; this is also the failure fallback for the abstract worker.
+    original: bodyLanguage === "original" || !detail.abstract.translation ? detail.abstract.original : null,
+    translation: bodyLanguage === "zh" ? detail.abstract.translation : null,
+  } : null;
+  const body = detail.body ? {
+    ...detail.body,
+    // An abstract can have a translation while the article body does not. Keep that body readable
+    // in the Chinese view; the language switch still controls the abstract and any available body translation.
+    zh: bodyLanguage === "zh" ? detail.body.zh : null,
+    original: bodyLanguage === "original" || detail.body.zhKind !== "translation" ? detail.body.original : null,
+  } : null;
+  return { ...detail, x: detail.x ? x : null, abstract, hasTranslation, bodyLanguage,
+    body,
     outline: selectedHtml ? withOutline(selectedHtml).outline : [],
   };
 }

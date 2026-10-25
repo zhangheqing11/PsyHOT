@@ -185,7 +185,9 @@ export function parseRss(xml: string, source: SourceRow, url: string): Candidate
         publishedAt: parseDate(text(it.pubDate) || text(it["dc:date"]) || text(it.published)),
         ...feedText(bodyHtml, description, source),
         media: media.slice(0, 6),
-        categories: arr(it.category).map((c) => text(c)).filter(Boolean),
+        // RDF 1.0 feeds often publish their taxonomy as dc:subject rather than RSS <category>.
+        // Keep both forms so source-level category allowlists see the publisher's real sections.
+        categories: [...arr(it.category), ...arr(it["dc:subject"])].map((c) => text(c)).filter(Boolean),
         raw: { guid: text(it.guid) || null },
       });
     }

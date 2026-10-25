@@ -10,7 +10,7 @@ import { after, test } from "node:test";
 import { config } from "@aihot/backend/config";
 import { sanitizeBody, trimTrailingChrome } from "@aihot/backend/content/sanitize";
 import { fetchDetail, fetchWebList, fromHtml, fromMarkdown } from "@aihot/backend/sources/web-list";
-import { fetchRss } from "@aihot/backend/sources/rss";
+import { fetchRss, parseRss } from "@aihot/backend/sources/rss";
 import { fetchJsonList } from "@aihot/backend/sources/json-list";
 import { noiseFiltered } from "@aihot/backend/sources/collect";
 import { paidIntervalFloor, unsupportedConfig } from "@aihot/backend/sources/config-keys";
@@ -228,6 +228,14 @@ test("RSS category allowlists keep only the selected collection", () => {
   assert.equal(noiseFiltered(candidate(["Open access, Mental health"]), selected), false);
   assert.equal(noiseFiltered(candidate(["Open access, Health informatics"]), selected), true);
   assert.equal(noiseFiltered(candidate([]), selected), true);
+});
+
+test("RDF feeds expose dc:subject as candidate categories", () => {
+  const xml = `<?xml version="1.0"?><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:dc="http://purl.org/dc/elements/1.1/">` +
+    `<item><title>Mental health study</title><link>https://example.org/mental</link><dc:subject>Open access, Mental health</dc:subject></item>` +
+    `<item><title>Other study</title><link>https://example.org/other</link><dc:subject>Open access, Health informatics</dc:subject></item></rdf:RDF>`;
+  const out = parseRss(xml, source({}), "https://example.org/feed.xml");
+  assert.deepEqual(out.map((c) => c.categories), [["Open access, Mental health"], ["Open access, Health informatics"]]);
 });
 
 test("search hit marks are no word breaks, and escaped CDATA wrappers keep their titles", async () => {

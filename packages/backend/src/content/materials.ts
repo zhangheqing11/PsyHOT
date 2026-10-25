@@ -2,7 +2,7 @@
 // It owns identity, revisions and the timeline rule, so no entrance can bypass them.
 import { sql, type Db } from "../db.ts";
 import { newArticleId, sha256 } from "../lib/ids.ts";
-import { identityKeyForUrl, identityRepairLockKeys } from "../lib/url.ts";
+import { identityKeyForUrl, xhsNoteIdFromUrl } from "../lib/url.ts";
 import { collapseWhitespace } from "../lib/text.ts";
 
 export interface MediaItem {
@@ -112,6 +112,7 @@ function sameBarringLoss(a: string | null | undefined, b: string | null | undefi
 }
 
 export function identityKeyFor(m: MaterialInput): string {
+  if (xhsNoteIdFromUrl(m.url)) return identityKeyForUrl(m.url)!;
   if (m.identityKey) return m.identityKey;
   if (m.xPost?.tweetId) return `x:${m.xPost.tweetId}`;
   const fromUrl = identityKeyForUrl(m.url);
@@ -124,18 +125,30 @@ export function identityKeyFor(m: MaterialInput): string {
  * stored content really changes. Concurrent reports of the same material are serialised on the row,
  * so every change gets its own revision number. Returns whether processing is needed.
  */
+// Public counts a listing reports on every pass (Xiaohongshu, X): the newest replace the stored ones
+// without a new revision or analysis. The participant is kept from the first sighting.
+const OBSERVED_COUNTS = ["like_count", "collect_count", "comment_count", "share_count", "favorite", "retweet", "views"] as const;
+
+async function refreshObserved(db: Db, articleId: string, raw: MaterialInput["raw"]) {
+  if (!raw || typeof raw !== "object") return;
+  const r = raw as Record<string, unknown>;
+  const counts: Record<string, number> = {};
+  for (const k of OBSERVED_COUNTS) if (typeof r[k] === "number" && Number.isFinite(r[k])) counts[k] = r[k] as number;
+  const participant = typeof r.participant === "string" && r.participant ? r.participant : null;
+  if (Object.keys(counts).length === 0 && !participant) return;
+  await db`
+    UPDATE articles SET raw = CASE WHEN ${participant}::text IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('participant', ${participant}::text) END
+                              || coalesce(raw, '{}'::jsonb) || ${db.json(counts as never)}
+    WHERE id = ${articleId}
+      AND NOT (coalesce(raw, '{}'::jsonb) @> ${db.json(counts as never)} AND (${participant}::text IS NULL OR coalesce(raw, '{}'::jsonb) ? 'participant'))`;
+}
+
 export async function upsertMaterial(m: MaterialInput, db: Db = sql): Promise<MaterialResult> {
   const run = (tx: Db) => upsertIn(tx, m);
   return "begin" in db ? (db as typeof sql).begin(run) : run(db);
 }
 
 async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
-  // Identity repair takes the same transaction-scoped locks.  This keeps a collector from inserting
-  // a third rendering while a candidate is being inspected or merged.  The lock is deliberately
-  // per deterministic URL/DOI identity rather than a global collection pause.
-  for (const key of identityRepairLockKeys(m.url)) {
-    await db`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
-  }
   const identityKey = identityKeyFor(m);
   const discoveredAt = m.discoveredAt ?? new Date();
   const title = collapseWhitespace(m.title).slice(0, 1000) || m.url;
@@ -166,6 +179,7 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
   await db`INSERT INTO article_discoveries (article_id, source_id, via, discovered_at)
            VALUES (${existing!.id}, ${m.sourceId}, ${m.via}, ${discoveredAt}) ON CONFLICT DO NOTHING`;
   const unchanged: MaterialResult = { articleId: existing!.id, created: false, revised: false, backfill: existing!.backfill };
+  await refreshObserved(db, existing!.id, m.raw);
   // Another source listing the same material (an aggregator, a translated mirror, a hot signal) is a
   // discovery only: its title and summary are its own rendering, and taking them made the article flip
   // between the two sources' versions on every fetch. Only the article's own source revises it.

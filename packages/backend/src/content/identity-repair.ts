@@ -1,7 +1,7 @@
 // Deterministic material identity repair.  This module never calls a provider: it only inspects
 // stored URL/DOI/X identities and writes an auditable duplicate tombstone in a short transaction.
 import { sql, type Db, type Tx } from "../db.ts";
-import { doiFromUrl, identityKeyForUrl, identityRepairLockKeys, tweetIdFromUrl } from "../lib/url.ts";
+import { doiFromUrl, identityKeyForUrl, tweetIdFromUrl } from "../lib/url.ts";
 
 export type RepairMode = "dry-run" | "apply";
 export type RepairRunStatus = "running" | "dry-run" | "applied" | "failed" | "cancelled";
@@ -133,7 +133,7 @@ export async function identityRepairRunStatus(runId: number, db: Db = sql): Prom
   return { run: run ?? null, checkpoints };
 }
 
-async function assertAdminActor(actor: string, db: Db): Promise<void> {
+export async function assertAdminActor(actor: string, db: Db): Promise<void> {
   const match = /^admin:(\d+)$/.exec(actor.trim());
   if (!match) throw new Error("identity repair requires an authenticated admin actor (admin:<admin_users.id>)");
   const [row] = await db<{ id: number }[]>`SELECT id FROM admin_users WHERE id = ${Number(match[1])}`;
@@ -163,46 +163,13 @@ async function upsertCheckpoint(tx: Tx, runId: number, candidate: IdentityCandid
       survivor_id = EXCLUDED.survivor_id, duplicate_ids = EXCLUDED.duplicate_ids, status = EXCLUDED.status, detail = EXCLUDED.detail, updated_at = now()`;
 }
 
-async function lockCandidate(tx: Tx, candidate: IdentityCandidate, rows: CandidateRow[]): Promise<void> {
-  const keys = [...new Set(candidate.articleIds.flatMap((id) => {
-    const row = rows.find((r) => r.id === id);
-    return row ? identityRepairLockKeys(row.url) : [];
-  }))].sort();
-  for (const key of keys) await tx`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))`;
-}
-
-async function applyCandidate(tx: Tx, runId: number, candidateKey: string): Promise<{ candidate: IdentityCandidate | null; detail: Record<string, unknown> }> {
-  let rows = await candidateRows(tx);
-  let candidate = groupRows(rows).find((c) => c.candidateKey === candidateKey) ?? null;
-  if (!candidate) return { candidate: null, detail: { status: "skipped", reason: "candidate disappeared or was already repaired" } };
-  await lockCandidate(tx, candidate, rows);
-  rows = await candidateRows(tx);
-  candidate = groupRows(rows).find((c) => c.candidateKey === candidateKey) ?? null;
-  if (!candidate) return { candidate: null, detail: { status: "skipped", reason: "candidate disappeared or was already repaired" } };
-  await markManualConflicts(tx, [candidate]);
-  if (candidate.manualConflict) return { candidate, detail: { status: "skipped", reason: "manual override conflict" } };
-  const locked = await tx<CandidateRow[]>`SELECT id, url, identity_key, discovered_at, duplicate_of FROM articles WHERE id = ANY(${candidate.articleIds}::text[]) ORDER BY id FOR UPDATE`;
-  const byId = new Map(locked.map((row) => [row.id, row]));
-  const survivor = byId.get(candidate.survivorId);
-  const duplicates = candidate.duplicateIds.map((id) => byId.get(id)).filter((row): row is CandidateRow => !!row && !row.duplicate_of);
-  if (!survivor || survivor.duplicate_of) return { candidate, detail: { status: "skipped", reason: "survivor changed" } };
-  if (!duplicates.length) return { candidate, detail: { status: "skipped", reason: "duplicates changed" } };
-  for (const duplicate of duplicates) {
-    // Tombstone only. Every article-linked row stays on the duplicate id for audit and rollback.
-    await tx`UPDATE articles SET duplicate_of = ${survivor.id}, processing_error = coalesce(processing_error, 'duplicate material; canonical article retained'), updated_at = now()
-      WHERE id = ${duplicate.id} AND duplicate_of IS NULL`;
-  }
-  const detail = { status: "applied", tombstoned: duplicates.length, survivor: survivor.id, associationsPreserved: true };
-  await upsertCheckpoint(tx, runId, candidate, "applied", detail, survivor.id, duplicates.map((row) => row.id));
-  return { candidate, detail };
-}
-
 async function writeAudit(tx: Tx, runId: number, options: RepairRunOptions, before: unknown, after: unknown) {
   await tx`INSERT INTO audit_log (actor, action, subject, reason, before, after) VALUES (${options.actor.trim()}, 'material.identity_repair', ${`material-identity-repair:${runId}`}, ${options.reason.trim()},
     ${before == null ? null : tx.json(before as never)}, ${after == null ? null : tx.json(after as never)})`;
 }
 
 export async function runIdentityRepair(options: RepairRunOptions): Promise<RepairRunReport> {
+  if (options.mode === "apply") throw new Error("identity repair apply is retired; use scripts/repair-material-identities.ts --apply --actor admin:<id> --reason <reason>");
   const runId = await createRun(options);
   const candidates = await scanIdentityCandidates();
   const report: RepairRunReport = { runId, mode: options.mode, status: "running", candidates: candidates.length, applied: 0, skipped: 0, failed: 0, mergedArticles: 0, candidateDetails: candidates };
@@ -215,28 +182,5 @@ export async function runIdentityRepair(options: RepairRunOptions): Promise<Repa
     });
     return report;
   }
-  for (const candidate of candidates) {
-    try {
-      const result = await sql.begin((tx) => applyCandidate(tx, runId, candidate.candidateKey));
-      if (result.detail.status === "applied") { report.applied += 1; report.mergedArticles += Number(result.detail.tombstoned ?? 0); }
-      else report.skipped += 1;
-      if (result.candidate && result.detail.status !== "applied") await sql.begin((tx) => upsertCheckpoint(tx, runId, result.candidate!, "skipped", result.detail));
-    } catch (error) {
-      report.failed += 1;
-      report.status = "failed";
-      report.error = String(error);
-      await sql.begin(async (tx) => {
-        await upsertCheckpoint(tx, runId, candidate, "failed", { status: "failed", error: String(error) });
-        await tx`UPDATE material_identity_repair_runs SET status = 'failed', finished_at = now(), error = ${String(error).slice(0, 2000)}, report = ${tx.json(report as never)} WHERE id = ${runId}`;
-        await writeAudit(tx, runId, options, null, report);
-      });
-      return report;
-    }
-  }
-  report.status = "applied";
-  await sql.begin(async (tx) => {
-    await tx`UPDATE material_identity_repair_runs SET status = 'applied', finished_at = now(), checkpoint = ${tx.json({ candidates: candidates.length, applied: report.applied } as never)}, report = ${tx.json(report as never)} WHERE id = ${runId}`;
-    await writeAudit(tx, runId, options, null, report);
-  });
   return report;
 }

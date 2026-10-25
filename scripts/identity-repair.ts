@@ -1,10 +1,10 @@
 // Deterministic material identity repair.
 //
 //   node --env-file=.env scripts/identity-repair.ts dry-run --actor admin:... --reason "..."
-//   node --env-file=.env scripts/identity-repair.ts apply --actor admin:... --reason "..." [--run <id>]
+//   node --env-file=.env scripts/identity-repair.ts status --run <id>
 //
-// Apply is intentionally an explicit administrator action.  It never calls collectors, providers,
-// models or publication jobs; the JSON report and the database audit row are the recovery record.
+// Apply is retired here; approved historical consolidation runs through
+// scripts/repair-material-identities.ts --apply after a dry-run review.
 import { parseArgs } from "node:util";
 import { closeDb } from "@aihot/backend/db";
 import { identityRepairRunStatus, runIdentityRepair } from "@aihot/backend/content/identity-repair";

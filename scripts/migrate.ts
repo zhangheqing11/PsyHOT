@@ -23,6 +23,7 @@ for (const file of readdirSync(dir).filter((f) => f.endsWith(".sql")).sort()) {
 }
 console.log(count === 0 ? "database is up to date" : `${count} migration(s) applied`);
 // Identity repair is an explicit, authenticated admin operation. Migrations only change schema;
-// they never scan or mutate article relationships. Use scripts/identity-repair.ts for a dry-run/apply.
+// they never scan or mutate article relationships. Use scripts/identity-repair.ts for a dry-run,
+// then scripts/repair-material-identities.ts --apply for an approved legacy repair.
 await stopBoss();
 await closeDb();

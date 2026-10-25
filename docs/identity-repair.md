@@ -1,7 +1,9 @@
 # Material identity repair
 
-`scripts/identity-repair.ts` is an administrator-only maintenance command. It never starts a
-collector, calls a provider/model, republishes an article, or sends a notification.
+`scripts/identity-repair.ts` is an administrator-only inspection command. It never starts a
+collector, calls a provider/model, republishes an article, or sends a notification. The command
+supports deterministic dry-runs and status inspection; its apply mode is retired. Approved legacy
+repairs run through `scripts/repair-material-identities.ts --apply`.
 
 ## Candidate policy
 
@@ -21,24 +23,19 @@ An operator must review the URL/DOI/X evidence in the dry-run report before appl
 node --env-file=.env scripts/identity-repair.ts dry-run \
   --actor admin:42 --reason "review duplicate DOI candidates"
 
-node --env-file=.env scripts/identity-repair.ts apply \
-  --actor admin:42 --reason "approved by incident ticket PSY-123"
-
 node --env-file=.env scripts/identity-repair.ts status --run 17
+
+node --env-file=.env scripts/repair-material-identities.ts --apply \
+  --actor admin:42 --reason "approved by incident ticket PSY-123"
 ```
 
-`--actor` and `--reason` are required for both modes. Dry-run writes only the run/checkpoint report
-and audit row. Apply re-scans each candidate under the collector's URL/DOI advisory locks, then
-tombstones one candidate per transaction. A failed transaction rolls back that candidate; a completed
-candidate is recorded in `material_identity_repair_checkpoints`, so rerunning the same apply run
-can resume after an outage.
+`--actor` and `--reason` are required for a dry-run and for the legacy `--apply` script. Dry-run
+writes only the run/checkpoint report and audit row. The legacy apply script first validates the
+authenticated admin actor, then runs the historical consolidation and rebuild routines and records
+their returned result in `audit_log` as `material.identity_repair.legacy_apply`. Running
+`scripts/identity-repair.ts apply` fails with a message directing operators to that legacy script.
 
-The duplicate article row is never deleted. It receives `articles.duplicate_of`, and the original id
-remains addressable for old links and receipts. Every revision, translation, translation attempt,
-analysis, discovery, grouping decision, fact/article membership, story signal, publication/search
-projection, selected state/ledger row, regroup/abstract lookup, embedding and other article-linked
-record stays attached to the duplicate id. Public readers can resolve the tombstone through the
-existing duplicate-aware publication layer. Manual override conflicts are skipped for operator review.
-Every run and candidate is recorded in the repair tables and `audit_log`. Rollback is a reviewed
-`UPDATE articles SET duplicate_of = NULL` using the checkpoint and audit evidence; because no linked
-rows move, that restores the pre-apply graph exactly. Canonical deletion is outside this command.
+The legacy repair keeps the historical article rows and handles linked evidence, public projections,
+selection state and rebuild checkpoints using the established repair implementation. Review the
+dry-run evidence and the legacy script's audit row before running it; canonical deletion is outside
+this command.

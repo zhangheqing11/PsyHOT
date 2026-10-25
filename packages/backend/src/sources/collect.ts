@@ -8,7 +8,7 @@ import { BudgetExceededError } from "../providers/receipts.ts";
 import { fetchRss } from "./rss.ts";
 import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
-import { fetchJsonList } from "./json-list.ts";
+import { fetchJsonListWithDiagnostics } from "./json-list.ts";
 import { everyInfraXhsNote } from "../providers/everyinfra.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
@@ -24,21 +24,29 @@ export interface CollectResult {
 
 const MAX_ITEMS_PER_RUN = 60;
 
-export function noiseFiltered(c: Candidate, source: SourceRow): boolean {
+/** Stable reason codes used in offline rule tests and fetch-run diagnostics. */
+export function noiseFilterReason(c: Candidate, source: SourceRow): string | null {
   const f = source.config.ingestNoiseFilter;
   const cats: string[] = c.categories ?? [];
-  if (source.config.denyCategories?.some((d: string) => cats.includes(d))) return true;
-  if (source.config.allowCategories?.length && !source.config.allowCategories.some((a: string) => cats.includes(a))) return true;
-  if (!f) return false;
+  const denied = source.config.denyCategories?.find((d: string) => cats.includes(d));
+  if (denied) return `denyCategory:${denied}`;
+  if (source.config.allowCategories?.length && !source.config.allowCategories.some((a: string) => cats.includes(a))) return "allowCategory";
+  if (!f) return null;
   // Case-insensitive: the exemption "agent" keeps "Agent" (words in the lists are lower case).
   const has = (text: string, words: string[] | undefined) => (words ?? []).some((k) => text.includes(k.toLowerCase()));
   const title = c.title.toLowerCase();
   const hay = `${title}\n${(c.excerpt ?? "").toLowerCase()}`;
   // A keyword search returns much that is merely on the topic: with requireMarkers, only items naming
   // one of them (a study, a journal, a guideline, a regulator…) are kept at all.
-  if (f.requireMarkers?.length && !has(hay, f.requireMarkers)) return true;
-  if (has(hay, f.keepIfMatches)) return false;
-  return has(title, f.dropMarkersTitleOnly) || has(hay, f.dropMarkers);
+  if (f.requireMarkers?.length && !has(hay, f.requireMarkers)) return "requireMarkers";
+  if (has(hay, f.keepIfMatches)) return null;
+  if (has(title, f.dropMarkersTitleOnly)) return "dropMarkersTitleOnly";
+  if (has(hay, f.dropMarkers)) return "dropMarkers";
+  return null;
+}
+
+export function noiseFiltered(c: Candidate, source: SourceRow): boolean {
+  return noiseFilterReason(c, source) !== null;
 }
 
 function rewriteUrl(c: Candidate, source: SourceRow): Candidate {
@@ -116,7 +124,18 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
       if (rss.notModified) detail = { notModified: true, httpStatus: 304 };
     }
     else if (source.kind === "web_list") candidates = await fetchWebList(source);
-    else if (source.kind === "json_list") candidates = await fetchJsonList(source);
+    else if (source.kind === "json_list") {
+      const json = await fetchJsonListWithDiagnostics(source);
+      candidates = json.candidates;
+      if (json.exclusions.length) {
+        const mapped: Record<string, number> = {};
+        for (const e of json.exclusions) {
+          const key = e.path ? `${e.reason}:${e.path}` : e.reason;
+          mapped[key] = (mapped[key] ?? 0) + 1;
+        }
+        detail = { ...(detail ?? {}), exclusions: mapped };
+      }
+    }
     else {
       const x = await fetchXSearch(source);
       candidates = x.candidates;
@@ -127,7 +146,16 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
       detail = { pages: x.pages, truncated: x.truncated, backlog: x.backlog.length, backlogPages: x.backlogPages, dropped: x.dropped };
     }
     found = candidates.length;
-    candidates = candidates.filter((c) => allowed(c.url, source)).map((c) => rewriteUrl(c, source)).filter((c) => !noiseFiltered(c, source));
+    const exclusions: Record<string, number> = {};
+    const exclude = (reason: string) => { exclusions[reason] = (exclusions[reason] ?? 0) + 1; };
+    candidates = candidates.flatMap((c) => {
+      if (!allowed(c.url, source)) { exclude("urlRules"); return []; }
+      const rewritten = rewriteUrl(c, source);
+      const reason = noiseFilterReason(rewritten, source);
+      if (reason) { exclude(reason); return []; }
+      return [rewritten];
+    });
+    if (Object.keys(exclusions).length) detail = { ...(detail ?? {}), exclusions };
     if (source.config.sortByPublishedAt) candidates.sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0));
 
     // First import of a new source: bounded, and archived by source time (never "today", never pushed).

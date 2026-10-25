@@ -1,6 +1,6 @@
 // JSON sources: plain JSON APIs, JSON embedded in HTML (script tags, window variables).
 import { credential } from "../config.ts";
-import { guardedFetch } from "../lib/http-fetch.ts";
+import { DEFAULT_UA, guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { blueskyCandidate, type FeedItem } from "./bluesky.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
@@ -42,16 +42,30 @@ export function renderTemplate(template: string, item: unknown): string | null {
   return missing ? null : out;
 }
 
+/** Parse a source supplied timestamp without allowing JavaScript's date rollover. */
 function toDate(v: unknown, unit: string | undefined): Date | null {
   if (v === null || v === undefined || v === "") return null;
-  if (unit === "epoch_ms") return new Date(Number(v));
-  if (unit === "epoch_s") return new Date(Number(v) * 1000);
+  // Crossref date-parts: missing month/day mean the start of the given year/month, always UTC.
+  if (Array.isArray(v)) {
+    if (v.length < 1 || v.length > 3 || !v.every((n) => typeof n === "number" && Number.isInteger(n))) return null;
+    const [year, month = 1, day = 1] = v as number[];
+    if (year! < 1000 || year! > 9999) return null;
+    const date = new Date(Date.UTC(year!, month - 1, day));
+    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day ? date : null;
+  }
+  if (unit === "epoch_ms" || unit === "epoch_s") {
+    const date = new Date(Number(v) * (unit === "epoch_s" ? 1000 : 1));
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
   // 20260922: a calendar day at UTC midnight (some list APIs give dates as yyyymmdd).
   if (unit === "yyyymmdd") {
     const m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(v).trim());
     const d = m ? new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`) : null;
     return d && Number.isFinite(d.getTime()) && d.toISOString().startsWith(`${m![1]}-${m![2]}-${m![3]}`) ? d : null;
   }
+  // A bare number has host-specific Date.parse semantics (for example, "0" is year 2000). Require an
+  // explicit epoch or calendar unit instead of silently assigning a misleading publication date.
+  if (typeof v === "number" || (typeof v === "string" && /^\d+$/.test(v.trim()))) return null;
   const t = Date.parse(String(v));
   return Number.isFinite(t) ? new Date(t) : null;
 }
@@ -152,6 +166,11 @@ function xhsParticipant(item: unknown): { participant?: string } {
 }
 
 export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
+  return (await fetchJsonListWithDiagnostics(source)).candidates;
+}
+
+/** Fetch and map a JSON listing while retaining why records were excluded for run diagnostics. */
+export async function fetchJsonListWithDiagnostics(source: SourceRow): Promise<JsonListParseResult> {
   const c = source.config;
   let everyInfraData: unknown = null;
   if (c.adapter === "everyinfra_xhs" || c.adapter === "everyinfra_x") {
@@ -175,6 +194,8 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
   }
   const url = String(c.url ?? "");
   const headers: Record<string, string> = { accept: "application/json, text/html;q=0.9", ...(c.headers ?? {}) };
+  if (typeof c.userAgent === "string" && c.userAgent.trim()) headers["user-agent"] = c.userAgent.trim();
+  else if (!Object.keys(headers).some((key) => key.toLowerCase() === "user-agent")) headers["user-agent"] = DEFAULT_UA;
   if (/^https:\/\/api\.github\.com\//.test(url)) {
     const token = credential("collectors", "GITHUB_TOKEN");
     if (token) headers.authorization = `Bearer ${token}`;
@@ -196,23 +217,88 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       throw new FetchError("response is not JSON");
     }
   }
+  return parseJsonListDetailed(data, source);
+}
+
+export interface JsonListExclusion {
+  index: number;
+  reason: string;
+  path?: string;
+}
+
+export interface JsonListParseResult {
+  candidates: Candidate[];
+  exclusions: JsonListExclusion[];
+}
+
+/** Map a listing independently of fetching it (also used by offline fixtures). */
+export function parseJsonList(data: unknown, source: SourceRow): Candidate[] {
+  return parseJsonListDetailed(data, source).candidates;
+}
+
+/**
+ * Pure JSON-list mapping with explicit exclusion evidence. The fetcher remains a thin HTTP/provider
+ * wrapper, so source fixtures can exercise mapping, date fallback and filters without network calls.
+ */
+export function parseJsonListDetailed(data: unknown, source: SourceRow): JsonListParseResult {
+  const c = source.config;
   const bluesky = c.adapter === "bluesky_feed";
   let items = c.itemsPath ? getPath(data, c.itemsPath) : c.jsonKey ? getPath(data, c.jsonKey) : c.adapter?.startsWith("everyinfra_") ? getPath(data, "results") : bluesky ? getPath(data, "feed") : data;
   if (c.itemsObjectValues && items && typeof items === "object" && !Array.isArray(items)) items = Object.values(items);
   if (!Array.isArray(items)) throw new FetchError("items path did not resolve to an array");
-  if (c.adapter === "everyinfra_x") return items.map(everyInfraXCandidate).filter((x): x is Candidate => !!x);
-  if (bluesky) return items.map((i) => blueskyCandidate(i as FeedItem)).filter((x): x is Candidate => !!x);
+  if (c.adapter === "everyinfra_x") return { candidates: items.map(everyInfraXCandidate).filter((x): x is Candidate => !!x), exclusions: [] };
+  if (bluesky) return { candidates: items.map((i) => blueskyCandidate(i as FeedItem)).filter((x): x is Candidate => !!x), exclusions: [] };
 
+  if (c.excludePatterns !== undefined && (!c.excludePatterns || typeof c.excludePatterns !== "object" || Array.isArray(c.excludePatterns))) {
+    throw new FetchError("excludePatterns must map field paths to regular-expression strings");
+  }
+  const exclusions = Object.entries(c.excludePatterns ?? {}).map(([path, pattern]) => {
+    if (typeof path !== "string" || !path || typeof pattern !== "string") throw new FetchError("excludePatterns must map field paths to regular-expression strings");
+    try {
+      return [path, new RegExp(pattern, "i")] as const;
+    } catch (error) {
+      throw new FetchError(`invalid regular expression for excludePatterns.${path}: ${String(error).slice(0, 160)}`);
+    }
+  });
+  const datePaths: string[] = c.publishedAtPaths === undefined
+    ? (() => {
+      const path = c.publishedAtPath ?? (c.adapter === "everyinfra_xhs" ? "posted_at" : "");
+      if (typeof path !== "string" || (c.publishedAtPath !== undefined && !path.trim())) throw new FetchError("publishedAtPath must be a non-empty field path");
+      return [path];
+    })()
+    : Array.isArray(c.publishedAtPaths) && c.publishedAtPaths.every((p: unknown) => typeof p === "string" && p.trim())
+      ? c.publishedAtPaths
+      : (() => { throw new FetchError("publishedAtPaths must be an array of field paths"); })();
+  const excluded: JsonListExclusion[] = [];
   const out: Candidate[] = [];
-  for (const item of items) {
-    if (c.requireBoolean && getPath(item, c.requireBoolean.path) !== c.requireBoolean.equals) continue;
-    if (c.minNumeric && !(Number(getPath(item, c.minNumeric.path)) >= Number(c.minNumeric.min))) continue;
-    // A goods note is an advertisement, whatever its words: never ingested.
-    if (c.adapter === "everyinfra_xhs" && getPath(item, "is_goods_note") === true) continue;
+  for (const [index, item] of items.entries()) {
+    const matchingPattern = exclusions.find(([path, pattern]) => {
+      const value = getPath(item, path);
+      return typeof value === "string" && pattern.test(value.trim());
+    });
+    if (matchingPattern) {
+      excluded.push({ index, reason: "exclude-pattern", path: matchingPattern[0] });
+      continue;
+    }
+    if (c.requireBoolean && getPath(item, c.requireBoolean.path) !== c.requireBoolean.equals) {
+      excluded.push({ index, reason: "require-boolean", path: String(c.requireBoolean.path) });
+      continue;
+    }
+    if (c.minNumeric && !(Number(getPath(item, c.minNumeric.path)) >= Number(c.minNumeric.min))) {
+      excluded.push({ index, reason: "min-numeric", path: String(c.minNumeric.path) });
+      continue;
+    }
+    if (c.adapter === "everyinfra_xhs" && getPath(item, "is_goods_note") === true) {
+      excluded.push({ index, reason: "goods-note" });
+      continue;
+    }
     const title = firstString(item, c.titlePaths ?? (c.adapter === "everyinfra_xhs" ? ["title"] : undefined));
     const url = (c.urlTemplate && renderTemplate(c.urlTemplate, item)) || (c.urlTemplateFallback && renderTemplate(c.urlTemplateFallback, item)) ||
       (c.adapter === "everyinfra_xhs" ? renderTemplate("{raw:url}", item) : null);
-    if (!title || !url) continue;
+    if (!title || !url) {
+      excluded.push({ index, reason: !title ? "missing-title" : "missing-url" });
+      continue;
+    }
     const externalId = c.externalIdPath ? getPath(item, c.externalIdPath) : c.adapter === "everyinfra_xhs" ? getPath(item, "id") : null;
     const summary = firstString(item, c.summaryPaths ?? (c.adapter === "everyinfra_xhs" ? ["text"] : undefined));
     const raw = item && typeof item === "object" ? { ...(item as Record<string, unknown>) } : { value: item };
@@ -222,7 +308,7 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       url,
       title: collapseWhitespace(stripTags(unmark(title))),
       author: firstString(item, c.authorPaths ?? (c.adapter === "everyinfra_xhs" ? ["author_name"] : undefined)),
-      publishedAt: toDate(getPath(item, c.publishedAtPath ?? (c.adapter === "everyinfra_xhs" ? "posted_at" : "")), c.publishedAtUnit),
+      publishedAt: datePaths.map((path) => toDate(getPath(item, path), c.publishedAtUnit)).find((date) => date !== null) ?? null,
       excerpt: summary ? collapseWhitespace(stripTags(unmark(summary))).slice(0, 2000) : null,
       bodyText: summaryIsBody ? stripTags(unmark(summary!)) : null,
       bodyStatus: summaryIsBody ? "ok" : "pending",
@@ -231,6 +317,7 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       raw: { externalId: externalId ?? null, ...(c.adapter === "everyinfra_xhs" ? { ...engagementOf(item), ...xhsParticipant(item) } : {}) },
     });
   }
-  if (items.length > 0 && out.length === 0 && !c.requireBoolean && !c.minNumeric) throw new FetchError("no items mapped (check title/url paths)");
-  return out;
+  const intentionallyExcluded = excluded.filter((e) => !e.reason.startsWith("missing-")).length;
+  if (items.length > intentionallyExcluded && out.length === 0 && !c.requireBoolean && !c.minNumeric) throw new FetchError("no items mapped (check title/url paths)");
+  return { candidates: out, exclusions: excluded };
 }

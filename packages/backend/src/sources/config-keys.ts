@@ -14,7 +14,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   ],
   json_list: [
     ...COLLECTED, "url", "adapter", "mode", "method", "headers", "bodyJson", "jsonKey", "windowVar", "itemsPath", "itemsObjectValues",
-    "titlePaths", "summaryPaths", "summaryIsBody", "authorPaths", "publishedAtPath", "publishedAtUnit", "externalIdPath",
+    "titlePaths", "summaryPaths", "summaryIsBody", "authorPaths", "publishedAtPath", "publishedAtPaths", "publishedAtUnit", "externalIdPath", "excludePatterns",
     "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric", "everyinfraAction", "everyinfraParams", "everyinfraDetail", "everyinfraLookbackDays",
   ],
   // X accounts are mostly read in shards, which apply only these.
@@ -39,6 +39,7 @@ const NESTED: Record<string, string[]> = {
 
 const VALUES: Record<string, string[]> = {
   parseMode: ["html", "markdown", "docusaurus_changelog"],
+  publishedAtUnit: ["epoch_ms", "epoch_s", "yyyymmdd"],
 };
 // Values that depend on the kind of source: each adapter belongs to one fetcher.
 const KIND_VALUES: Partial<Record<SourceRow["kind"], Record<string, string[]>>> = {
@@ -53,9 +54,18 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
   for (const [key, value] of Object.entries(config ?? {})) {
     if (!allowed.has(key)) out.push(key);
     else if (key === "poolMinScore" && (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 100)) out.push("poolMinScore（须为 0–100 的数字）");
+    else if (key === "userAgent" && (typeof value !== "string" || !value.trim() || value.length > 300)) out.push("userAgent（须为 1–300 字符的非空字符串）");
+    else if (key === "publishedAtPath" && (typeof value !== "string" || !value.trim())) out.push("publishedAtPath（须为非空字段路径）");
+    else if (key === "publishedAtPaths" && (!Array.isArray(value) || !value.every((p) => typeof p === "string" && p.trim()))) out.push("publishedAtPaths（须为字段路径数组）");
+    else if (key === "excludePatterns" && (!value || typeof value !== "object" || Array.isArray(value) || Object.entries(value).some(([path, pattern]) => !path || typeof pattern !== "string"))) out.push("excludePatterns（须为字段路径到正则字符串的映射）");
+    else if (key === "ingestNoiseFilter" && (!value || typeof value !== "object" || Array.isArray(value))) out.push("ingestNoiseFilter（须为对象）");
     else if ((KIND_VALUES[kind]?.[key] ?? VALUES[key])?.includes(String(value)) === false) out.push(`${key}=${String(value)}`);
     else if (NESTED[key] && value && typeof value === "object") {
-      for (const sub of Object.keys(value)) if (!NESTED[key]!.includes(sub)) out.push(`${key}.${sub}`);
+      for (const [sub, nestedValue] of Object.entries(value)) {
+        if (!NESTED[key]!.includes(sub)) out.push(`${key}.${sub}`);
+        else if (key === "ingestNoiseFilter" && !Array.isArray(nestedValue)) out.push(`${key}.${sub}（须为字符串数组）`);
+        else if (key === "ingestNoiseFilter" && !(nestedValue as unknown[]).every((v) => typeof v === "string" && v.trim())) out.push(`${key}.${sub}（须为字符串数组）`);
+      }
     }
   }
   return out;

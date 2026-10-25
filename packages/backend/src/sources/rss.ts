@@ -43,12 +43,54 @@ function arr<T>(v: T | T[] | undefined | null): T[] {
 
 function parseDate(v: string): Date | null {
   if (!v) return null;
+  // Date.parse silently rolls 30 February into March. Validate a recognizable calendar date before
+  // accepting the timestamp, while retaining RFC 822 and ISO timezone handling below.
+  const iso = /\b(\d{4})[-/](\d{1,2})[-/](\d{1,2})\b/.exec(v);
+  const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  const named = /\b(\d{1,2})\s+([a-z]+)\s+(\d{4})\b/i.exec(v);
+  const namedToken = named?.[2]?.toLowerCase() ?? "";
+  const namedMonth = named && namedToken.length >= 3 ? monthNames.findIndex((name) => name.startsWith(namedToken)) + 1 : 0;
+  const calendar = iso
+    ? { year: Number(iso[1]), month: Number(iso[2]), day: Number(iso[3]) }
+    : named
+      ? { year: Number(named[3]), month: namedMonth, day: Number(named[1]) }
+      : null;
+  if (calendar && (calendar.month < 1 || calendar.month > 12 || calendar.year < 1000 || calendar.year > 9999)) return null;
+  if (calendar) {
+    const check = new Date(Date.UTC(calendar.year, calendar.month - 1, calendar.day));
+    if (check.getUTCFullYear() !== calendar.year || check.getUTCMonth() !== calendar.month - 1 || check.getUTCDate() !== calendar.day) return null;
+  }
   const t = Date.parse(v);
   if (Number.isFinite(t)) return new Date(t);
   // RFC 822 variants with Chinese weekday or odd zones
   const cleaned = v.replace(/星期[一二三四五六日天]/, "").replace(/\s+/g, " ").trim();
   const t2 = Date.parse(cleaned);
   return Number.isFinite(t2) ? new Date(t2) : null;
+}
+
+// Some journal feeds omit pubDate but put a complete publication day in the description. Keep this
+// deliberately narrow: accepted/updated dates, month-only labels and arbitrary prose are not publication
+// evidence, and a standard feed date always wins over this fallback.
+function descriptionPublicationDate(description: string): Date | null {
+  const plain = stripTags(description);
+  if (!/^Publication date:/i.test(plain)) return null;
+  // An online date may follow an issue date, but only before author/abstract text. This avoids taking a
+  // date mentioned by the article's own prose as its publication time.
+  const header = plain.split(/\b(?:Author\(s\)|Abstract):/i)[0]!;
+  const online = /\bAvailable online\s+(\d{1,2})\s+([a-z]+)\s+(\d{4})\b/i.exec(header);
+  const issue = /^Publication date:\s*(?:Available online\s+)?(\d{1,2})\s+([a-z]+)\s+(\d{4})\b/i.exec(plain);
+  return calendarDay(online) ?? calendarDay(issue);
+}
+
+function calendarDay(m: RegExpExecArray | null): Date | null {
+  if (!m) return null;
+  const months = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  const month = months.indexOf(m[2]!.toLowerCase());
+  if (month < 0) return null;
+  const day = Number(m[1]), year = Number(m[3]);
+  if (year < 1000 || year > 9999) return null;
+  const date = new Date(Date.UTC(year, month, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month && date.getUTCDate() === day ? date : null;
 }
 
 function atomLink(links: unknown): string {
@@ -133,7 +175,7 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
   let res = await guardedFetch(url, { headers, timeoutMs: 25_000 });
   // A redirect may have changed destinations, whose ETag namespace is unrelated to the old one.
   if (res.status === 304 && previous && res.url !== previous.responseUrl) {
-    res = await guardedFetch(url, { headers: { accept: headers.accept! }, timeoutMs: 25_000 });
+    res = await guardedFetch(url, { headers: { "user-agent": userAgent, accept: headers.accept! }, timeoutMs: 25_000 });
   }
   const validator: RssValidator = {
     configHash, responseUrl: res.url,
@@ -147,7 +189,7 @@ export async function fetchRss(source: SourceRow, opts: { force?: boolean } = {}
   return { candidates: parseRss(res.text(), source, url), validator, notModified: false };
 }
 
-/** Shared parsing for public feeds. */
+/** Shared parser for public feeds. It performs no network or database work and is safe for fixtures. */
 export function parseRss(xml: string, source: SourceRow, url: string): Candidate[] {
   let doc: Record<string, any>;
   try {
@@ -182,7 +224,7 @@ export function parseRss(xml: string, source: SourceRow, url: string): Candidate
         ...identity(link),
         title,
         author: text(it["dc:creator"]) || text(it.author) || null,
-        publishedAt: parseDate(text(it.pubDate) || text(it["dc:date"]) || text(it.published)),
+        publishedAt: parseDate(text(it.pubDate) || text(it["dc:date"]) || text(it.published)) ?? descriptionPublicationDate(description),
         ...feedText(bodyHtml, description, source),
         media: media.slice(0, 6),
         // RDF 1.0 feeds often publish their taxonomy as dc:subject rather than RSS <category>.

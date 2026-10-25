@@ -30,6 +30,33 @@
 可选：`summaryIsBody`（订阅里的摘要就是全文）、`allowCategories` / `denyCategories`（按订阅里的分类过滤）。
 
 BMJ Open 的官方 `https://bmjopen.bmj.com/rss/current.xml` 是 RDF RSS，`dc:subject` 带有期刊栏目；PsyHOT 的 BMJ Open 信源只允许 `Open access, Mental health`，不抓整本期刊。
+RSS、网页列表和 JSON 信源都使用站点标识明确的默认抓取身份；需要某个官方接口识别信源时，可以在该信源配置
+`userAgent` 覆盖身份（例如 `PsyHOTBot/1.0`）。这个值应继续说明抓取者，不要伪装成浏览器或其他爬虫。
+
+RSS 标准日期缺失或不可解析时，解析描述开头的明确出版日期，如 ScienceDirect 的
+`Publication date: Available online 21 October 2026` 或 `Publication date: 1 February 2026`。
+只接受完整的英文日/月/年，按 UTC 零点存储；月份、日期区间、接收/修改时间或未知格式保持空值，不用发现时间替代。
+
+### json_list（通用 JSON 列表）
+
+```json
+{
+  "url": "https://example.org/works.json",
+  "itemsPath": "message.items",
+  "titlePaths": ["title.0"],
+  "urlTemplate": "https://doi.org/{raw:DOI}",
+  "publishedAtPaths": ["published-online.date-parts.0", "published-print.date-parts.0", "issued.date-parts.0"],
+  "excludePatterns": { "title.0": "^Supplemental Material\\b", "DOI": "\\.supp(?:lement(?:al|ary)?)?(?:[._-]?\\d+)?$" }
+}
+```
+
+- `publishedAtPaths` 按顺序取第一个能解析的日期，缺值、空值和非法日期会继续尝试下一项。未配置时沿用旧的
+  `publishedAtPath` 单一路径；两者同时提供时以 `publishedAtPaths` 为准。现有 `publishedAtUnit`
+  （`epoch_s`、`epoch_ms`、`yyyymmdd`）仍适用。
+- Crossref 的 `[年, 月, 日]` 数组按 UTC 日历严格校验；缺月或缺日时分别用该月 1 日或该年 1 月 1 日，不能据此声称精确到日。
+  所有候选字段都不可解析时日期为空，不默认使用 `created` 或发现时间。
+- `excludePatterns` 是“字段路径 → 正则字符串”的映射，忽略大小写；任一字符串字段匹配就在映射和入库前排除。
+  非法正则会让本次采集失败；若整批都被明确规则排除，采集成功并返回空列表。排除计数和原因会写入抓取运行详情。
 
 ### web_list
 
@@ -132,6 +159,12 @@ EveryInfra 每次调用都计费（约 $0.0056）。`budgets` 表里 `everyinfra
 默认主题发现信源为 `hot_signal`，参与现有事件归组与热度，不把讨论帖自动当作独立报道。
 当前 API 偏向 Top 结果，不提供完整 Latest 时间水位保证。付费调用仍受回执和预算限制。
 EveryInfra 信源的采集间隔由运营配置，自动频率调整不会加快其付费轮询。
+
+关键词或覆盖面很宽的公众号可以配置 `ingestNoiseFilter.requireMarkers`：标题或摘要至少命中一个标记词才会保留，
+并在购买小红书详情或公众号正文前执行；`dropMarkers` 和 `dropMarkersTitleOnly` 随后排除备考、招募、课程等噪声。
+抓取运行详情记录每种规则丢弃的条数，便于知道一批内容为何没有入库。
+
+每个公众号按它的抓取间隔检查一次（查列表按次计费），新文章的正文一并取回。
 
 ### Bluesky（`json_list` 的 `bluesky_feed` 适配器）
 

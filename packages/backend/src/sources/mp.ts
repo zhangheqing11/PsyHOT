@@ -10,7 +10,7 @@ import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { everyInfraMpArticle, everyInfraMpHistory, type EveryInfraMpPost } from "../providers/everyinfra.ts";
 import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
-import { noiseFiltered } from "./collect.ts";
+import { noiseFilterReason } from "./collect.ts";
 import type { Candidate, SourceRow } from "./types.ts";
 
 const MAX_NEW_PER_CHECK = 8;
@@ -84,6 +84,7 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
   }
   const [run] = await sql<{ id: number }[]>`INSERT INTO fetch_runs (source_id, detail) VALUES (${sourceId}, ${sql.json({ reason, collector: "everyinfra" })}) RETURNING id`;
   let created = 0;
+  const exclusions: Record<string, number> = {};
   try {
     // One paid list call per account per 10-minute window, whoever asks.
     const window = `${reason === "schedule" ? "s" : "m"}:${Math.floor(Date.now() / 600_000)}`;
@@ -101,7 +102,11 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
     for (const p of take) {
       if (fetched >= MAX_NEW_PER_CHECK) break;
       // A broad account (a government health account) keeps only what is on topic; the paid body is not fetched for the rest.
-      if (noiseFiltered({ title: p.title, excerpt: null, url: p.url } as Candidate, source as unknown as SourceRow)) continue;
+      const noiseReason = noiseFilterReason({ title: p.title, excerpt: null, url: p.url } as Candidate, source as unknown as SourceRow);
+      if (noiseReason) {
+        exclusions[noiseReason] = (exclusions[noiseReason] ?? 0) + 1;
+        continue;
+      }
       // Same identity rule as every entrance: the long link without tracking parameters. A known post is
       // skipped, unless its body failed for a passing reason: then it is tried again a few times.
       const key = identityKeyForUrl(p.url);
@@ -151,7 +156,8 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok', cursor = ${sql.json(cursor as never)},
         next_fetch_at = now() + make_interval(mins => interval_minutes), updated_at = now()
       WHERE id = ${sourceId}`;
-    await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${history.posts.length}, new_count = ${created} WHERE id = ${run!.id}`;
+    await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${history.posts.length}, new_count = ${created},
+      detail = ${sql.json({ reason, ...(Object.keys(exclusions).length ? { exclusions } : {}) } as never)} WHERE id = ${run!.id}`;
     return { sourceId, status: "ok" as const, found: history.posts.length, created, reused: history.reused };
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).slice(0, 500);

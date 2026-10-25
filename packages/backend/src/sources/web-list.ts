@@ -9,6 +9,12 @@ import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 
 const JINA_PREFIX = "https://r.jina.ai/";
 
+function sourceHeaders(source: SourceRow, accept: string): Record<string, string> {
+  const headers: Record<string, string> = { accept };
+  if (typeof source.config.userAgent === "string" && source.config.userAgent.trim()) headers["user-agent"] = source.config.userAgent.trim();
+  return headers;
+}
+
 /** A time followed by its zone: "10:00Z", "10:00:00+08:00", "10:00:00 +0000", "10:00:00 GMT". */
 const EXPLICIT_ZONE = /\d{1,2}:\d{2}(?::\d{2}(?:\.\d+)?)?\s*(?:Z|[+-]\d{2}:?\d{2}|GMT|UTC)\b/i;
 
@@ -119,7 +125,7 @@ async function fetchListingText(source: SourceRow): Promise<{ text: string; viaJ
     const page = await jinaRead(target, { purpose: "source_listing", subject: `source:${source.id}`, cacheToleranceSeconds: source.config.cacheToleranceSeconds, perRead: true });
     return { text: page.markdown, viaJina: true, base: source.config.baseUrl ?? target };
   }
-  const res = await guardedFetch(url, { headers: { accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8" }, timeoutMs: 25_000 });
+  const res = await guardedFetch(url, { headers: sourceHeaders(source, "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8"), timeoutMs: 25_000 });
   if (res.status !== 200) throw new FetchError(`HTTP ${res.status}`, res.status);
   return { text: res.text(), viaJina: false, base: source.config.baseUrl ?? url };
 }
@@ -232,8 +238,8 @@ function fromDocusaurusChangelog(html: string, base: string, source: SourceRow):
   return out;
 }
 
-async function fetchScript(url: string): Promise<string> {
-  const res = await guardedFetch(url, { timeoutMs: 25_000 });
+async function fetchScript(url: string, source: SourceRow): Promise<string> {
+  const res = await guardedFetch(url, { headers: sourceHeaders(source, "application/javascript, text/javascript;q=0.9,*/*;q=0.8"), timeoutMs: 25_000 });
   if (res.status !== 200) throw new FetchError(`HTTP ${res.status} for ${url}`, res.status);
   return res.text();
 }
@@ -263,7 +269,7 @@ async function fromMimoHome(html: string, base: string, source: SourceRow): Prom
   const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/gi)].map((m) => absolute(m[1], base)).filter((u) => u !== null);
   for (const src of scripts.reverse()) {
     if (routeChunks.length && chunkFile) break;
-    const js = await fetchScript(src);
+    const js = await fetchScript(src, source);
     const route = /\{path:"\/",[^{}]*\}/.exec(js)?.[0];
     if (route) routeChunks = [...route.matchAll(/\.e\("([^"]+)"\)/g)].map((m) => m[1]!);
     const map = /"(static\/js\/async\/)"\+\w+\+"\."\+\(?\{([^}]*)\}\)?\[\w+\]\+"\.js"/.exec(js);
@@ -280,7 +286,7 @@ async function fromMimoHome(html: string, base: string, source: SourceRow): Prom
   for (const id of routeChunks.reverse()) {
     const file = chunkFile(id);
     if (!file) continue;
-    const js = await fetchScript(file);
+    const js = await fetchScript(file, source);
     const at = js.indexOf('sectionTitle:"Blog"');
     if (at < 0) continue;
     const next = js.indexOf("sectionTitle:", at + 1);
@@ -337,7 +343,7 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   let html: string | null = null;
   let body: ExtractedBody | null = null;
   if ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary) {
-    const res = await guardedFetch(url, { timeoutMs: 20_000 });
+    const res = await guardedFetch(url, { headers: sourceHeaders(source, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"), timeoutMs: 20_000 });
     if (res.status === 200) {
       html = res.text();
       if (need.body && /html/.test(res.headers.get("content-type") ?? "")) {

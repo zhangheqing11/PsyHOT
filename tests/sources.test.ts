@@ -260,11 +260,14 @@ test("dates in yyyymmdd and in JSON-LD are read", async () => {
 
 test("industry/sources.json: every seed source passes its config check and the table's limits", async () => {
   const { readFileSync } = await import("node:fs");
-  const { sources } = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; kind: string; config: Record<string, unknown>; interval_minutes?: number }> };
+  const { sources } = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; kind: string; config: Record<string, unknown>; interval_minutes?: number; tier?: string }> };
   assert.equal(new Set(sources.map((s) => s.id)).size, sources.length, "ids are unique");
   for (const s of sources) {
     assert.deepEqual(unsupportedConfig(s.kind as never, s.config), [], s.id);
     assert.ok((s.interval_minutes ?? 60) >= 1 && (s.interval_minutes ?? 60) <= 10080, `${s.id}: interval between 1 and 10080 minutes`);
     assert.ok((s.interval_minutes ?? 60) >= (paidIntervalFloor(s.kind as never, s.config) ?? 0), `${s.id}: not shorter than its paid floor`);
   }
+  const t15 = ["wechat-mindseek", "wechat-psybrain-frontier", "wechat-psychiatry-new-views", "wechat-psynote"];
+  assert.deepEqual(Object.fromEntries(t15.map((id) => [id, sources.find((s) => s.id === id)?.tier])),
+    Object.fromEntries(t15.map((id) => [id, "T1_5"])), "the reviewed research-interpretation sources stay at T1.5");
 });

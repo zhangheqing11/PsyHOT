@@ -19,9 +19,9 @@ export function AbstractSection({ abstract, initialLanguage = "zh" }: { abstract
   const label = translated ? "摘要 · AI 翻译" : language === "original" && both ? "摘要 · 原文" : "摘要";
 
   return (
-    <section className="mt-7 border-t border-line pt-4 xl:mt-8" aria-labelledby="abstract-label">
+    <section className="mt-8 border-t border-line pt-4" aria-labelledby="abstract-label">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <span id="abstract-label" className="text-[12px] text-ink-4">{label}</span>
+        <span id="abstract-label" className="text-[12px] font-semibold text-ink-3">{label}</span>
         {both && (
           <PillTabs
             size="xs"
@@ -36,7 +36,7 @@ export function AbstractSection({ abstract, initialLanguage = "zh" }: { abstract
           />
         )}
       </div>
-      <p className="text-[16px] leading-[1.8] text-ink-2">{text}</p>
+      <p className="text-[16px] leading-[1.9] text-ink-2">{text}</p>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-4">
         {abstract.doi && <span>DOI：{abstract.doi}</span>}
         {abstract.source && <span>摘要来源：{abstract.source}</span>}

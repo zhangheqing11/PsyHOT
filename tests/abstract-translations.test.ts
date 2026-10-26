@@ -82,17 +82,17 @@ test("site projection switches an abstract and falls back to the source after a 
   });
   assert.equal(translated.bodyLanguage, "zh");
   assert.equal(translated.hasTranslation, true);
-  assert.equal(translated.abstract?.original, null);
+  assert.equal(translated.abstract?.original, "Original abstract");
   assert.equal(translated.abstract?.translation, "中文摘要");
   const original = siteItemDetail({ ...detail, abstract: { ...detail.abstract!, translation: "中文摘要", translationStatus: "translated" } }, true);
   assert.equal(original.bodyLanguage, "original");
   assert.equal(original.abstract?.original, "Original abstract");
-  assert.equal(original.abstract?.translation, null);
+  assert.equal(original.abstract?.translation, "中文摘要");
 });
 
 test("worker translates only the current abstract revision and reuses its receipt", async () => {
   config.abstractTranslationEnabled = true;
-  config.abstractTranslationDays = 14;
+  config.abstractTranslationDays = 3;
   const old = await upsertMaterial({
     sourceId: SOURCE,
     url: `https://doi.org/10.1234/abstract-old.${T}`,

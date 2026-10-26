@@ -413,7 +413,7 @@ export interface SiteStats {
   latest: Array<{ id: string; title: string; source: string }>;
 }
 
-/** A reading page transfers one language; the canonical item retains both for exports. */
+/** A reading page transfers one body language; the abstract keeps both strings for its local switch. */
 export interface SiteItemDetail extends Omit<ItemDetail, "x" | "abstract"> {
   x: Omit<XPostView, "text" | "translation"> | null;
   abstract: (Omit<AbstractView, "original" | "translation"> & { original: string | null; translation: string | null }) | null;

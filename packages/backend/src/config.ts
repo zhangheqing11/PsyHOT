@@ -57,9 +57,9 @@ export const config = {
   environmentName: str("AIHOT_ENVIRONMENT", isProduction ? "production" : "development"),
   // Model calls are live unless explicitly disabled (tests, replays).
   modelCallsEnabled: bool("MODEL_CALLS_ENABLED", true),
-  /** Abstract translation stays off until its cost and language behavior are explicitly enabled. */
-  abstractTranslationEnabled: bool("ABSTRACT_TRANSLATION_ENABLED", false),
-  abstractTranslationDays: int("ABSTRACT_TRANSLATION_DAYS", 14),
+  /** Translate recent journal/preprint abstracts by default; the window bounds paid model work. */
+  abstractTranslationEnabled: bool("ABSTRACT_TRANSLATION_ENABLED", true),
+  abstractTranslationDays: int("ABSTRACT_TRANSLATION_DAYS", 3),
   devAdmin: env.DEV_AUTH_ROLE === "admin" ? { displayName: env.DEV_AUTH_DISPLAY_NAME || "Dev Admin" } : null,
   /** The admin password (at least 12 characters). Feishu sign-in below is optional. */
   adminPassword: env.ADMIN_PASSWORD || null,

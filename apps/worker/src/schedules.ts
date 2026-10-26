@@ -43,9 +43,9 @@ export const SCHEDULES: Scheduled[] = [
   { name: "content.sweep", cron: "*/5 * * * *", run: sweepUnprocessed },
   // Full-text translations of newly selected items (model calls; off with MODEL_CALLS_ENABLED=false).
   { name: "content.translate", cron: "*/5 * * * *", run: () => translatePending() },
-  // Abstract translations for journal and preprint items. This reads only article.excerpt; page loads
-  // never call a model; the worker stays off until ABSTRACT_TRANSLATION_ENABLED=true. Full-text
-  // translations continue through content.translate unchanged.
+  // Abstract translations for recent journal and preprint items. This reads only article.excerpt; page
+  // loads never call a model. The configurable day window bounds model work; full-text translations
+  // continue through content.translate unchanged.
   { name: "content.abstract-translations", cron: "*/5 * * * *", run: () => translateAbstracts() },
   { name: "hot.rank", cron: "*/5 * * * *", run: () => computeHotRanking() },
   { name: "hot.snapshot", cron: "2 * * * *", run: () => snapshotHeat() },

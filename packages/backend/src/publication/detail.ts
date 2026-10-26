@@ -224,14 +224,10 @@ export function siteItemDetail(detail: ItemDetail, original = false): SiteItemDe
     ? (detail.body?.zh ?? (detail.body?.zhKind === "translation" ? null : detail.body?.original))
     : detail.body?.original;
   const { text: _text, translation: _translation, ...x } = detail.x ?? {} as NonNullable<ItemDetail["x"]>;
-  const abstract = detail.abstract ? {
-    ...detail.abstract,
-    // Full-text translation and abstract translation are independent. If only the body has a
-    // Chinese version, keep the source abstract visible instead of dropping it from the Chinese
-    // projection; this is also the failure fallback for the abstract worker.
-    original: bodyLanguage === "original" || !detail.abstract.translation ? detail.abstract.original : null,
-    translation: bodyLanguage === "zh" ? detail.abstract.translation : null,
-  } : null;
+  // Abstract language is independent from the article body. Keep both strings in the page payload so
+  // the abstract can switch like PsyBrain, even when the body has no translation or the /original route
+  // is selected.
+  const abstract = detail.abstract ? { ...detail.abstract } : null;
   const body = detail.body ? {
     ...detail.body,
     // An abstract can have a translation while the article body does not. Keep that body readable

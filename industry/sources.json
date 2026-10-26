@@ -7220,7 +7220,7 @@
     "wechatBiz": "MzYyMTE5NTI5OA==",
     "ghid": "gh_302c0940c5ff"
    },
-   "tier": "T2",
+   "tier": "T1_5",
    "first_party": false,
    "owner_entity_id": null,
    "participation_mode": "editorial",
@@ -7312,7 +7312,7 @@
     "nickname": "MindSeek",
     "wechatBiz": "MzE5MTUzMjM4MA=="
    },
-   "tier": "T2",
+   "tier": "T1_5",
    "first_party": false,
    "owner_entity_id": null,
    "participation_mode": "editorial",
@@ -7334,7 +7334,7 @@
     "nickname": "观心日记",
     "wechatBiz": "MzYzNTg4MjQyMg=="
    },
-   "tier": "T2",
+   "tier": "T1_5",
    "first_party": false,
    "owner_entity_id": null,
    "participation_mode": "editorial",
@@ -7381,7 +7381,7 @@
     "nickname": "精神医学新观点",
     "wechatBiz": "MzU3MjgyMjE0MA=="
    },
-   "tier": "T2",
+   "tier": "T1_5",
    "first_party": false,
    "owner_entity_id": null,
    "participation_mode": "editorial",

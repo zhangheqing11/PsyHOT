@@ -328,7 +328,7 @@ async function createFact(db: Db, storyId: number, title: string, frame: Record<
   return row!.id;
 }
 
-async function recordSignal(db: Db, storyId: number, articleId: string, source: { id: string; signal_group_id: string | null }, kind: "editorial" | "signal", observedAt: Date) {
+export async function recordSignal(db: Db, storyId: number, articleId: string, source: { id: string; signal_group_id: string | null }, kind: "editorial" | "signal", observedAt: Date) {
   await db`
     INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
     SELECT ${storyId}, ${articleId}, coalesce(${source.signal_group_id ? participantKey(source) : null}::text, nullif(raw->>'participant', ''), ${participantKey(source)}),

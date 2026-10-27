@@ -174,6 +174,19 @@ EveryInfra 信源的采集间隔由运营配置，自动频率调整不会加快
 
 读 Bluesky 的公开接口，不需要 key。`actor` 用账号的 DID（`did:plc:…`，改名不受影响）。每条帖子以它在 bsky.app 的地址入库，转发也算（日期按转发时间）；帖子带的链接卡片、正文里的链接、引用帖子的链接都写进正文。只有图片或视频、没有文字和链接的帖子跳过。这类信源一般设成 `hot_signal`。
 
+### 网页事件报道（DeepSeek 搜索，`external` 信源 `web-story-lookup`）
+
+不是定时采集的信源，而是热点榜的补充证据。每 6 小时（`hot.web-lookup`），热点候选和近 3 天精选的事件（最多 20 个）用中文标题和原文标题各搜一次 DeepSeek；同一事件 12 小时内只查一次，总共最多 3 次。
+
+- 先按规则筛：没有日期、早于事件首报 3 天以上的不要；论文本身的学术页面（期刊、预印本、PubMed、索引、图书馆代理）不要；已经报道过这个事件的站点不要；标题完全不沾边的不要。
+- 剩下的（最多 10 条）交给归组模型判断一次（`industry/prompts/web-coverage.md`），只留真正在报道或讨论这一个事件的网页，最多 5 条。
+- 留下的网页存为 `hot_signal` 文章（不分析、不进全部动态和精选），直接记为这个事件的信号。参与方是站点（`web:<域名>`），公众号文章按账号（`wechat:<__biz>`）；同一站点只算一次。
+- 预算：`deepseek-tools:search` 每天 150 次。关掉：`WEB_STORY_LOOKUP_ENABLED=false`。
+
+正文兜底：页面直接读不出正文、又没有 Jina key 时，用 DeepSeek 抓取（`deepseek-tools:fetch` 每天 100 次）。站点拒绝了我们（401/403/412/429/451）或有机器人验证（ScienceDirect、卫健委、药监局、健康界）的页面，任何兜底都不去读。关掉：`DEEPSEEK_BODY_FALLBACK=false`。
+
+找新信源：`node --env-file=.env scripts/discover-web-sources.ts ["查询" ...] [--out 报告.md]`，只列出现有信源之外的站点和公众号，不写库。
+
 ## 分级、参与方式与全文
 
 - **分级** `tier`：`T1` 官方一手（官网、官方博客、机构）、`T1_5` 官方账号与准官方创作者、`T2` 媒体与个人、`EXCLUDE_MP` 不参与精选。入选门槛按分级不同（`industry/selection.ts`）。

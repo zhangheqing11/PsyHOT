@@ -1,7 +1,9 @@
 // Web coverage of hot stories (DeepSeek Search, paid per request). Every six hours the leading hot
-// candidates and the recently selected stories are searched by their Chinese title and, when a report
-// has one, its original title. Rules drop what cannot be coverage (no date, older than the story, the
-// paper's own scholarly pages, outlets already counted); one model call per story then keeps only
+// candidates and the stories of the last three days that scored 50 or more (selected or not: a story
+// one source of ours reports can be covered widely elsewhere) are searched by their Chinese title and,
+// when a report has one, its original title. Rules drop what cannot be coverage (no date, older than
+// the story, the paper's own scholarly pages, abstract mirrors and bots, copies of our own WeChat or
+// Xiaohongshu report, outlets already counted); one model call per story then keeps only
 // pages that report or discuss this very study or event. Each kept page is stored as a hot_signal
 // article of the external source web-story-lookup and recorded as a signal of the story; its site is
 // the participant, so a site counts once however many of its pages appear.
@@ -19,9 +21,10 @@ import { recordSignal } from "./group.ts";
 import { hotCandidates } from "./hot.ts";
 
 export const WEB_LOOKUP_SOURCE = "web-story-lookup";
-const STORIES_PER_RUN = 20;
+const STORIES_PER_RUN = 30;
+const MIN_SCORE = 50;
 const BUCKET_HOURS = 12;
-const MAX_LOOKUPS = 3;
+const MAX_LOOKUPS = 2;
 const MAX_JUDGED = 10;
 const MAX_KEPT = 5;
 const BEFORE_FIRST_REPORT_MS = 3 * 24 * 3600 * 1000;
@@ -30,6 +33,9 @@ const MIN_TITLE_OVERLAP = 0.3;
 // The paper itself (journals, preprint servers, indexes, library proxies) is not coverage of it.
 const SCHOLARLY = /(^|\.)(ncbi\.nlm\.nih\.gov|europepmc\.org|semanticscholar\.org|researchgate\.net|academia\.edu|mendeley\.com|ouci\.dntb\.gov\.ua|biorxiv\.org|medrxiv\.org|arxiv\.org|psyarxiv\.com|osf\.io|doi\.org|crossref\.org|openalex\.org|sciencedirect\.com|link\.springer\.com|onlinelibrary\.wiley\.com|tandfonline\.com|journals\.sagepub\.com|academic\.oup\.com|frontiersin\.org|science\.gov|scholar\.archive\.org|cnki\.net|x\.com|twitter\.com|xiaohongshu\.com|psyhot\.cn)$/i;
 const PROXIED = /webvpn|ezproxy|^https-/i;
+// Not anyone discussing the story: machine-translated abstract mirrors, journal-prediction pages, bots.
+const MIRRORS = /(^|\.)(ebiotrade\.com|scilit\.com|epiforecasts\.io|jove\.com|guidelinecentral\.com)$/i;
+const FEDIVERSE_POST = /^\/@/;
 const TWO_LEVEL = /\.(com|net|org|gov|edu|ac|co)\.(cn|uk|au|jp|hk|tw|nz|in|sg)$/i;
 
 /** The site behind a URL: its registrable domain (m.163.com and www.163.com are both 163.com). */
@@ -50,6 +56,14 @@ export function webParticipant(url: string): string | null {
   if (biz && /(^|\.)mp\.weixin\.qq\.com$/i.test(safeHost(url))) return `wechat:${decodeURIComponent(biz)}`;
   const site = siteOf(url);
   return site ? `web:${site}` : null;
+}
+
+function safePath(url: string): string {
+  try {
+    return new URL(url).pathname;
+  } catch {
+    return "";
+  }
 }
 
 function safeHost(url: string): string {
@@ -76,13 +90,15 @@ export function titleOverlap(a: string, b: string): number {
   return (2 * shared) / (A.size + B.size);
 }
 
-interface LookupStory {
+export interface LookupStory {
   id: number;
   title: string;
   firstReportAt: Date;
   titles: string[];
   originalTitle: string | null;
   countedSites: Set<string>;
+  /** Titles of the story's WeChat and Xiaohongshu reports, normalised: their copies elsewhere (网易号, 搜狐号) are the same author. */
+  platformTitles: string[];
 }
 
 export interface Candidate extends WebSearchResult {
@@ -99,7 +115,8 @@ export function screen(story: LookupStory, found: Array<{ query: string; results
       const host = safeHost(r.url);
       const site = siteOf(r.url);
       const participant = webParticipant(r.url);
-      if (!host || !site || !participant || SCHOLARLY.test(host) || PROXIED.test(host) || story.countedSites.has(site)) continue;
+      if (!host || !site || !participant || SCHOLARLY.test(host) || PROXIED.test(host) || MIRRORS.test(host) || story.countedSites.has(site)) continue;
+      if (FEDIVERSE_POST.test(safePath(r.url)) || story.platformTitles.some((t) => norm(r.title).includes(t))) continue;
       if (Math.max(...story.titles.map((t) => titleOverlap(r.title, t))) < MIN_TITLE_OVERLAP) continue;
       const held = best.get(participant);
       if (!held || (r.rerankScore ?? 0) > (held.rerankScore ?? 0)) best.set(participant, { ...r, participant, query });
@@ -126,14 +143,23 @@ async function stories(now: Date): Promise<LookupStory[]> {
   const hot = (await hotCandidates(now)).slice(0, STORIES_PER_RUN).map((r) => Number(r.story_id));
   const recent = await sql<{ id: number }[]>`
     SELECT p.story_id::int AS id, max(p.score) AS score FROM publications p JOIN stories st ON st.id = p.story_id
-    WHERE p.selected AND p.visibility = 'public' AND st.merged_into IS NULL AND coalesce(p.published_at, p.discovered_at) > ${now}::timestamptz - interval '3 days'
+    WHERE (p.selected OR p.score >= ${MIN_SCORE}) AND p.visibility = 'public' AND st.merged_into IS NULL
+      AND coalesce(p.published_at, p.discovered_at) > ${now}::timestamptz - interval '3 days'
+      AND (SELECT count(DISTINCT x.bucket) FROM (SELECT r.request->>'bucket' AS bucket FROM receipts r
+             WHERE r.service = 'deepseek-tools' AND r.purpose = 'web_story_lookup' AND r.subject = 'story:' || p.story_id) x) < ${MAX_LOOKUPS}
     GROUP BY p.story_id ORDER BY score DESC NULLS LAST LIMIT ${STORIES_PER_RUN}`;
-  const ids = [...new Set([...hot, ...recent.map((r) => r.id)])].slice(0, STORIES_PER_RUN);
+  return loadStories([...new Set([...recent.map((r) => r.id), ...hot])]);
+}
+
+/** What a lookup needs of each story: its titles, when it was first reported, the sites already counted. */
+export async function loadStories(ids: number[]): Promise<LookupStory[]> {
   if (!ids.length) return [];
-  const rows = await sql<{ id: number; title: string; first_report_at: Date | null; created_at: Date; reports: Array<{ title: string; original_title: string | null; url: string; at: string }> | null; signal_urls: string[] | null }[]>`
+  const rows = await sql<{ id: number; title: string; first_report_at: Date | null; created_at: Date; reports: Array<{ title: string; original_title: string | null; url: string; at: string; platform: boolean }> | null; signal_urls: string[] | null }[]>`
     SELECT st.id::int AS id, st.title, st.first_report_at, st.created_at,
-      (SELECT json_agg(json_build_object('title', p.title, 'original_title', p.original_title, 'url', p.url, 'at', coalesce(p.published_at, p.discovered_at)) ORDER BY coalesce(p.published_at, p.discovered_at))
-         FROM publications p WHERE p.story_id = st.id AND p.visibility = 'public') AS reports,
+      (SELECT json_agg(json_build_object('title', p.title, 'original_title', p.original_title, 'url', p.url, 'at', coalesce(p.published_at, p.discovered_at),
+                 'platform', s.kind = 'mp_account' OR coalesce(s.config->>'adapter', '') LIKE 'everyinfra_xhs%' OR p.url LIKE '%mp.weixin.qq.com%' OR p.url LIKE '%xiaohongshu.com%')
+               ORDER BY coalesce(p.published_at, p.discovered_at))
+         FROM publications p JOIN sources s ON s.id = p.source_id WHERE p.story_id = st.id AND p.visibility = 'public') AS reports,
       (SELECT array_agg(a.url) FROM story_signals ss JOIN articles a ON a.id = ss.article_id WHERE ss.story_id = st.id) AS signal_urls
     FROM stories st WHERE st.id = ANY(${ids}::bigint[]) AND st.merged_into IS NULL`;
   return rows.map((r) => {
@@ -144,6 +170,7 @@ async function stories(now: Date): Promise<LookupStory[]> {
       id: r.id, title: r.title, firstReportAt: r.first_report_at ?? r.created_at, titles,
       originalTitle: reports.find((p) => p.original_title && p.original_title !== p.title)?.original_title ?? null,
       countedSites: new Set(sites),
+      platformTitles: reports.filter((p) => p.platform).flatMap((p) => [p.title, p.original_title ?? ""]).map(norm).filter((t) => t.length >= 8),
     };
   });
 }
@@ -195,31 +222,40 @@ export async function lookupStoryCoverage(now = new Date()): Promise<WebLookupRe
   out.stories = list.length;
   for (const story of list) {
     const made = await lookupsMade(story.id);
+    if (out.looked >= STORIES_PER_RUN) break;
     if (made.thisBucket || made.count >= MAX_LOOKUPS) continue;
     out.looked += 1;
-    const queries = [story.title, story.originalTitle].filter((q): q is string => !!q);
-    const found: Array<{ query: string; results: WebSearchResult[] }> = [];
-    const receipts: number[] = [];
-    for (const query of queries) {
-      const res = await deepseekSearch(query, { purpose: "web_story_lookup", subject: `story:${story.id}`, window: made.bucket });
-      out.searches += 1;
-      receipts.push(res.receiptId);
-      found.push({ query, results: res.results });
-    }
-    // The bucket is stored on the receipt so the next run knows this story was looked up.
-    await sql`UPDATE receipts SET request = request || ${sql.json({ bucket: made.bucket })} WHERE id = ANY(${receipts}::bigint[])`;
-    const cands = screen(story, found, now);
-    if (cands.length) {
-      out.judged += cands.length;
-      const res = await chatJson({
-        model: await modelFor("group"), purpose: "web_coverage", subject: `story:${story.id}`, promptVersion: promptVersion("web-coverage"),
-        system: promptText("web-coverage"), user: coverageUser(story, cands), schema: CoverageSchema, temperature: 0, maxTokens: 120 + 30 * cands.length,
-      });
-      const yes = new Set(res.data.decisions.filter((d) => d.coverage).map((d) => d.id));
-      for (const c of cands.filter((_, i) => yes.has(`W${i + 1}`)).slice(0, MAX_KEPT)) if (await keep(story, c, now)) out.kept += 1;
-      await completeReceipt(sql, res.receiptId);
-    }
-    for (const id of receipts) await completeReceipt(sql, id);
+    const got = await lookupStory(story, made.bucket, now);
+    out.searches += got.searches;
+    out.judged += got.judged.length;
+    out.kept += got.kept.length;
   }
   return out;
+}
+
+/** One story's lookup: its searches, the candidates the rules let through, and the pages kept as signals. */
+export async function lookupStory(story: LookupStory, bucket: string, now = new Date()): Promise<{ searches: number; judged: Candidate[]; kept: Candidate[] }> {
+  const queries = [story.title, story.originalTitle].filter((q): q is string => !!q);
+  const found: Array<{ query: string; results: WebSearchResult[] }> = [];
+  const receipts: number[] = [];
+  for (const query of queries) {
+    const res = await deepseekSearch(query, { purpose: "web_story_lookup", subject: `story:${story.id}`, window: bucket });
+    receipts.push(res.receiptId);
+    found.push({ query, results: res.results });
+  }
+  // The bucket is stored on the receipt so the next run knows this story was looked up.
+  await sql`UPDATE receipts SET request = request || ${sql.json({ bucket })} WHERE id = ANY(${receipts}::bigint[])`;
+  const judged = screen(story, found, now);
+  const kept: Candidate[] = [];
+  if (judged.length) {
+    const res = await chatJson({
+      model: await modelFor("group"), purpose: "web_coverage", subject: `story:${story.id}`, promptVersion: promptVersion("web-coverage"),
+      system: promptText("web-coverage"), user: coverageUser(story, judged), schema: CoverageSchema, temperature: 0, maxTokens: 120 + 30 * judged.length,
+    });
+    const yes = new Set(res.data.decisions.filter((d) => d.coverage).map((d) => d.id));
+    for (const c of judged.filter((_, i) => yes.has(`W${i + 1}`)).slice(0, MAX_KEPT)) if (await keep(story, c, now)) kept.push(c);
+    await completeReceipt(sql, res.receiptId);
+  }
+  for (const id of receipts) await completeReceipt(sql, id);
+  return { searches: queries.length, judged, kept };
 }

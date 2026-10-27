@@ -1,5 +1,5 @@
 // DeepSeek Search and Fetch: the rules that keep a search result from counting as coverage, the
-// hot-story lookup end to end against local stubs (search, then one judge call; kept pages become
+// lookup end to end against local stubs (an unselected story that scored 65) (search, then one judge call; kept pages become
 // signals of the story under their site), its once-per-twelve-hours limit, and the body fallback
 // never asking a reader for a page whose site refused us.
 import { Reply, stub, tag } from "./setup.ts";
@@ -44,7 +44,7 @@ const provider = await stub((_hit, req) => {
     ] };
   }
   // Other test files leave stories behind; only this file's story is counted.
-  if (req.body.includes(T)) judged += 1;
+  if (req.body.includes(`事件：${TITLE}`)) judged += 1;
   // The judge keeps News-Medical (W1) and turns down the 163.com page (W2).
   const answer = { decisions: [{ id: "W1", coverage: true }, { id: "W2", coverage: false }] };
   return { id: "stub", choices: [{ message: { content: JSON.stringify(answer) } }], usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 } };
@@ -69,8 +69,8 @@ test("sites and participants: registrable domains, WeChat accounts by __biz", ()
   assert.ok(titleOverlap("睡眠节律紊乱与抑郁亚型", "完全无关的标题") < 0.1);
 });
 
-test("screening keeps dated pages from the story's time, off scholarly hosts and uncounted sites, one per site", () => {
-  const story = { id: 1, title: TITLE, firstReportAt: new Date(day(-2)), titles: [TITLE, ORIGINAL], originalTitle: ORIGINAL, countedSites: new Set(["psypost.org"]) };
+test("screening keeps dated pages from the story's time, off scholarly hosts, mirrors and our own copies, from uncounted sites, one per site", () => {
+  const story = { id: 1, title: TITLE, firstReportAt: new Date(day(-2)), titles: [TITLE, ORIGINAL], originalTitle: ORIGINAL, countedSites: new Set(["psypost.org"]), platformTitles: ["抑郁症or精神疾病78的准度协助你辨早期"] };
   const results = [
     { title: ORIGINAL, url: "https://www.news-medical.net/a", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 1, authority: 3 },
     { title: ORIGINAL, url: "https://news-medical.net/b", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 2, authority: 3 },
@@ -78,6 +78,10 @@ test("screening keeps dated pages from the story's time, off scholarly hosts and
     { title: ORIGINAL, url: "https://www.medrxiv.org/a", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 2, authority: 3 },
     { title: ORIGINAL, url: "https://https-pubmed-ncbi-nlm-nih-gov-443.webvpn.ynu.edu.cn/a", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 2, authority: 3 },
     { title: ORIGINAL, url: "https://old.example.org/a", snippet: "", summary: "", siteName: null, date: new Date(day(-30)), rerankScore: 2, authority: 3 },
+    // An abstract mirror, a bot's post, and our own WeChat report copied to 网易号: none is anyone discussing it.
+    { title: ORIGINAL, url: "https://www.ebiotrade.com/newsf/2026-10/a.htm", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 2, authority: 3 },
+    { title: ORIGINAL, url: "https://clinicians-exchange.org/@psychbot/1", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 2, authority: 3 },
+    { title: `${ORIGINAL} 抑郁症 or 精神疾病？78%的准度协助你辨早期！`, url: "https://www.163.com/dy/article/X.html", snippet: "", summary: "", siteName: null, date: new Date(day(-1)), rerankScore: 2, authority: 3 },
   ];
   const kept = screen(story, [{ query: ORIGINAL, results }], now);
   assert.deepEqual(kept.map((c) => [c.participant, c.url]), [["web:news-medical.net", "https://news-medical.net/b"]]);
@@ -108,18 +112,19 @@ test("a page that only renders in a browser is read through DeepSeek Fetch; a re
   }
 });
 
-test("a selected story is searched by both titles, judged once, and its kept page counts as a signal", async () => {
+test("an unselected story scoring 50 or more is searched by both titles, judged once, and its kept page counts as a signal", async () => {
   await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at) VALUES (${SOURCE}, 'Test dst', 'rss', 'T1', 'editorial', '2100-01-01')`;
   await sql`INSERT INTO sources (id, name, kind, tier, participation_mode) VALUES (${WEB_LOOKUP_SOURCE}, '网页 · 事件报道', 'external', 'T2', 'hot_signal') ON CONFLICT (id) DO NOTHING`;
   const [st] = await sql<{ id: number }[]>`INSERT INTO stories (public_id, title, first_report_at, latest_at) VALUES (${randomUUID()}, ${TITLE}, ${day(-2)}, now()) RETURNING id`;
   const [fact] = await sql<{ id: number }[]>`INSERT INTO facts (public_id, story_id, title) VALUES (${`fact-${randomUUID()}`}, ${st!.id}, ${TITLE}) RETURNING id`;
   const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://www.psypost.org/${T}`, title: ORIGINAL, bodyText: "body ".repeat(80), bodyStatus: "ok", via: "fetch", publishedAt: new Date(day(-2)) });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${articleId}, 1, 'rule', 'pass', 'research', ${TITLE}, '摘要', '理由', 90, true)`;
+            VALUES (${articleId}, 1, 'rule', 'pass', 'research', ${TITLE}, '摘要', '理由', 65, false)`;
   await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${fact!.id}, ${articleId}, 'report')`;
   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
   const [pub] = await sql<{ story_id: number | null; selected: boolean }[]>`SELECT story_id, selected FROM publications WHERE article_id = ${articleId}`;
   assert.equal(Number(pub!.story_id), st!.id);
+  assert.equal(pub!.selected, false, "a story one source reports and nobody selected is searched too");
 
   const first = await lookupStoryCoverage();
   assert.ok(searches.includes(TITLE) && searches.includes(ORIGINAL), "searched by the Chinese and the original title");
@@ -132,7 +137,7 @@ test("a selected story is searched by both titles, judged once, and its kept pag
   assert.equal(page!.processing_state, "skipped", "a coverage page is never analysed");
 
   // Within the same twelve hours the story is not searched again.
-  const ours = () => searches.filter((q) => q.includes(T)).length;
+  const ours = () => searches.filter((q) => q === TITLE || q === ORIGINAL).length;
   const count = ours();
   await lookupStoryCoverage();
   assert.equal(ours(), count);

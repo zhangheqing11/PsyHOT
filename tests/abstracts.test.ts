@@ -25,6 +25,12 @@ const inverted = Object.fromEntries([...new Set(words)].map((w) => [w, words.fla
 const seen: string[] = [];
 const api = await stub((_hit, req) => {
   seen.push(req.url);
+  if (req.url.includes("bad-metadata") && req.url.startsWith("/openalex/")) return {
+    abstract_inverted_index: { [`STRENGTHS AND LIMITATIONS OF THIS STUDY ${"A full body section is not this article's abstract. ".repeat(10)}`]: [0] },
+  };
+  if (req.url.includes("bad-metadata") && req.url.startsWith("/epmc/")) return {
+    resultList: { result: [{ doi: "10.1234/bad-metadata", abstractText: ABSTRACT }] },
+  };
   if (req.url.startsWith(`/crossref/works?filter=alternative-id:${HIT}`)) return { message: { items: [{ DOI }] } };
   if (req.url.startsWith(`/openalex/works/doi:${DOI}`)) return { doi: `https://doi.org/${DOI}`, title: "x", abstract_inverted_index: inverted };
   if (req.url.startsWith("/epmc/")) return { resultList: { result: [] } };
@@ -75,6 +81,11 @@ test("a ScienceDirect item: PII → DOI through Crossref, the abstract from Open
   const polite = seen.filter((u) => /^\/(crossref|openalex)\//.test(u));
   assert.equal(polite.length, 2);
   for (const u of polite) assert.equal(new URL(u, api.url).searchParams.get("mailto"), SITE.contactEmail, "the contact address goes with Crossref and OpenAlex");
+});
+
+test("journal metadata skips an invalid provider result and continues to the next abstract source", async () => {
+  const { found } = await findAbstract({ title: "Study", url: "https://doi.org/10.1234/bad-metadata" }, { journal: true });
+  assert.deepEqual([found?.provider, found?.text], ["europepmc", ABSTRACT]);
 });
 
 test("a found abstract becomes the excerpt in a new revision; a miss is tried again later", async () => {

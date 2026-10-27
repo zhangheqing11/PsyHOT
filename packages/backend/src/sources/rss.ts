@@ -6,6 +6,7 @@ import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { sha256, stableJson } from "../lib/ids.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
+import { journalAbstractIssue } from "../content/journal-abstract.ts";
 
 const parser = new XMLParser({
   ignoreAttributes: false,
@@ -141,7 +142,9 @@ export function isTeaser(text: string): boolean {
 function feedText(bodyHtml: string | null, summaryHtml: string, source: SourceRow): Pick<Candidate, "excerpt" | "bodyHtml" | "bodyText" | "bodyStatus"> {
   const bodyText = bodyHtml ? stripTags(bodyHtml) : null;
   const teaser = !!bodyText && source.participation_mode === "editorial" && isTeaser(bodyText);
-  const excerpt = summaryHtml ? collapseWhitespace(stripTags(summaryHtml)).slice(0, 2000) : teaser ? collapseWhitespace(bodyText!) : null;
+  const summary = summaryHtml ? collapseWhitespace(stripTags(summaryHtml)) : teaser ? collapseWhitespace(bodyText!) : null;
+  const journal = source.kind !== "mp_account" && source.tags?.includes("期刊");
+  const excerpt = journal ? journalAbstractIssue(summary) ? null : summary : summary?.slice(0, 2000) ?? null;
   return bodyText && bodyText.length > 280 && !teaser
     ? { excerpt, bodyHtml, bodyText, bodyStatus: "ok" }
     : { excerpt, bodyHtml: null, bodyText: null, bodyStatus: "pending" };

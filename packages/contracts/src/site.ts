@@ -145,6 +145,8 @@ export interface OutlineEntry {
 
 /** A source abstract and its optional worker-produced Chinese reading. */
 export interface AbstractView {
+  /** Missing/unreliable journal text stays empty until recovered; unavailable requires publisher evidence. */
+  availability?: "available" | "pending" | "unavailable";
   original: string;
   translation: string | null;
   language: string | null;

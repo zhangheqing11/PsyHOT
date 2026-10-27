@@ -7,6 +7,23 @@ const MAX_CHARS = 6000;
 const ABSTRACT_LABEL = /^(?:abstract|摘要)\s*[:：.]?\s*$/i;
 const HEADINGS = "h1, h2, h3, h4, h5, h6";
 
+/** The old feed collector cut every summary at this boundary. Identified HTML/metadata is exempt. */
+export function journalAbstractIssue(raw: string | null | undefined, opts: { identified?: boolean } = {}): string | null {
+  const text = collapseWhitespace(raw ?? "").replace(/^(?:abstract|摘要)\s*[:：.]?\s*/i, "");
+  if (text.length < MIN_CHARS) return "fragment";
+  if (text.length > MAX_CHARS) return "oversized";
+  if (/^(?:STRENGTHS AND LIMITATIONS OF THIS STUDY|Article title\s*:|Publication date\s*:|Author\(s\)\s*:)/i.test(text)) return "not_abstract";
+  if (!opts.identified && raw?.trim().length === 2000) return "legacy_truncation";
+  return null;
+}
+
+/** Only an explicit statement in the publisher's abstract area proves absence. A title never does. */
+export function journalAbstractUnavailable(html: string): boolean {
+  const $ = cheerio.load(html, null, false);
+  return $("#abstract, #Abstract, .abstract, .abstractSection, [role='doc-abstract'], [itemprop='abstract']")
+    .toArray().some((node) => /^(?:abstract\s*[:：.]?\s*)?(?:no abstract (?:is )?available|abstract (?:is )?not available|this article (?:has no|does not have an) abstract)[.!]?$/i.test(collapseWhitespace($(node).text())));
+}
+
 function boundedText(html: string): string | null {
   const $ = cheerio.load(html, null, false);
   $("script, style, noscript, nav, aside, button, form").remove();
@@ -15,7 +32,7 @@ function boundedText(html: string): string | null {
   $("p, div, section, li, h1, h2, h3, h4, h5, h6").append(" ");
   const text = collapseWhitespace($.root().text()).replace(/^(?:abstract|摘要)\s*[:：.]\s*/i, "");
   // Reject an oversized section instead of taking the first 6,000 characters of a full paper.
-  return text.length >= MIN_CHARS && text.length <= MAX_CHARS ? text : null;
+  return journalAbstractIssue(text, { identified: true }) ? null : text;
 }
 
 /** Explicit publisher markup, or the small, heading-only structured abstract stored from Wiley. */

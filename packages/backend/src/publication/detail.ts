@@ -10,6 +10,8 @@ import { hasItemPage } from "./rules.ts";
 import { SITE } from "@aihot/industry/site";
 import { doiFromUrl } from "../content/abstracts.ts";
 import { looksZh, thinText } from "../editorial/writing.ts";
+import { journalAbstractIssue } from "../content/journal-abstract.ts";
+import { sha256 } from "../lib/ids.ts";
 
 interface DetailRow extends ItemRow {
   body_html: string | null;
@@ -23,6 +25,8 @@ interface DetailRow extends ItemRow {
   abstract_doi: string | null;
   abstract_source: string | null;
   abstract_status: "pending" | "translated" | "failed" | "skipped" | null;
+  abstract_identified: boolean;
+  abstract_source_hash: string | null;
   source_tags: string[];
 }
 
@@ -48,11 +52,11 @@ async function loadRow(id: string): Promise<DetailRow | null> {
   const [row] = await sql<DetailRow[]>`
     SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status,
       a.excerpt AS abstract_original, a.language AS abstract_language, s.tags AS source_tags,
-      al.doi AS abstract_doi, al.provider AS abstract_source,
-      at.status AS abstract_status, at.text_zh AS abstract_translation,
+      al.doi AS abstract_doi, al.provider AS abstract_source, (al.found_at IS NOT NULL) AS abstract_identified,
+      at.status AS abstract_status, at.text_zh AS abstract_translation, at.source_hash AS abstract_source_hash,
       tr.body_html AS tr_html, tr.complete AS tr_complete
     ${ITEM_FROM}
-    LEFT JOIN abstract_lookups al ON al.article_id = a.id AND al.found_at IS NOT NULL
+    LEFT JOIN abstract_lookups al ON al.article_id = a.id
     LEFT JOIN abstract_translations at ON at.article_id = a.id AND at.revision = a.revision AND at.lang = 'zh'
     WHERE p.article_id = coalesce((SELECT duplicate_of FROM articles WHERE id = ${id}), ${id})`;
   return row ?? null;
@@ -60,18 +64,25 @@ async function loadRow(id: string): Promise<DetailRow | null> {
 
 function abstractView(row: DetailRow): ItemDetail["abstract"] {
   const original = row.abstract_original?.trim() ?? "";
-  const suitable = row.source_kind !== "mp_account" && original.length > 0 && !thinText(original)
-    && (row.source_tags?.includes("期刊") || row.source_tags?.includes("预印本"));
-  if (!suitable) return null;
+  if (row.source_kind === "mp_account" || row.x_post) return null;
+  const journal = row.source_tags?.includes("期刊");
+  if (!journal && (!row.source_tags?.includes("预印本") || !original || thinText(original))) return null;
+  if (journal && journalAbstractIssue(original, { identified: row.abstract_identified })) return {
+    original: "", translation: null, language: row.abstract_language,
+    doi: row.abstract_doi ?? doiFromUrl(row.url), source: null, translationStatus: null,
+    availability: row.abstract_source === "publisher_no_abstract" ? "unavailable" : "pending",
+  };
+  const status = row.abstract_source_hash === sha256(original) ? row.abstract_status : null;
   return {
+    availability: "available",
     original,
-    translation: row.abstract_status === "translated" && row.abstract_translation?.trim() ? row.abstract_translation : null,
+    translation: status === "translated" && row.abstract_translation?.trim() ? row.abstract_translation : null,
     language: row.abstract_language ?? (looksZh(original) ? "zh" : null),
     doi: row.abstract_doi ?? doiFromUrl(row.url),
     source: row.abstract_source ?? "source",
     // A row is created by the worker, so a missing row means the eligible source abstract is still
     // waiting for its first pass. The original remains the safe fallback in every state.
-    translationStatus: row.abstract_status ?? (looksZh(original) ? "skipped" : "pending"),
+    translationStatus: status ?? (looksZh(original) ? "skipped" : "pending"),
   };
 }
 

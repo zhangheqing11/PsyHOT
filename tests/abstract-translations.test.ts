@@ -176,3 +176,34 @@ test("a metadata lookup does not expose news or WeChat as a paper abstract", asy
     if (result.kind === "found") assert.equal(!!result.detail.abstract, suffix === "journal");
   }
 });
+
+test("public journal abstracts hide unreliable originals and their translations, preserving pending versus confirmed absence", async () => {
+  const bad = `STRENGTHS AND LIMITATIONS OF THIS STUDY ${"The study design and sample limit generalisability. ".repeat(8)}`;
+  const rows = [
+    { suffix: "invalid", excerpt: bad, availability: "pending", provider: "crossref", language: "en" },
+    { suffix: "missing", excerpt: null, availability: "pending", provider: null, language: "en" },
+    { suffix: "unavailable", excerpt: null, availability: "unavailable", provider: "publisher_no_abstract", language: "en" },
+    { suffix: "stale", excerpt: ABSTRACT, availability: "available", provider: null, language: "en" },
+    { suffix: "chinese", excerpt: "本研究考察青少年睡眠质量与情绪变化之间的关系，并采用基线及随访标准化问卷进行测量。结果显示两者存在相关，仍需进一步研究验证，观察性设计不能确认因果关系。".repeat(4), availability: "available", provider: null, language: "zh" },
+  ];
+  for (const fixture of rows) {
+    const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/abstract-state-${T}/${fixture.suffix}`, title: fixture.suffix,
+      excerpt: fixture.excerpt, language: fixture.language, via: "fetch", bodyStatus: "none" });
+    const [a] = await sql`SELECT revision FROM articles WHERE id = ${articleId}`;
+    await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
+      VALUES (${articleId}, ${a!.revision}, 'rule', 'pass', 'research', '标题', '导读', '理由', 90, true)`;
+    if (fixture.provider) await sql`INSERT INTO abstract_lookups (article_id, found_at, provider)
+      VALUES (${articleId}, ${fixture.suffix === "invalid" ? new Date() : null}, ${fixture.provider})`;
+    if (["invalid", "stale"].includes(fixture.suffix)) await sql`INSERT INTO abstract_translations (article_id, revision, lang, source_hash, status, text_zh)
+      VALUES (${articleId}, ${a!.revision}, 'zh', ${abstractSourceHash(fixture.suffix === "invalid" ? bad : "Earlier abstract")}, 'translated', '错误段落的旧翻译')`;
+    await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
+    const result = await loadItemDetail(articleId);
+    assert.equal(result.kind, "found");
+    if (result.kind !== "found") continue;
+    const abstract = result.detail.abstract!;
+    assert.equal(abstract.availability, fixture.availability);
+    assert.equal(abstract.translation, null);
+    assert.equal(abstract.original, fixture.availability === "available" ? fixture.excerpt : "");
+    assert.equal(abstract.translationStatus, fixture.suffix === "chinese" ? "skipped" : fixture.suffix === "stale" ? "pending" : null);
+  }
+});

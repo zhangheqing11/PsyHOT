@@ -60,8 +60,8 @@ async function loadRow(id: string): Promise<DetailRow | null> {
 
 function abstractView(row: DetailRow): ItemDetail["abstract"] {
   const original = row.abstract_original?.trim() ?? "";
-  const suitable = original.length > 0 && !thinText(original)
-    && (row.source_tags?.includes("期刊") || row.source_tags?.includes("预印本") || !!row.abstract_source);
+  const suitable = row.source_kind !== "mp_account" && original.length > 0 && !thinText(original)
+    && (row.source_tags?.includes("期刊") || row.source_tags?.includes("预印本"));
   if (!suitable) return null;
   return {
     original,

@@ -55,12 +55,13 @@ export function isAbstractCandidate(row: {
   language?: string | null;
   tags?: string[] | null;
   lookedUp?: boolean;
+  sourceKind?: string;
   xPost?: unknown;
 }): boolean {
   const excerpt = row.excerpt?.trim() ?? "";
-  if (!excerpt || thinText(excerpt) || row.xPost) return false;
+  if (!excerpt || thinText(excerpt) || row.xPost || row.sourceKind === "mp_account") return false;
   const tags = row.tags ?? [];
-  if (!row.lookedUp && !tags.includes("期刊") && !tags.includes("预印本")) return false;
+  if (!tags.includes("期刊") && !tags.includes("预印本")) return false;
   const language = row.language?.toLowerCase() ?? "";
   return language !== "zh" && !language.startsWith("zh-") && !looksZh(excerpt);
 }
@@ -91,9 +92,9 @@ async function loadCandidates(limit: number): Promise<AbstractCandidate[]> {
     LEFT JOIN abstract_lookups l ON l.article_id = a.id
     LEFT JOIN abstract_translations t
       ON t.article_id = a.id AND t.revision = a.revision AND t.lang = 'zh'
-    WHERE s.enabled AND s.participation_mode = 'editorial' AND a.x_post IS NULL
+    WHERE s.enabled AND s.participation_mode = 'editorial' AND s.kind <> 'mp_account' AND a.x_post IS NULL
       AND a.excerpt IS NOT NULL
-      AND (s.tags @> ARRAY['期刊']::text[] OR s.tags @> ARRAY['预印本']::text[] OR l.found_at IS NOT NULL)
+      AND (s.tags @> ARRAY['期刊']::text[] OR s.tags @> ARRAY['预印本']::text[])
       AND a.discovered_at >= now() - make_interval(days => ${Math.max(1, config.abstractTranslationDays)})
     -- Keep fresh work ahead of already translated rows. The hash is checked in TypeScript because
     -- the database does not need a crypto extension, and a changed excerpt must still be admitted.

@@ -5,8 +5,9 @@ import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { abstractSourceHash, isAbstractCandidate, translateAbstracts } from "@aihot/backend/editorial/abstract-translate";
-import { siteItemDetail } from "@aihot/backend/publication/detail";
+import { loadItemDetail, siteItemDetail } from "@aihot/backend/publication/detail";
 import type { ItemDetail } from "@aihot/contracts/site";
+import { publishArticle } from "@aihot/backend/publication/publish";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 
 const T = tag();
@@ -44,6 +45,8 @@ after(async () => {
 test("abstract candidates are limited to non-Chinese journal/preprint abstracts", () => {
   assert.equal(isAbstractCandidate({ excerpt: ABSTRACT, language: "en", tags: ["期刊"] }), true);
   assert.equal(isAbstractCandidate({ excerpt: ABSTRACT, language: "en", tags: ["机构"] }), false);
+  assert.equal(isAbstractCandidate({ excerpt: ABSTRACT, tags: ["新闻"], lookedUp: true }), false, "a lookup does not turn news into a journal source");
+  assert.equal(isAbstractCandidate({ excerpt: ABSTRACT, tags: ["期刊"], sourceKind: "mp_account" }), false, "WeChat remains outside paper abstracts");
   assert.equal(isAbstractCandidate({ excerpt: "这是一段中文摘要，已经可以直接阅读。".repeat(20), language: "zh", tags: ["期刊"] }), false);
   assert.equal(isAbstractCandidate({ excerpt: "Publication date: 1 January 2026 Source: Journal Author(s): A.", tags: ["期刊"] }), false);
 });
@@ -154,4 +157,22 @@ test("worker translates only the current abstract revision and reuses its receip
   const second = await translateAbstracts({ limit: 1 });
   assert.deepEqual(second, []);
   assert.equal(provider.hits(), 1, "a completed abstract reuses the stored result without a second model call");
+});
+
+
+test("a metadata lookup does not expose news or WeChat as a paper abstract", async () => {
+  for (const [suffix, kind, tags] of [["news", "rss", ["新闻"]], ["wechat", "mp_account", ["期刊"]], ["journal", "rss", ["期刊"]]] as const) {
+    const sourceId = `${SOURCE}-${suffix}`;
+    await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, tags, next_fetch_at, interval_minutes)
+      VALUES (${sourceId}, ${suffix}, ${kind}, 'T1', 'editorial', ${[...tags]}, '2100-01-01', 1440)`;
+    const { articleId } = await upsertMaterial({ sourceId, url: `https://example.com/${T}/${suffix}`, title: suffix, excerpt: ABSTRACT, via: "fetch" });
+    const [a] = await sql`SELECT revision FROM articles WHERE id=${articleId}`;
+    await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
+      VALUES (${articleId}, ${a!.revision}, 'rule', 'pass', 'research', '标题', '导读', '理由', 90, true)`;
+    await sql`INSERT INTO abstract_lookups (article_id, found_at, provider) VALUES (${articleId}, now(), 'crossref')`;
+    await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
+    const result = await loadItemDetail(articleId);
+    assert.equal(result.kind, "found");
+    if (result.kind === "found") assert.equal(!!result.detail.abstract, suffix === "journal");
+  }
 });

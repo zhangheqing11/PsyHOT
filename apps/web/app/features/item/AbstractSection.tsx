@@ -16,6 +16,8 @@ export function AbstractSection({ abstract, initialLanguage = "zh" }: { abstract
   if (!text) return null;
 
   const translated = language === "zh" && abstract.translationStatus === "translated" && !!abstract.translation;
+  const sourceLabel = abstract.source === "stored_html" || abstract.source === "publisher_html"
+    ? "期刊原文" : abstract.source === "source" ? "信源摘要" : abstract.source;
   const label = translated ? "摘要 · AI 翻译" : language === "original" && both ? "摘要 · 原文" : "摘要";
 
   return (
@@ -39,7 +41,7 @@ export function AbstractSection({ abstract, initialLanguage = "zh" }: { abstract
       <p className="text-[16px] leading-[1.8] text-ink-2">{text}</p>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12px] text-ink-4">
         {abstract.doi && <span>DOI：{abstract.doi}</span>}
-        {abstract.source && <span>摘要来源：{abstract.source}</span>}
+        {sourceLabel && <span>摘要来源：{sourceLabel}</span>}
       </div>
       {translated && <p className="mt-3 text-[12px] leading-relaxed text-ink-4">中文由 AI 翻译，仅供参考，以原文为准。</p>}
       {!abstract.translation && abstract.original && <p className="mt-3 text-[12px] leading-relaxed text-ink-4">中文翻译还没有生成，先显示原文。</p>}

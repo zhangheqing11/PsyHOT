@@ -218,7 +218,7 @@ test("legacy deferred or exhausted journal lookups get one quality recovery pass
   assert.equal(publisherHits, hits + 1);
   assert.equal(lookup!.attempts, 7);
   assert.equal(lookup!.found_at, null);
-  assert.match(lookup!.last_error, /^journal-abstract-quality-v1:/);
+  assert.match(lookup!.last_error, /^journal-abstract-quality-v2:/);
   await enrichThinAbstracts();
   assert.equal(publisherHits, hits + 1);
   assert.equal((await sql`SELECT attempts FROM abstract_lookups WHERE article_id = ${id}`)[0]!.attempts, 7);

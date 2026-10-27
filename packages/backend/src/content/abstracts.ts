@@ -1,7 +1,8 @@
 // Recover missing journal abstracts from identified stored/publisher HTML, then open scholarly metadata
 // (ScienceDirect behind a robot check, Taylor & Francis feeds with an empty summary). Metadata uses
 // OpenAlex first (same-day records), then Europe PMC, then Crossref: by DOI when there is one (in the link, or a
-// ScienceDirect PII turned into a DOI through Crossref), otherwise by an exact title match. A found
+// ScienceDirect PII turned into a DOI through Crossref). Journal links without a DOI first resolve
+// their title through Crossref; preprints retain their title-search path. A found
 // abstract becomes the article's excerpt in a new revision, so the item is analysed again in full and
 // scored. Indexes lag, so a miss is retried on a widening schedule and given up after the last try.
 // These are free public APIs: no receipts, no keys; they run only while collection is on. The site's
@@ -26,7 +27,7 @@ const LOOKBACK_DAYS = 45;
 const MIN_ABSTRACT_CHARS = 200;
 const MAX_ABSTRACT_CHARS = 6000;
 /** Existing lookups predate publisher/quality recovery; admit one pass without resetting their retry budget. */
-const JOURNAL_QUALITY_PASS = "journal-abstract-quality-v1:";
+const JOURNAL_QUALITY_PASS = "journal-abstract-quality-v2:";
 
 const apis = () => ({
   openalex: process.env.OPENALEX_API_URL ?? "https://api.openalex.org",
@@ -118,11 +119,16 @@ async function fromEuropePmc(doi: string | null, title: string, clean = cleanAbs
   return clean(hit?.abstractText);
 }
 
+interface CrossrefWork { DOI?: string; title?: string[]; abstract?: string }
+
+async function crossrefTitleMatches(title: string): Promise<CrossrefWork[]> {
+  const data = await getJson(polite(`${apis().crossref}/works?query.bibliographic=${encodeURIComponent(searchTerms(title))}&rows=3&select=DOI,title,abstract`));
+  return (data?.message?.items ?? []).filter((i: CrossrefWork) => i.title?.[0] && sameTitle(i.title[0], title));
+}
+
 async function fromCrossref(doi: string | null, title: string, clean = cleanAbstract): Promise<string | null> {
-  const base = apis().crossref;
-  if (doi) return clean((await getJson(polite(`${base}/works/${encodeURI(doi)}`)))?.message?.abstract);
-  const data = await getJson(polite(`${base}/works?query.bibliographic=${encodeURIComponent(searchTerms(title))}&rows=3&select=DOI,title,abstract`));
-  const item = (data?.message?.items ?? []).find((i: { title?: string[] }) => i.title?.[0] && sameTitle(i.title[0], title));
+  if (doi) return clean((await getJson(polite(`${apis().crossref}/works/${encodeURI(doi)}`)))?.message?.abstract);
+  const item = (await crossrefTitleMatches(title))[0];
   return clean(item?.abstract);
 }
 
@@ -138,10 +144,28 @@ export async function findAbstract(a: { title: string; url: string }, opts: { jo
       errors.push(`crossref pii: ${(error as Error).message}`);
     }
   }
+  // The DOI endpoint can already have an abstract while the provider's title index still lags.
+  // Keep this response for the final Crossref fallback rather than requesting the same work again.
+  let crossrefWork: CrossrefWork | null | undefined;
+  if (opts.journal && !doi) {
+    try {
+      const matches = await crossrefTitleMatches(a.title);
+      const exact = matches.filter((w) => normTitle(w.title![0]!) === normTitle(a.title));
+      const best = exact.length ? exact : matches;
+      const dois = new Set(best.map((w) => doiFromUrl(w.DOI ?? "")).filter((d) => d !== null));
+      crossrefWork = dois.size <= 1 ? best[0] ?? null : null;
+      doi = doiFromUrl(crossrefWork?.DOI ?? "");
+    } catch (error) {
+      errors.push(`crossref title: ${(error as Error).message}`);
+      crossrefWork = null;
+    }
+  }
   const sources = [["openalex", fromOpenAlex], ["europepmc", fromEuropePmc], ["crossref", fromCrossref]] as const;
   for (const [provider, lookup] of sources) {
     try {
-      const text = await lookup(doi, a.title, opts.journal ? cleanJournalAbstract : cleanAbstract);
+      const text = provider === "crossref" && crossrefWork !== undefined
+        ? cleanJournalAbstract(crossrefWork?.abstract)
+        : await lookup(doi, a.title, opts.journal ? cleanJournalAbstract : cleanAbstract);
       if (text) return { found: { provider, doi, text }, errors };
     } catch (error) {
       errors.push(`${provider}: ${(error as Error).message}`);
@@ -246,7 +270,9 @@ export async function enrichThinAbstracts(limit = 30): Promise<{ tried: number; 
         AND (l.article_id IS NULL
           OR (l.found_at IS NULL AND l.provider IS DISTINCT FROM 'publisher_no_abstract'
             AND l.attempts <= ${RETRY_HOURS.length} AND l.next_try_at <= now())
-          OR (s.tags @> ARRAY['期刊']::text[] AND coalesce(l.last_error, '') NOT LIKE ${`${JOURNAL_QUALITY_PASS}%`}))
+          OR (s.tags @> ARRAY['期刊']::text[] AND l.provider IS DISTINCT FROM 'publisher_no_abstract'
+            AND coalesce(l.last_error, '') NOT LIKE ${`${JOURNAL_QUALITY_PASS}%`}
+            AND (l.found_at IS NULL OR coalesce(l.last_error, '') NOT LIKE 'journal-abstract-quality-v%')))
         AND (${cursor?.id ?? null}::text IS NULL OR (a.discovered_at, a.id) < (${cursor?.discoveredAt ?? null}::timestamptz, ${cursor?.id ?? null}::text))
       ORDER BY a.discovered_at DESC, a.id DESC
       LIMIT ${pageSize}`;

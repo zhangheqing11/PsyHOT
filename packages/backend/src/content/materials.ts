@@ -4,6 +4,7 @@ import { sql, type Db } from "../db.ts";
 import { newArticleId, sha256 } from "../lib/ids.ts";
 import { identityKeyForUrl, xhsNoteIdFromUrl } from "../lib/url.ts";
 import { collapseWhitespace } from "../lib/text.ts";
+import { journalAbstractIssue } from "./journal-abstract.ts";
 
 export interface MediaItem {
   kind: "image" | "video";
@@ -174,8 +175,11 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
     return { articleId: newId, created: true, revised: false, backfill: t.backfill };
   }
 
-  const [existing] = await db<{ id: string; source_id: string; revision: number; content_hash: string | null; backfill: boolean; title: string; body_text: string | null; excerpt: string | null }[]>`
-    SELECT id, source_id, revision, content_hash, backfill, title, body_text, excerpt FROM articles WHERE identity_key = ${identityKey} FOR UPDATE`;
+  const [existing] = await db<{ id: string; source_id: string; revision: number; content_hash: string | null; backfill: boolean; title: string; body_text: string | null; excerpt: string | null; journal: boolean; abstract_identified: boolean }[]>`
+    SELECT a.id, a.source_id, a.revision, a.content_hash, a.backfill, a.title, a.body_text, a.excerpt,
+      (s.kind <> 'mp_account' AND a.x_post IS NULL AND s.tags @> ARRAY['期刊']::text[]) AS journal,
+      EXISTS (SELECT 1 FROM abstract_lookups l WHERE l.article_id = a.id AND l.found_at IS NOT NULL) AS abstract_identified
+    FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.identity_key = ${identityKey} FOR UPDATE OF a`;
   await db`INSERT INTO article_discoveries (article_id, source_id, via, discovered_at)
            VALUES (${existing!.id}, ${m.sourceId}, ${m.via}, ${discoveredAt}) ON CONFLICT DO NOTHING`;
   const unchanged: MaterialResult = { articleId: existing!.id, created: false, revised: false, backfill: existing!.backfill };
@@ -186,7 +190,11 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
   if (existing!.source_id !== m.sourceId) return unchanged;
   // What the row will hold after this report: a listing without body keeps the stored (extracted) body.
   const bodyText = m.bodyText ?? existing!.body_text;
-  const excerpt = m.excerpt ?? existing!.excerpt;
+  // A feed's teaser must not replace a verified recovered abstract, including when its title/body
+  // genuinely changed. Also retain a usable source abstract when a later feed emits only metadata.
+  const preserveAbstract = existing!.journal && !journalAbstractIssue(existing!.excerpt, { identified: existing!.abstract_identified })
+    && (existing!.abstract_identified || !!journalAbstractIssue(m.excerpt));
+  const excerpt = preserveAbstract ? existing!.excerpt : m.excerpt ?? existing!.excerpt;
   const next = contentHash({ title, bodyText, excerpt });
   if (existing!.content_hash === next) return unchanged;
   if (existing!.content_hash === null) {
@@ -211,7 +219,7 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
   const [row] = await db<{ revision: number }[]>`
     UPDATE articles SET
       title = ${title}, author = coalesce(${m.author ?? null}, author), language = coalesce(${m.language ?? null}, language),
-      source_updated_at = ${m.sourceUpdatedAt ?? null}, excerpt = coalesce(${m.excerpt ?? null}, excerpt),
+      source_updated_at = ${m.sourceUpdatedAt ?? null}, excerpt = ${excerpt},
       body_text = coalesce(${m.bodyText ?? null}, body_text), body_html = coalesce(${m.bodyHtml ?? null}, body_html),
       body_status = CASE WHEN ${m.bodyText ?? null}::text IS NULL THEN body_status ELSE ${m.bodyStatus ?? "ok"} END,
       media = CASE WHEN ${m.media ? db.json(m.media as never) : null}::jsonb IS NULL THEN media ELSE ${m.media ? db.json(m.media as never) : null}::jsonb END,

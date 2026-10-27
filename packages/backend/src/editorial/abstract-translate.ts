@@ -11,6 +11,7 @@ import { promptText, promptVersion } from "./prompts.ts";
 import { ModelOutputError, chatJson } from "../providers/llm.ts";
 import { modelFor } from "./models.ts";
 import { BudgetExceededError, ReceiptBusyError, ReceiptUnknownError, completeReceipt } from "../providers/receipts.ts";
+import { journalAbstractIssue } from "../content/journal-abstract.ts";
 
 const SYSTEM = promptText("translate-abstract");
 export const ABSTRACT_TRANSLATE_PROMPT_VERSION = promptVersion("translate-abstract");
@@ -62,6 +63,7 @@ export function isAbstractCandidate(row: {
   if (!excerpt || thinText(excerpt) || row.xPost || row.sourceKind === "mp_account") return false;
   const tags = row.tags ?? [];
   if (!tags.includes("期刊") && !tags.includes("预印本")) return false;
+  if (tags.includes("期刊") && journalAbstractIssue(excerpt, { identified: row.lookedUp })) return false;
   const language = row.language?.toLowerCase() ?? "";
   return language !== "zh" && !language.startsWith("zh-") && !looksZh(excerpt);
 }

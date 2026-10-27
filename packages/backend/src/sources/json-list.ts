@@ -6,6 +6,7 @@ import { blueskyCandidate, type FeedItem } from "./bluesky.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 import { everyInfraXCandidate } from "./everyinfra-x.ts";
 import { everyInfraCall } from "../providers/everyinfra.ts";
+import { journalAbstractIssue } from "../content/journal-abstract.ts";
 
 export function getPath(obj: unknown, path: string): unknown {
   if (!path) return obj;
@@ -304,12 +305,14 @@ export function parseJsonListDetailed(data: unknown, source: SourceRow): JsonLis
     const raw = item && typeof item === "object" ? { ...(item as Record<string, unknown>) } : { value: item };
     for (const k of c.rawDropKeys ?? []) delete (raw as Record<string, unknown>)[k];
     const summaryIsBody = c.summaryIsBody === true && !!summary;
+    const summaryText = summary ? collapseWhitespace(stripTags(unmark(summary))) : null;
+    const journal = source.kind !== "mp_account" && source.tags?.includes("期刊");
     out.push({
       url,
       title: collapseWhitespace(stripTags(unmark(title))),
       author: firstString(item, c.authorPaths ?? (c.adapter === "everyinfra_xhs" ? ["author_name"] : undefined)),
       publishedAt: datePaths.map((path) => toDate(getPath(item, path), c.publishedAtUnit)).find((date) => date !== null) ?? null,
-      excerpt: summary ? collapseWhitespace(stripTags(unmark(summary))).slice(0, 2000) : null,
+      excerpt: journal ? journalAbstractIssue(summaryText) ? null : summaryText : summaryText?.slice(0, 2000) ?? null,
       bodyText: summaryIsBody ? stripTags(unmark(summary!)) : null,
       bodyStatus: summaryIsBody ? "ok" : "pending",
       // Xiaohongshu's public counts at listing time: the hot ranking weighs a participant by them.

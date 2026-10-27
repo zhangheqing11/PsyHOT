@@ -13,7 +13,16 @@ export function AbstractSection({ abstract, initialLanguage = "zh" }: { abstract
     initialLanguage === "original" && abstract.original ? "original" : abstract.translation ? "zh" : "original",
   );
   const text = language === "zh" ? (abstract.translation ?? abstract.original) : (abstract.original ?? abstract.translation);
-  if (!text) return null;
+  if (!text) return (
+    <section className="mt-7 border-t border-line pt-4 xl:mt-8" aria-labelledby="abstract-label">
+      <span id="abstract-label" className="text-[12px] text-ink-4">摘要</span>
+      <p className="mt-3 text-[16px] leading-[1.8] text-ink-2">
+        {abstract.availability === "unavailable"
+          ? "原文未提供摘要。"
+          : "暂未取得可靠的原文摘要，可通过“打开原文”查看期刊页面。"}
+      </p>
+    </section>
+  );
 
   const translated = language === "zh" && abstract.translationStatus === "translated" && !!abstract.translation;
   const sourceLabel = abstract.source === "stored_html" || abstract.source === "publisher_html"
@@ -44,7 +53,7 @@ export function AbstractSection({ abstract, initialLanguage = "zh" }: { abstract
         {sourceLabel && <span>摘要来源：{sourceLabel}</span>}
       </div>
       {translated && <p className="mt-3 text-[12px] leading-relaxed text-ink-4">中文由 AI 翻译，仅供参考，以原文为准。</p>}
-      {!abstract.translation && abstract.original && <p className="mt-3 text-[12px] leading-relaxed text-ink-4">中文翻译还没有生成，先显示原文。</p>}
+      {!abstract.translation && abstract.original && abstract.translationStatus !== "skipped" && <p className="mt-3 text-[12px] leading-relaxed text-ink-4">中文翻译还没有生成，先显示原文。</p>}
     </section>
   );
 }

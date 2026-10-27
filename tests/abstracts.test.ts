@@ -1,6 +1,7 @@
 import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { getGlobalDispatcher, MockAgent, setGlobalDispatcher } from "undici";
 import { config } from "@aihot/backend/config";
 import { SITE } from "@aihot/industry/site";
 import { closeDb, sql } from "@aihot/backend/db";
@@ -34,11 +35,19 @@ process.env.OPENALEX_API_URL = `${api.url}/openalex`;
 process.env.CROSSREF_API_URL = `${api.url}/crossref`;
 process.env.EUROPEPMC_API_URL = `${api.url}/epmc`;
 config.allowPrivateNetworkFetch = true;
+const previousDispatcher = getGlobalDispatcher();
+const offline = new MockAgent();
+offline.disableNetConnect();
+offline.enableNetConnect(/^127\.0\.0\.1:\d+$/);
+offline.get("https://www.sciencedirect.com").intercept({ path: /.*/ }).reply(403, "blocked").persist();
+setGlobalDispatcher(offline);
 
 before(async () => {
-  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at) VALUES (${SOURCE}, 'Test abstracts', 'rss', 'T1', 'editorial', '2100-01-01')`;
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, tags, next_fetch_at) VALUES (${SOURCE}, 'Test abstracts', 'rss', 'T1', 'editorial', ${["期刊"]}, '2100-01-01')`;
 });
 after(async () => {
+  setGlobalDispatcher(previousDispatcher);
+  await offline.close();
   await api.close();
   await stopBoss();
   await closeDb();

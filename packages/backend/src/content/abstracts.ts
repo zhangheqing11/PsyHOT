@@ -1,12 +1,13 @@
-// Abstracts for journal items whose feed and page give none (ScienceDirect behind a robot check, Taylor &
-// Francis feeds with an empty summary). The article is looked up in open scholarly metadata, OpenAlex
-// first (same-day records), then Europe PMC, then Crossref: by DOI when there is one (in the link, or a
+// Recover missing journal abstracts from identified stored/publisher HTML, then open scholarly metadata
+// (ScienceDirect behind a robot check, Taylor & Francis feeds with an empty summary). Metadata uses
+// OpenAlex first (same-day records), then Europe PMC, then Crossref: by DOI when there is one (in the link, or a
 // ScienceDirect PII turned into a DOI through Crossref), otherwise by an exact title match. A found
 // abstract becomes the article's excerpt in a new revision, so the item is analysed again in full and
 // scored. Indexes lag, so a miss is retried on a widening schedule and given up after the last try.
 // These are free public APIs: no receipts, no keys; they run only while collection is on. The site's
 // contact address (SITE.contactEmail) goes with Crossref and OpenAlex requests, as both ask.
 import { SITE } from "@aihot/industry/site";
+import { config } from "../config.ts";
 import { sql } from "../db.ts";
 import { thinText } from "../editorial/writing.ts";
 import { queueProcessing } from "../jobs/content.ts";
@@ -14,10 +15,12 @@ import { guardedFetch } from "../lib/http-fetch.ts";
 import { doiFromUrl } from "../lib/url.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { contentHash } from "./materials.ts";
+import { pageFetchable } from "./extract.ts";
+import { journalAbstractFromHtml } from "./journal-abstract.ts";
 
 /** Hours to the next try after each miss; the item is given up after the last. */
 const RETRY_HOURS = [6, 24, 72, 168, 336];
-/** Only recent items are looked up: older ones would arrive as history anyway. */
+/** Preserve the existing metadata-only lookback for body-less preprints. Journals use the reading window. */
 const LOOKBACK_DAYS = 45;
 /** Fewer characters is a fragment, not an abstract. */
 const MIN_ABSTRACT_CHARS = 200;
@@ -32,7 +35,7 @@ const apis = () => ({
 export { doiFromUrl };
 
 export interface FoundAbstract {
-  provider: "openalex" | "europepmc" | "crossref";
+  provider: "openalex" | "europepmc" | "crossref" | "stored_html" | "publisher_html";
   doi: string | null;
   text: string;
 }
@@ -140,57 +143,102 @@ export async function findAbstract(a: { title: string; url: string }): Promise<{
   return { found: null, errors };
 }
 
-/** The abstract as the article's excerpt in a new revision, unless a body or an abstract got there first. */
-async function saveAbstract(articleId: string, text: string): Promise<boolean> {
+/** The abstract as a new revision's excerpt, retaining any already confirmed full body. */
+async function saveAbstract(articleId: string, text: string, expectedRevision: number): Promise<boolean> {
   const saved = await sql.begin(async (tx) => {
-    const [row] = await tx<{ title: string; body_text: string | null; excerpt: string | null }[]>`
-      SELECT title, body_text, excerpt FROM articles WHERE id = ${articleId} FOR UPDATE`;
-    if (!row || row.body_text?.trim() || !thinText(row.excerpt)) return false;
+    const [row] = await tx<{ title: string; body_text: string | null; excerpt: string | null; revision: number }[]>`
+      SELECT a.title, a.body_text, a.excerpt, a.revision
+      FROM articles a JOIN sources s ON s.id = a.source_id
+      WHERE a.id = ${articleId} AND a.duplicate_of IS NULL AND a.x_post IS NULL
+        AND s.enabled AND s.participation_mode = 'editorial' AND s.kind NOT IN ('mp_account', 'x_search')
+        AND a.body_status <> 'pending'
+        AND ((s.tags @> ARRAY['期刊']::text[] AND a.discovered_at >= now() - make_interval(days => ${Math.max(1, config.abstractTranslationDays)}))
+          OR (NOT s.tags @> ARRAY['期刊']::text[] AND s.tags @> ARRAY['预印本']::text[]
+            AND coalesce(a.body_text, '') = '' AND a.body_status <> 'ok'
+            AND a.discovered_at > now() - make_interval(days => ${LOOKBACK_DAYS})))
+      FOR UPDATE OF a`;
+    if (!row || row.revision !== expectedRevision || !thinText(row.excerpt)) return false;
     const hash = contentHash({ title: row.title, bodyText: row.body_text, excerpt: text });
     const [r] = await tx<{ revision: number }[]>`
       UPDATE articles SET excerpt = ${text}, revision = revision + 1, content_hash = ${hash}, processing_state = 'new', updated_at = now()
       WHERE id = ${articleId} RETURNING revision`;
     await tx`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
-             VALUES (${articleId}, ${r!.revision}, ${hash}, ${row.title}, ${null})`;
+             VALUES (${articleId}, ${r!.revision}, ${hash}, ${row.title}, ${row.body_text})`;
     return true;
   });
   if (saved) await queueProcessing(articleId);
   return saved;
 }
 
-/**
- * Looks up abstracts for recent editorial items that have only a title (thinText), due by their retry
- * schedule. Returns how many were tried and found.
- */
+interface RecoveryRow {
+  id: string; title: string; url: string; excerpt: string | null; body_html: string | null;
+  revision: number; journal: boolean; source_kind: string; attempts: number | null; cursor_discovered_at: string;
+}
+
+async function recoverAbstract(row: RecoveryRow): Promise<{ found: FoundAbstract | null; errors: string[] }> {
+  const errors: string[] = [];
+  if (row.journal) {
+    const stored = journalAbstractFromHtml(row.body_html, { storedBody: true, url: row.url });
+    if (stored) return { found: { text: stored, provider: "stored_html", doi: doiFromUrl(row.url) }, errors };
+    try {
+      // A raw publisher page may contain an explicit abstract that Readability omitted. No browser
+      // rendering or paid fallback is used here; a blocked page proceeds to public metadata.
+      const res = await guardedFetch(row.url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 });
+      if (res.status === 200 && /html/i.test(res.headers.get("content-type") ?? "")) {
+        const text = journalAbstractFromHtml(res.text());
+        if (text) return { found: { text, provider: "publisher_html", doi: doiFromUrl(row.url) }, errors };
+      }
+    } catch (error) {
+      errors.push(`publisher: ${(error as Error).message}`);
+    }
+  }
+  const result = await findAbstract(row);
+  return { found: result.found, errors: [...errors, ...result.errors] };
+}
+
+/** Recover recent journal abstracts independently of full bodies; retain preprints' metadata path. */
 export async function enrichThinAbstracts(limit = 30): Promise<{ tried: number; found: number }> {
-  const rows = await sql<{ id: string; title: string; url: string; excerpt: string | null; attempts: number | null }[]>`
-    SELECT a.id, a.title, a.url, a.excerpt, l.attempts
-    FROM articles a JOIN sources s ON s.id = a.source_id
-    LEFT JOIN abstract_lookups l ON l.article_id = a.id
-    WHERE s.participation_mode = 'editorial' AND s.enabled AND a.x_post IS NULL
-      AND coalesce(a.body_text, '') = '' AND a.body_status NOT IN ('ok', 'pending')
-      AND a.discovered_at > now() - make_interval(days => ${LOOKBACK_DAYS})
-      AND (l.article_id IS NULL OR (l.found_at IS NULL AND l.attempts <= ${RETRY_HOURS.length} AND l.next_try_at <= now()))
-    ORDER BY a.discovered_at DESC
-    LIMIT ${limit * 3}`;
   let tried = 0;
   let found = 0;
-  for (const row of rows) {
-    if (tried >= limit) break;
-    if (!thinText(row.excerpt)) continue;
-    tried += 1;
-    const attempts = (row.attempts ?? 0) + 1;
-    const { found: hit, errors } = await findAbstract(row);
-    const saved = hit ? await saveAbstract(row.id, hit.text) : false;
-    if (saved) found += 1;
-    const waitHours = RETRY_HOURS[Math.min(attempts - 1, RETRY_HOURS.length - 1)]!;
-    await sql`
-      INSERT INTO abstract_lookups (article_id, attempts, next_try_at, found_at, provider, doi, last_error, updated_at)
-      VALUES (${row.id}, ${attempts}, now() + make_interval(hours => ${waitHours}), ${saved ? new Date() : null},
-              ${hit?.provider ?? null}, ${hit?.doi ?? null}, ${errors.join("; ").slice(0, 500) || null}, now())
-      ON CONFLICT (article_id) DO UPDATE SET attempts = EXCLUDED.attempts, next_try_at = EXCLUDED.next_try_at,
-        found_at = EXCLUDED.found_at, provider = EXCLUDED.provider, doi = coalesce(EXCLUDED.doi, abstract_lookups.doi),
-        last_error = EXCLUDED.last_error, updated_at = now()`;
+  let cursor: { id: string; discoveredAt: string } | null = null;
+  const pageSize = Math.max(1, limit * 3);
+  while (tried < limit) {
+    const rows: RecoveryRow[] = await sql<RecoveryRow[]>`
+      SELECT a.id, a.title, a.url, a.excerpt, a.body_html, a.revision, l.attempts, s.kind AS source_kind,
+        (s.tags @> ARRAY['期刊']::text[]) AS journal, a.discovered_at::text AS cursor_discovered_at
+      FROM articles a JOIN sources s ON s.id = a.source_id
+      LEFT JOIN abstract_lookups l ON l.article_id = a.id
+      WHERE s.participation_mode = 'editorial' AND s.enabled AND s.kind NOT IN ('mp_account', 'x_search')
+        AND a.x_post IS NULL AND a.duplicate_of IS NULL AND a.body_status <> 'pending'
+        AND ((s.tags @> ARRAY['期刊']::text[] AND a.discovered_at >= now() - make_interval(days => ${Math.max(1, config.abstractTranslationDays)}))
+          OR (NOT s.tags @> ARRAY['期刊']::text[] AND s.tags @> ARRAY['预印本']::text[]
+            AND coalesce(a.body_text, '') = '' AND a.body_status <> 'ok'
+            AND a.discovered_at > now() - make_interval(days => ${LOOKBACK_DAYS})))
+        AND (l.article_id IS NULL OR (l.found_at IS NULL AND l.attempts <= ${RETRY_HOURS.length} AND l.next_try_at <= now()))
+        AND (${cursor?.id ?? null}::text IS NULL OR (a.discovered_at, a.id) < (${cursor?.discoveredAt ?? null}::timestamptz, ${cursor?.id ?? null}::text))
+      ORDER BY a.discovered_at DESC, a.id DESC
+      LIMIT ${pageSize}`;
+    for (const row of rows) {
+      if (tried >= limit) break;
+      if (!thinText(row.excerpt) || !pageFetchable(row.url, row.source_kind)) continue;
+      tried += 1;
+      const attempts = (row.attempts ?? 0) + 1;
+      const { found: hit, errors } = await recoverAbstract(row);
+      const saved = hit ? await saveAbstract(row.id, hit.text, row.revision) : false;
+      if (saved) found += 1;
+      const waitHours = RETRY_HOURS[Math.min(attempts - 1, RETRY_HOURS.length - 1)]!;
+      await sql`
+        INSERT INTO abstract_lookups (article_id, attempts, next_try_at, found_at, provider, doi, last_error, updated_at)
+        VALUES (${row.id}, ${attempts}, now() + make_interval(hours => ${waitHours}), ${saved ? new Date() : null},
+                ${hit?.provider ?? null}, ${hit?.doi ?? null}, ${errors.join("; ").slice(0, 500) || null}, now())
+        ON CONFLICT (article_id) DO UPDATE SET attempts = EXCLUDED.attempts, next_try_at = EXCLUDED.next_try_at,
+          found_at = EXCLUDED.found_at, provider = EXCLUDED.provider, doi = coalesce(EXCLUDED.doi, abstract_lookups.doi),
+          last_error = EXCLUDED.last_error, updated_at = now()`;
+    }
+    if (rows.length < pageSize) break;
+    const last = rows[rows.length - 1]!;
+    // Keep PostgreSQL's timestamp precision so equal-millisecond rows cannot fall between pages.
+    cursor = { id: last.id, discoveredAt: last.cursor_discovered_at };
   }
   return { tried, found };
 }

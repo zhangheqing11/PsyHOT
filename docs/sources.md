@@ -183,11 +183,17 @@ EveryInfra 信源的采集间隔由运营配置，自动频率调整不会加快
 - **一手** `first_party`：来源是当事方自己。事件页会优先展示一手报道。
 - **全文**：`site_fulltext` 决定站内能不能显示全文，`syndicate_fulltext` 决定全文 RSS 能不能带正文。两者**默认都关**，只显示摘要和原文链接；来源明确允许时再打开。公众号、付费墙内容不会因为技术上抓得到就获得全文展示。
 
-## 只有标题的期刊条目：补摘要
+## 期刊条目：补原始摘要
 
 有些期刊的订阅源只给标题和作者（ScienceDirect 给出版日期、来源和作者，Taylor & Francis 的摘要字段为空），原文页面又有机器人验证，抓不到正文。这样的条目只跑预筛、不评分、不写摘要，不会出现在站上（`editorial/writing.ts` 的 `thinText`）。
 
-采集开启时，worker 每 20 分钟为这类近 45 天的条目查一次开放的学术元数据，依次是 OpenAlex、Europe PMC、Crossref：链接里有 DOI 就按 DOI 查，ScienceDirect 的链接先用 PII 在 Crossref 换成 DOI，都没有就按标题精确匹配。查到的摘要作为新版本写进条目的摘要字段，条目会重新完整分析。数据库收录有延迟，查不到的按 6 小时、1 天、3 天、7 天、14 天重试，之后放弃。记录在 `abstract_lookups` 表里。这些都是免费的公开接口，不需要 Key；`industry/site.ts` 里填了 `contactEmail` 的话，查 Crossref 和 OpenAlex 时会带上这个邮箱，进它们限流更宽的“礼貌通道”。
+采集开启时，worker 每 20 分钟为摘要缺失的期刊条目补原始摘要，时间范围与摘要翻译一致：按发现时间取近 `ABSTRACT_TRANSLATION_DAYS` 天，默认 3 天。有正文且 `body_status = 'ok'` 的期刊也会检查摘要，但仍在等待正文的条目先等正文提取完成。新闻、公众号和 X 帖子不参与论文摘要恢复。
+
+期刊按顺序尝试已存 HTML、免费获取的出版页、开放的学术元数据。HTML 只接受明确标记的 Abstract 章节或 `citation_abstract` 元数据；Wiley 已存正文另允许完整、短小且严格由 Background / Methods / Results / Conclusions 组成的结构化摘要。无论哪一种，都不会把整篇论文截取后当摘要；无法确认边界或超过 6,000 字符的 HTML 片段会被放弃。出版页不使用浏览器渲染或付费正文回退。
+
+开放元数据依次查询 OpenAlex、Europe PMC、Crossref：链接里有 DOI 就按 DOI 查，ScienceDirect 的链接先用 PII 在 Crossref 换成 DOI，都没有就按标题精确匹配。预印本保留原有的元数据恢复路径：近 45 天、尚无正文且正文提取已结束的条目，不新增出版页抓取。查到的摘要作为新版本写进摘要字段，保留已有正文和正文版本历史，并按原有流程重新分析；已有模型预算和回执规则继续适用。
+
+数据库收录有延迟，查不到的按 6 小时、1 天、3 天、7 天、14 天重试，条目超出对应时间范围后不再补查。记录在 `abstract_lookups` 表里，HTML 恢复的来源记作 `stored_html` 或 `publisher_html`。上述出版页和公开接口不需要 Key；`industry/site.ts` 里填了 `contactEmail` 的话，查 Crossref 和 OpenAlex 时会带上这个邮箱，进它们限流更宽的“礼貌通道”。
 
 ## 抓取频率
 

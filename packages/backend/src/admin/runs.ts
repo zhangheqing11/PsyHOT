@@ -80,7 +80,7 @@ export async function runsOverview() {
 }
 
 const ARTICLE_STEPS = new Set([
-  ...(["prefilter", "score", "understand", "summarize", "structure"] as const).flatMap((step) => CAPABILITIES[step].purposes),
+  ...(["prefilter", "score", "scoreDims", "understand", "summarize", "structure"] as const).flatMap((step) => CAPABILITIES[step].purposes),
   "body_fallback", "x_article",
 ]);
 

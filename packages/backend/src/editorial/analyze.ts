@@ -3,6 +3,7 @@
 //   1. prefilter: does the material belong to this industry at all (wide recall). Only BLOCK stops an
 //      item; UNKNOWN goes on like PASS (a BLOCK given while material is missing counts as UNKNOWN);
 //   2. score: two independent scores against the source tier's threshold (industry/selection.ts) decide 精选;
+//      academic items past the coarse gate get one reasoning call for five equally weighted dimensions;
 //   3. writing: the Chinese title, summary and reason by the content understanding for selected and
 //      near-selected items, by the cheaper title/summary prompts for the rest;
 //   4. structure (no reader-facing text): category, tags, subject companies and the fact frame the
@@ -36,6 +37,7 @@ export { buildMaterial, loadAnalyzeInput, type AnalyzeInputArticle };
 export const PROMPT_VERSIONS = {
   prefilter: promptVersion("prefilter"),
   score: promptVersion("selection-score"),
+  dims: promptVersion("selection-dims"),
   understand: promptVersion("understand"),
   summarize: promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context"),
   structure: promptVersion("structure"),
@@ -80,6 +82,15 @@ const scoreCall = (model: string) => SCORE_CALL[model] ?? { temperature: 0.2, ma
 export const SCORE_SYSTEM = promptText("selection-score");
 
 export const ScoreSchema = z.object({ attentionScore: z.coerce.number().int().min(0).max(100) });
+
+const DIMS_AXES = ["sig", "nov", "cred", "reson", "act"] as const;
+const DimAxisSchema = z.object({ score: z.number().int().min(1).max(4), why: z.string().transform((v) => v.slice(0, 200)) });
+const DimsSchema = z.object({
+  event: z.string(), contentType: z.string(),
+  sig: DimAxisSchema, nov: DimAxisSchema, cred: DimAxisSchema, reson: DimAxisSchema, act: DimAxisSchema,
+});
+const DIMS_SYSTEM = promptText("selection-dims");
+const dimsDisplayScore = (sum: number) => Math.round((sum - 5) / 15 * 100);
 
 const SCORE_TIME = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
@@ -170,6 +181,13 @@ export interface AnalysisRun {
    * is not scored. `refused`: the model's content filter declined it, so it is not selected.
    */
   scores: { model: string; threshold: number; values: number[]; receiptIds: number[]; reused: boolean; refused?: boolean } | null;
+  /** Academic second-stage result; absent for the legacy and selection-only paths. */
+  dims?: {
+    model: string; threshold: number; gate: number; sum: number; receiptId: number; reused: boolean;
+    values: Record<typeof DIMS_AXES[number], number> & {
+      why: Record<typeof DIMS_AXES[number], string>; contentType: string; event: string;
+    };
+  };
   /** The reader-facing copy: `understand` (selected, near-selected), `summarize`, `verbatim` (a Chinese short post), `none`. */
   writing: {
     kind: "understand" | "summarize" | "verbatim" | "none";
@@ -299,6 +317,39 @@ export async function runSelectionScores(
   return threshold === null ? null : runScores(a, threshold, opts, onReceipt);
 }
 
+async function runDims(a: AnalyzeInputArticle, threshold: number, opts: StepOpts): Promise<NonNullable<AnalysisRun["dims"]>> {
+  const model = await modelFor("scoreDims");
+  const input = buildScoreInput(a).replace(
+    "请按系统规则评估以下单篇材料所代表的事件。只输出 attentionScore。",
+    "请按系统规则评估以下单篇材料所代表的事件。只输出规定格式的 JSON。",
+  );
+  const call = () => {
+    checkAnalysisRunning();
+    return chatJson({
+      model, purpose: "score_dims", subject: subjectOf(a), promptVersion: PROMPT_VERSIONS.dims,
+      system: DIMS_SYSTEM, user: input, schema: DimsSchema, maxTokens: 4000, temperature: 0.2,
+      // Same logical receipt on retry: failed output can be retried, an unknown paid outcome cannot.
+      attemptTag: tagged(opts.attemptTag, "dims"),
+    });
+  };
+  let res: Awaited<ReturnType<typeof call>>;
+  try {
+    res = await call();
+  } catch {
+    res = await call(); // One retry; a second failure reaches the job queue, never a legacy fallback.
+  }
+  const d = res.data;
+  return {
+    model: res.model, threshold, gate: SELECTION.academicDims.gate,
+    sum: DIMS_AXES.reduce((sum, axis) => sum + d[axis].score, 0), receiptId: res.receiptId, reused: res.reused,
+    values: {
+      sig: d.sig.score, nov: d.nov.score, cred: d.cred.score, reson: d.reson.score, act: d.act.score,
+      why: { sig: d.sig.why, nov: d.nov.why, cred: d.cred.why, reson: d.reson.why, act: d.act.why },
+      contentType: d.contentType, event: d.event,
+    },
+  };
+}
+
 async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<NonNullable<AnalysisRun["structure"]>> {
   const model = await modelFor("structure");
   checkAnalysisRunning();
@@ -422,12 +473,19 @@ export async function runAnalysis(a: AnalyzeInputArticle, opts: StepOpts & { sta
     const scored = await runSelectionScores(a, opts);
     const s = await structure;
     if ("error" in s) throw s.error;
-    const threshold = scored ? tierThreshold(a.source.tier, thresholdTrack(s.value.category, a.source.track)) : null;
+    const track = thresholdTrack(s.value.category, a.source.track);
+    const threshold = scored ? tierThreshold(a.source.tier, track) : null;
     const scores = scored && threshold !== null ? { ...scored, threshold } : scored;
     const sum = scores && !scores.refused && scores.values.length === SCORE_CALLS ? scores.values.reduce((total, v) => total + v, 0) : null;
-    const near = !s.value.promotion && sum !== null && (sum >= scores!.threshold * SCORE_CALLS || sum > UNDERSTAND_FLOOR * SCORE_CALLS);
+    const dimsThreshold = SELECTION.academicDims.thresholds[a.source.tier];
+    const dims = SELECTION.academicDims.enabled && track === "academic" && !s.value.promotion
+      && sum !== null && sum >= SELECTION.academicDims.gate * SCORE_CALLS && dimsThreshold !== undefined
+      ? await runDims(a, dimsThreshold, opts) : undefined;
+    // Keep the legacy mean's half-point boundary; dimensions use their final, rounded display score.
+    const finalScore = dims ? dimsDisplayScore(dims.sum) : sum === null ? null : sum / SCORE_CALLS;
+    const near = !s.value.promotion && finalScore !== null && (finalScore >= (dims?.threshold ?? scores!.threshold) || finalScore > UNDERSTAND_FLOOR);
     const writing = (near ? await runUnderstand(a, opts) : null) ?? (await runSummarize(a, opts));
-    return { prefilter, scores, writing, structure: s.value };
+    return { prefilter, scores, writing, structure: s.value, ...(dims ? { dims } : {}) };
   } finally {
     // A score/writing error or deploy must not let the job finish while a paid structure request
     // still owns a response. It settles and stores its receipt before shutdown can close the DB.
@@ -447,10 +505,11 @@ export function normalizeAnalysis(run: AnalysisRun) {
   // is the score shown (it never decides a half point on its own).
   const values = run.scores && !run.scores.refused ? run.scores.values : null;
   const sum = values?.length === SCORE_CALLS ? values.reduce((total, v) => total + v, 0) : null;
-  const score = sum === null ? null : Math.floor(sum / SCORE_CALLS);
-  const threshold = run.scores?.threshold ?? null;
+  const score = run.dims ? dimsDisplayScore(run.dims.sum) : sum === null ? null : Math.floor(sum / SCORE_CALLS);
+  const threshold = run.dims?.threshold ?? run.scores?.threshold ?? null;
   const promotion = run.structure?.promotion ?? false;
-  const selected = relevance === "pass" && !promotion && sum !== null && threshold !== null && sum >= threshold * SCORE_CALLS;
+  const selected = relevance === "pass" && !promotion && score !== null && threshold !== null
+    && (run.dims ? score >= threshold : sum !== null && sum >= threshold * SCORE_CALLS);
   const subjects = run.structure?.subjects ?? [];
   const tags = [...(run.writing?.tags ?? run.structure?.tags ?? [])];
   for (const s of subjects) {
@@ -465,6 +524,11 @@ export function normalizeAnalysis(run: AnalysisRun) {
     scoreModel: run.scores?.model ?? null,
     scoreRefused: run.scores?.refused ?? false,
     threshold,
+    scoringPath: run.dims ? "dims" as const : "legacy" as const,
+    dims: run.dims?.values ?? null,
+    dimsSum: run.dims?.sum ?? null,
+    dimsModel: run.dims?.model ?? null,
+    gate: run.dims?.gate ?? null,
     category: run.structure?.category ?? null,
     tags,
     subjects,
@@ -498,12 +562,15 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
   const run = await runAnalysis(input, opts);
   const out = normalizeAnalysis(run);
   const receiptIds = [
-    run.prefilter.receiptId, ...(run.scores?.receiptIds ?? []), ...(run.writing?.receiptIds ?? []), ...(run.structure ? [run.structure.receiptId] : []),
+    run.prefilter.receiptId, ...(run.scores?.receiptIds ?? []), ...(run.dims ? [run.dims.receiptId] : []),
+    ...(run.writing?.receiptIds ?? []), ...(run.structure ? [run.structure.receiptId] : []),
   ];
   const w = run.writing;
   const detail = {
     prefilter: { label: run.prefilter.label, reason: run.prefilter.reason },
     scores: out.scores, scoreModel: out.scoreModel, threshold: out.threshold, ...(out.scoreRefused ? { scoreRefused: true } : {}),
+    scoringPath: out.scoringPath,
+    ...(out.dims ? { dims: out.dims, dimsSum: out.dimsSum, dimsModel: out.dimsModel, gate: out.gate } : {}),
     ...(w ? { writer: w.kind, writerModel: w.model, itemType: w.itemType ?? null, authorRole: w.authorRole ?? null } : {}),
     ...(w?.identityGuard?.outcome === "fallback" ? { identityGuard: w.identityGuard } : {}),
     fact: out.fact,
@@ -525,6 +592,6 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     }
     return { analysisId: row!.id, stale };
   });
-  const reused = run.prefilter.reused && (run.scores?.reused ?? true) && (w?.reused ?? true) && (run.structure?.reused ?? true);
+  const reused = run.prefilter.reused && (run.scores?.reused ?? true) && (run.dims?.reused ?? true) && (w?.reused ?? true) && (run.structure?.reused ?? true);
   return { analysisId: committed.analysisId, stale: committed.stale, output: out, receiptIds, reused };
 }

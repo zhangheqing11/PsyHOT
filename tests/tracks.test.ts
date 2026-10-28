@@ -39,12 +39,13 @@ const provider = await stub((_hit, req) => {
   const last = body.messages[body.messages.length - 1]!.content;
   const user = typeof last === "string" ? last : JSON.stringify(last);
   const marker = Object.keys(STRUCTURE).find((m) => user.includes(m)) ?? "";
-  const step = system.includes("宽召回") ? "prefilter" : system.includes("事件注意力评分器") ? "score"
+  const step = system.includes('"sig"') ? "dims" : system.includes("宽召回") ? "prefilter" : system.includes("事件注意力评分器") ? "score"
     : system.includes("内容理解编辑") ? "understand" : system.includes("资料结构化助手") ? "structure" : "summarize";
   steps.push({ step, marker, user });
   const answer = (content: unknown) => ({ id: `stub-${steps.length}`, model: "stub", choices: [{ message: { content: typeof content === "string" ? content : JSON.stringify(content) } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } });
   if (step === "prefilter") return answer({ label: "PASS", reason: "测试" });
   if (step === "score") return answer({ attentionScore: 90 });
+  if (step === "dims") return answer({ event: "研究结论", contentType: "research_finding", ...Object.fromEntries(["sig", "nov", "cred", "reson", "act"].map((axis) => [axis, { why: "依据", score: 3 }])) });
   if (step === "understand") return answer({ itemType: "policy_event", authorRole: "principal", tags: ["政策/监管"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句。` });
   if (step === "structure") {
     const s = STRUCTURE[marker]!;
@@ -52,8 +53,9 @@ const provider = await stub((_hit, req) => {
   }
   return answer(`title_zh: 翻译标题 ${marker}\nsummary_zh: 翻译摘要 ${marker}。第二句补充影响。`);
 });
-for (const env of ["DASHSCOPE_BASE_URL", "ZHIPU_BASE_URL", "DEEPSEEK_BASE_URL"]) process.env[env] = `${provider.url}/v1`;
-for (const env of ["DASHSCOPE_API_KEY", "ZHIPU_API_KEY", "DEEPSEEK_API_KEY"]) process.env[env] = "test-key";
+for (const env of ["DASHSCOPE_BASE_URL", "ZHIPU_BASE_URL", "DEEPSEEK_BASE_URL", "LLM_BASE_URL"]) process.env[env] = `${provider.url}/v1`;
+for (const env of ["DASHSCOPE_API_KEY", "ZHIPU_API_KEY", "DEEPSEEK_API_KEY", "LLM_API_KEY"]) process.env[env] = "test-key";
+process.env.LLM_MODEL = "stub";
 
 before(async () => {
   await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, track, region, next_fetch_at) VALUES

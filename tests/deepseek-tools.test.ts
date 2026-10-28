@@ -99,6 +99,21 @@ test("a wire story or press release reprinted by several sites counts once; sepa
   assert.deepEqual(kept.map((c) => c.participant), ["web:gmw.cn", "web:sina.com.cn"]);
 });
 
+test("a reprint is found whatever headline and date line its page puts first; two outlets' own English reports both count", () => {
+  const page = (url: string, summary: string) => ({ title: ORIGINAL, url, snippet: "", summary, siteName: null, date: new Date(day(-1)), rerankScore: 1, authority: 1, participant: webParticipant(url)!, query: ORIGINAL });
+  const body = "斯德哥尔摩消息：瑞典斯德哥尔摩大学参与的一项最新研究显示，在针对社交焦虑的治疗中，人工智能生成的反馈与人类治疗师提供的反馈，在缓解社交焦虑症状方面效果接近。据新闻公报，该研究针对263名成年人开展随机对照试验。";
+  const reprints = distinctTexts([
+    page("https://www.news.cn/2026/c.html", `2026 10/26 09:35:49\n...\n# 缓解社交焦虑 AI效果接近人类治疗师\n...\n新华社赫尔辛基10月25日电（记者朱昊晨 徐谦）${body}`),
+    page("https://m.gmw.cn/toutiao/x.htm", `# 治疗“社恐”，AI接住了？\n...\n${body}`),
+  ]);
+  assert.deepEqual(reprints.map((c) => c.participant), ["web:news.cn"]);
+  const own = distinctTexts([
+    page("https://www.eurekalert.org/news-releases/1", "Researchers at the University of Sydney have identified a circadian subtype of depression, affecting about one in four patients, marked by disrupted sleep timing and poorer response to standard treatment."),
+    page("https://www1.racgp.org.au/newsgp/2", "A new study suggests body-clock problems may drive a distinct form of depression. GPs should ask about sleep and daily rhythms, the authors said, as these patients often respond less well to antidepressants."),
+  ]);
+  assert.equal(own.length, 2);
+});
+
 test("the body fallback is never asked for a page its site refused or that sits behind a robot check", () => {
   assert.equal(fallbackAllowed("https://example.com/a", 403), false);
   assert.equal(fallbackAllowed("https://example.com/a", 412), false);

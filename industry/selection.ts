@@ -1,5 +1,5 @@
-// 精选的门槛。评分标准本身写在 prompts/selection-score.md；这里只决定“多少分算入选”。
-// 每篇资料由评分模型独立打两次分（0–100），两次之和 ≥ 2 × 门槛才进精选，卡片上显示两次的平均分。
+// 精选的门槛。第一段标准在 prompts/selection-score.md；学界第二段标准在 prompts/selection-dims.md。
+// 每篇资料先独立打两次分（0–100）；业界沿用两次之和 ≥ 2 × 门槛，学界过粗筛线后用五维分数决定。
 // 门槛按信源分级区分：官方一手信源的门槛低一些，媒体和个人的高一些；学界和业界可以各定一套。改了门槛或评分提示词，
 // 用 scripts/eval-selection.ts 在你自己标注的样本上重跑一遍，再决定上线（见 docs/selection.md）。
 
@@ -15,6 +15,16 @@ export const SELECTION = {
    * 没定时看信源的视角。数字要等标注样本攒够了再校准（docs/selection.md），没校准之前两边都沿用上面的。
    */
   trackThresholds: { academic: {}, industry: {} } as Record<string, Record<string, number>>,
+  /**
+   * 学界第二段：旧评分均分至少 30，再用思考模型按五维各打 1–4 分，等权相加后线性换算到 0–100。
+   * 门槛来自 2026-10-29 上线交接：T1 五维和至少 14，T1_5、T2 至少 15。关闭后恢复旧规则，
+   * 已有五维结果保留；业界不走这一段。
+   */
+  academicDims: {
+    enabled: true,
+    gate: 30,
+    thresholds: { T1: 60, T1_5: 65, T2: 67 },
+  } as { enabled: boolean; gate: number; thresholds: Record<string, number> },
   /**
    * 没入选、但平均分高于这个数的资料，也用精选的写法（内容理解：标题、摘要、推荐理由、标签）来写，
    * 其余用更便宜的“标题摘要翻译”。

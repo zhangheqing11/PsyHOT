@@ -21,6 +21,7 @@ const provider = await stub((_hit, req) => {
   seen.push({ model: body.model, system });
   const content =
     system.includes("宽召回") ? { label: "PASS", reason: "测试" }
+    : system.includes('"sig"') ? { event: "一项临床研究", contentType: "clinical_practice", ...Object.fromEntries(["sig", "nov", "cred", "reson", "act"].map((axis) => [axis, { why: "依据", score: 3 }])) }
     : system.includes("事件注意力评分器") ? { attentionScore: 80 }
     : system.includes("内容理解编辑") ? { itemType: "clinical_practice", authorRole: "principal", tags: ["临床/治疗"], editorialJudgment: "理由", titleZh: "一个模型的标题", summaryZh: "一个模型写的摘要。第二句。" }
     : system.includes("资料结构化助手") ? { category: "clinical", tags: ["临床/治疗"], subjects: [], fact: null }
@@ -48,7 +49,8 @@ test("one model runs the prefilter, both scores, the writing and the structure",
   const res = await analyzeArticle(articleId);
   assert.equal(res!.output!.selected, true);
   assert.equal(res!.output!.titleZh, "一个模型的标题");
-  assert.equal(seen.length, 5, "prefilter, two scores, understand, structure");
+  assert.equal(seen.length, 6, "prefilter, two scores, academic dimensions, understand, structure");
+  assert.equal(res!.output!.scoringPath, "dims", "the thinking preset also uses only LLM_* credentials");
   assert.ok(seen.every((r) => r.model === "one-model"), "every request names the configured model");
   const services = await sql<{ service: string }[]>`SELECT DISTINCT service FROM receipts WHERE subject LIKE ${`article:${articleId}%`}`;
   assert.deepEqual(services.map((s) => s.service), ["llm"]);

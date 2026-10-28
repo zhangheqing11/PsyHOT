@@ -15,6 +15,11 @@ import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
 import { compactAnswerFirstSummary, enforceIdentity, parseTranslateOutput, PREFILTER_SYSTEM, thinMaterial } from "@aihot/backend/editorial/writing";
 import { promptText } from "@aihot/backend/editorial/prompts";
 import { SITE } from "@aihot/industry/site";
+import { SELECTION } from "@aihot/industry/selection";
+
+// Keep the legacy pipeline's complete regression suite under the rollback switch. The enabled
+// academic path and its receipts are covered by academic-dims.test.ts.
+SELECTION.academicDims.enabled = false;
 
 const T = tag();
 const SOURCE = `test-analyze-${T}`;

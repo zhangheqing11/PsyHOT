@@ -148,14 +148,14 @@ async function stoppedArticle(purpose: string, needsBody = false) {
   return { articleId, receiptId: receipt!.id };
 }
 
-test("automatic release requeues the failed articles of all five analysis steps", async () => {
+test("automatic release requeues the failed articles of all analysis steps, including dimensions", async () => {
   const ids: string[] = [];
-  for (const purpose of ["prefilter_article", "score_article", "understand_article", "summarize_article", "structure_article"]) {
+  for (const purpose of ["prefilter_article", "score_article", "score_dims", "understand_article", "summarize_article", "structure_article"]) {
     const { articleId, receiptId } = await stoppedArticle(purpose);
     ids.push(articleId);
     await sql`UPDATE receipts SET updated_at = now() - interval '31 minutes' WHERE id = ${receiptId}`;
   }
-  assert.deepEqual(await autoReleaseUnknownReceipts(), { released: 5, requeued: 5 });
+  assert.deepEqual(await autoReleaseUnknownReceipts(), { released: 6, requeued: 6 });
   const rows = await sql<{ state: string; attempts: number; retry: Date | null; error: string | null }[]>`
     SELECT processing_state AS state, processing_attempts AS attempts, processing_retry_at AS retry, processing_error AS error
     FROM articles WHERE id = ANY(${ids}::text[])`;
@@ -166,13 +166,14 @@ test("automatic release requeues the failed articles of all five analysis steps"
   assert.deepEqual(await autoReleaseUnknownReceipts(), { released: 0, requeued: 0 }, "a released receipt is not queued twice");
 });
 
-test("manual release resumes pending body reads and leaves unrelated article work alone", async () => {
-  for (const purpose of ["body_fallback", "x_article"]) {
-    const { articleId, receiptId } = await stoppedArticle(purpose, true);
+test("manual release resumes pending body reads and dimensions, and leaves unrelated article work alone", async () => {
+  for (const purpose of ["body_fallback", "x_article", "score_dims"]) {
+    const needsBody = purpose !== "score_dims";
+    const { articleId, receiptId } = await stoppedArticle(purpose, needsBody);
     const result = await releaseReceipt(receiptId, { billed: false, note: "checked the provider" }, "test");
     assert.equal(result?.requeued, true, purpose);
     const jobs = await sql<{ name: string }[]>`SELECT name FROM pgboss.job WHERE data->>'articleId' = ${articleId}`;
-    assert.deepEqual(jobs.map((j) => j.name), ["content.extract-body"], "the unfinished body is fetched before analysis");
+    assert.deepEqual(jobs.map((j) => j.name), [needsBody ? "content.extract-body" : "content.analyze"], "the unfinished stage resumes");
   }
   const { articleId, receiptId } = await stoppedArticle("translate_body");
   assert.equal((await releaseReceipt(receiptId, { billed: false, note: "checked the provider" }, "test"))?.requeued, false);

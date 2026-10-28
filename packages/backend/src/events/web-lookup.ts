@@ -30,10 +30,11 @@ const MAX_JUDGED = 10;
 const MAX_KEPT = 5;
 const BEFORE_FIRST_REPORT_MS = 3 * 24 * 3600 * 1000;
 const MIN_TITLE_OVERLAP = 0.3;
-// Pages whose summaries are this close carry the same text: one wire story or press release reprinted
-// under other headlines (measured on the evaluation copy: reprints 0.71–0.85, separate reports 0.4–0.6).
-const SAME_TEXT = 0.7;
-const SUMMARY_CHARS = 200;
+// Pages that share this much of their text are one text: a wire story or press release reprinted under
+// other headlines. Measured on the evaluation copy and production (share of the shorter summary's
+// three-word runs found in the other, a Chinese character counting as a word): reprints and abridged
+// reprints 0.70–0.99, separate reports of the same study at most 0.16, English or Chinese.
+const SAME_TEXT = 0.5;
 
 // The paper itself (journals, preprint servers, indexes, library proxies) is not coverage of it.
 const SCHOLARLY = /(^|\.)(ncbi\.nlm\.nih\.gov|europepmc\.org|semanticscholar\.org|researchgate\.net|academia\.edu|mendeley\.com|ouci\.dntb\.gov\.ua|biorxiv\.org|medrxiv\.org|arxiv\.org|psyarxiv\.com|osf\.io|doi\.org|crossref\.org|openalex\.org|sciencedirect\.com|link\.springer\.com|onlinelibrary\.wiley\.com|tandfonline\.com|journals\.sagepub\.com|academic\.oup\.com|frontiersin\.org|science\.gov|scholar\.archive\.org|cnki\.net|x\.com|twitter\.com|xiaohongshu\.com|psyhot\.cn)$/i;
@@ -97,10 +98,36 @@ export function titleOverlap(a: string, b: string): number {
 
 /** Pages the judge kept, one per text: a reprint joins the first (best-ranked) page of its text. */
 export function distinctTexts(kept: Candidate[]): Candidate[] {
-  const out: Candidate[] = [];
-  const text = (c: Candidate) => (c.summary || c.snippet).slice(0, SUMMARY_CHARS);
-  for (const c of kept) if (!out.some((o) => titleOverlap(text(o), text(c)) >= SAME_TEXT)) out.push(c);
-  return out;
+  const out: Array<{ c: Candidate; runs: Set<string> }> = [];
+  for (const c of kept) {
+    const runs = wordRuns(c.summary || c.snippet);
+    if (!out.some((o) => sharedText(o.runs, runs) >= SAME_TEXT)) out.push({ c, runs });
+  }
+  return out.map((o) => o.c);
+}
+
+/**
+ * The three-word runs of a page's text, without its headings and date lines (a page's own header must
+ * not make two reprints look different). A Chinese character counts as a word.
+ */
+export function wordRuns(text: string): Set<string> {
+  const body = text.split("\n").filter((l) => {
+    const t = l.trim();
+    return t && !t.startsWith("#") && t !== "..." && !/^[\d\s/:.\-年月日]+$/.test(t);
+  }).join("\n");
+  const words = body.toLowerCase().match(/[\p{Script=Han}]|[\p{L}\p{N}]+/gu) ?? [];
+  const runs = new Set<string>();
+  for (let i = 0; i + 3 <= words.length; i++) runs.add(words.slice(i, i + 3).join(" "));
+  return runs;
+}
+
+/** How much of the shorter text is found in the other, 0..1. */
+function sharedText(a: Set<string>, b: Set<string>): number {
+  const [small, large] = a.size <= b.size ? [a, b] : [b, a];
+  if (!small.size) return 0;
+  let shared = 0;
+  for (const r of small) if (large.has(r)) shared += 1;
+  return shared / small.size;
 }
 
 export interface LookupStory {

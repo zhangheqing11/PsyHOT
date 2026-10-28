@@ -10,7 +10,7 @@ import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { extractFromUrl, fallbackAllowed } from "@aihot/backend/content/extract";
-import { lookupStoryCoverage, screen, siteOf, titleOverlap, webParticipant, WEB_LOOKUP_SOURCE } from "@aihot/backend/events/web-lookup";
+import { distinctTexts, lookupStoryCoverage, screen, siteOf, titleOverlap, webParticipant, WEB_LOOKUP_SOURCE } from "@aihot/backend/events/web-lookup";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { publishArticle } from "@aihot/backend/publication/publish";
 
@@ -85,6 +85,18 @@ test("screening keeps dated pages from the story's time, off scholarly hosts, mi
   ];
   const kept = screen(story, [{ query: ORIGINAL, results }], now);
   assert.deepEqual(kept.map((c) => [c.participant, c.url]), [["web:news-medical.net", "https://news-medical.net/b"]]);
+});
+
+test("a wire story or press release reprinted by several sites counts once; separate reports each count", () => {
+  const page = (url: string, summary: string) => ({ title: ORIGINAL, url, snippet: "", summary, siteName: null, date: new Date(day(-1)), rerankScore: 1, authority: 1, participant: webParticipant(url)!, query: ORIGINAL });
+  const wire = "新华社电 一项发表在国际期刊上的研究发现，在线认知行为治疗中由人工智能提供反馈，缓解社交焦虑的效果与人类治疗师接近，研究团队招募了数百名受试者。";
+  const kept = distinctTexts([
+    page("https://www.gmw.cn/a", wire),
+    page("https://www.qzwb.com/b", `${wire}专家表示仍需更多研究。`),
+    page("https://www.zaobao.com.sg/c", `（综合报道）${wire}`),
+    page("https://www.sina.com.cn/d", "新华读报：AI还是真人？记者采访多位心理咨询师，他们认为AI可作为辅助工具，但无法替代面对面的治疗关系，相关伦理问题仍待讨论。"),
+  ]);
+  assert.deepEqual(kept.map((c) => c.participant), ["web:gmw.cn", "web:sina.com.cn"]);
 });
 
 test("the body fallback is never asked for a page its site refused or that sits behind a robot check", () => {

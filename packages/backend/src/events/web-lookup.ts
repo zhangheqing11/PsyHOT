@@ -6,7 +6,8 @@
 // Xiaohongshu report, outlets already counted); one model call per story then keeps only
 // pages that report or discuss this very study or event. Each kept page is stored as a hot_signal
 // article of the external source web-story-lookup and recorded as a signal of the story; its site is
-// the participant, so a site counts once however many of its pages appear.
+// the participant, so a site counts once however many of its pages appear, and a story reprinted by
+// several sites (one wire story, one press release) counts once too.
 import { z } from "zod";
 import { sql } from "../db.ts";
 import { settleNonEditorial } from "../jobs/content.ts";
@@ -29,6 +30,10 @@ const MAX_JUDGED = 10;
 const MAX_KEPT = 5;
 const BEFORE_FIRST_REPORT_MS = 3 * 24 * 3600 * 1000;
 const MIN_TITLE_OVERLAP = 0.3;
+// Pages whose summaries are this close carry the same text: one wire story or press release reprinted
+// under other headlines (measured on the evaluation copy: reprints 0.71–0.85, separate reports 0.4–0.6).
+const SAME_TEXT = 0.7;
+const SUMMARY_CHARS = 200;
 
 // The paper itself (journals, preprint servers, indexes, library proxies) is not coverage of it.
 const SCHOLARLY = /(^|\.)(ncbi\.nlm\.nih\.gov|europepmc\.org|semanticscholar\.org|researchgate\.net|academia\.edu|mendeley\.com|ouci\.dntb\.gov\.ua|biorxiv\.org|medrxiv\.org|arxiv\.org|psyarxiv\.com|osf\.io|doi\.org|crossref\.org|openalex\.org|sciencedirect\.com|link\.springer\.com|onlinelibrary\.wiley\.com|tandfonline\.com|journals\.sagepub\.com|academic\.oup\.com|frontiersin\.org|science\.gov|scholar\.archive\.org|cnki\.net|x\.com|twitter\.com|xiaohongshu\.com|psyhot\.cn)$/i;
@@ -88,6 +93,14 @@ export function titleOverlap(a: string, b: string): number {
   let shared = 0;
   for (const x of A) if (B.has(x)) shared += 1;
   return (2 * shared) / (A.size + B.size);
+}
+
+/** Pages the judge kept, one per text: a reprint joins the first (best-ranked) page of its text. */
+export function distinctTexts(kept: Candidate[]): Candidate[] {
+  const out: Candidate[] = [];
+  const text = (c: Candidate) => (c.summary || c.snippet).slice(0, SUMMARY_CHARS);
+  for (const c of kept) if (!out.some((o) => titleOverlap(text(o), text(c)) >= SAME_TEXT)) out.push(c);
+  return out;
 }
 
 export interface LookupStory {
@@ -253,7 +266,7 @@ export async function lookupStory(story: LookupStory, bucket: string, now = new 
       system: promptText("web-coverage"), user: coverageUser(story, judged), schema: CoverageSchema, temperature: 0, maxTokens: 120 + 30 * judged.length,
     });
     const yes = new Set(res.data.decisions.filter((d) => d.coverage).map((d) => d.id));
-    for (const c of judged.filter((_, i) => yes.has(`W${i + 1}`)).slice(0, MAX_KEPT)) if (await keep(story, c, now)) kept.push(c);
+    for (const c of distinctTexts(judged.filter((_, i) => yes.has(`W${i + 1}`))).slice(0, MAX_KEPT)) if (await keep(story, c, now)) kept.push(c);
     await completeReceipt(sql, res.receiptId);
   }
   for (const id of receipts) await completeReceipt(sql, id);

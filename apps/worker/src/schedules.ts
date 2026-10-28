@@ -13,6 +13,7 @@ import { refreshSourceIcons } from "@aihot/backend/sources/icons";
 import { computeHotRanking, snapshotHeat } from "@aihot/backend/events/hot";
 import { refreshStoryStatuses } from "@aihot/backend/events/digest";
 import { linkRelatedStories } from "@aihot/backend/events/group";
+import { lookupStoryCoverage } from "@aihot/backend/events/web-lookup";
 import { catchUpReports, composeDaily, composeMonthly, composeWeekly } from "@aihot/backend/reports/compose";
 import { addDays, beijingDate, isoWeekLabel } from "@aihot/contracts/time";
 import { runLeaderboardRound } from "@aihot/backend/leaderboard/method/run";
@@ -99,6 +100,8 @@ export const SCHEDULES: Scheduled[] = [
         { name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile() },
         // Abstracts for journal items that have only a title, from open scholarly metadata (free).
         { name: "content.abstracts", cron: "*/20 * * * *", run: () => enrichThinAbstracts() },
+        // Web coverage of hot stories (DeepSeek Search, paid per call; off with WEB_STORY_LOOKUP_ENABLED=false).
+        { name: "hot.web-lookup", cron: "25 */6 * * *", run: () => lookupStoryCoverage() },
       ]
     : []),
   // Codex reset monitor: checked every minute, scanned every 5 (every 3 while hot). It reads X through

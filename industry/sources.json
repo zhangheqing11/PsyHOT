@@ -7893,6 +7893,24 @@
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
+  },
+  {
+   "id": "web-story-lookup",
+   "name": "网页 · 事件报道",
+   "kind": "external",
+   "config": {},
+   "tier": "T2",
+   "first_party": false,
+   "participation_mode": "hot_signal",
+   "track": "mixed",
+   "region": null,
+   "interval_minutes": 1440,
+   "tags": [
+    "DeepSeek",
+    "事件反查"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
   }
  ]
 }

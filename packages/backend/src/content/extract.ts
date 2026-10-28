@@ -1,13 +1,15 @@
 // Article body extraction: readable text from the article page, or "unconfirmed" — never a wrong body.
-// Jina Reader is the budgeted fallback for pages that only render in a browser.
+// Jina Reader (else DeepSeek Fetch) is the budgeted fallback for pages that only render in a browser.
+// Neither is asked for a page its site refused us: a robot check is never worked around.
 import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { credential } from "../config.ts";
 import { sql } from "../db.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
+import { deepseekFetch, deepseekToolsKey } from "../providers/deepseek-tools.ts";
 import { jinaRead } from "../providers/jina.ts";
-import { BudgetExceededError } from "../providers/receipts.ts";
+import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
 import { getArticle } from "../providers/socialdata.ts";
 import { onlyXArticleLink, xArticleText } from "../sources/x.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
@@ -18,7 +20,7 @@ export interface ExtractedBody {
   html: string;
   text: string;
   images: Array<{ kind: "image"; url: string; width: number | null; height: number | null }>;
-  via: "readability" | "jina";
+  via: "readability" | "jina" | "deepseek";
 }
 
 const MIN_BODY_CHARS = 200;
@@ -52,29 +54,58 @@ export function readable(html: string, url: string): ExtractedBody | null {
   return { html: clean, text, images, via: "readability" };
 }
 
+// Statuses of a site that refused us (login, robot check, rate limit, legal block), and sites whose
+// pages sit behind a robot check even when they answer 200 (ScienceDirect, 瑞数 on NHC and NMPA,
+// Aliyun's acw_sc__v2 on 健康界).
+const REFUSED = new Set([401, 403, 407, 412, 429, 451]);
+const ROBOT_CHECKED = /(^|\.)(sciencedirect\.com|nhc\.gov\.cn|nmpa\.gov\.cn|cn-healthcare\.com)$/i;
+
+/** Whether a fallback reader may be asked for this page: not when its site refused us or checks for robots. */
+export function fallbackAllowed(url: string, status: number | null): boolean {
+  if (status !== null && REFUSED.has(status)) return false;
+  try {
+    return !ROBOT_CHECKED.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string }): Promise<ExtractedBody | null> {
+  let status: number | null = null;
   try {
     const res = await guardedFetch(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 });
+    status = res.status;
     const type = res.headers.get("content-type") ?? "";
     if (res.status === 200 && /html/.test(type)) {
       const got = readable(res.text(), res.url);
       if (got) return got;
     }
   } catch {
-    // fall through to Jina
+    // fall through to a reader
   }
-  // Without a Jina key there is no fallback: the article goes on with what its source gave.
-  if (!opts.allowJina || !credential("collectors", "JINA_API_KEY")) return null;
+  // Without a reader key there is no fallback: the article goes on with what its source gave.
+  if (!opts.allowJina || !fallbackAllowed(url, status)) return null;
   try {
-    const page = await jinaRead(url, { purpose: "body_fallback", subject: opts.subject });
-    const html = markdownBody(page.markdown, url);
-    const text = stripTags(html);
-    if (text.length < MIN_BODY_CHARS) return null;
-    return { html, text, images: [], via: "jina" };
+    if (credential("collectors", "JINA_API_KEY")) {
+      const page = await jinaRead(url, { purpose: "body_fallback", subject: opts.subject });
+      return markdownExtract(page.markdown, url, "jina");
+    }
+    if (process.env.DEEPSEEK_BODY_FALLBACK !== "false" && deepseekToolsKey()) {
+      const page = await deepseekFetch(url, { purpose: "body_fallback", subject: opts.subject });
+      return markdownExtract(page.markdown, url, "deepseek");
+    }
+    return null;
   } catch (error) {
-    if (error instanceof BudgetExceededError) return null;
+    // A spent budget, or a page the reader could not get (DeepSeek's 404 is "no usable content").
+    if (error instanceof BudgetExceededError || (error instanceof ProviderRejectedError && !error.retryable)) return null;
     throw error;
   }
+}
+
+function markdownExtract(markdown: string, url: string, via: ExtractedBody["via"]): ExtractedBody | null {
+  const html = markdownBody(markdown, url);
+  const text = stripTags(html);
+  return text.length < MIN_BODY_CHARS ? null : { html, text, images: [], via };
 }
 
 /** Pages extraction can fetch: ordinary web pages (X posts and WeChat articles arrive whole or not at all). */

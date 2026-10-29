@@ -8,10 +8,13 @@ import { useAdminAction } from "../../features/admin/action";
 import { num } from "../../features/admin/format";
 import { TRACK_LABEL } from "../../features/admin/labels";
 import { LABEL_DECISIONS, LabelButtons } from "../../features/admin/LabelButtons";
+import { PractitionerRoles } from "../../features/admin/PractitionerRoles";
 import { AdminPage, Badge, Button, Card, Empty, FilterChips, Input, Pager, Stat, Textarea, Time } from "../../features/admin/ui";
 
 interface Row {
   id: string;
+  roles: string[] | null;
+  impact: string | null;
   queue: string;
   split: string;
   decision: string | null;
@@ -69,7 +72,7 @@ function LabelNote({ row }: { row: Row }) {
   }, { label: `note:${row.id}`, success: "备注已保存" });
   return (
     <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-end">
-      <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="标注备注（可选；不会写入 gold JSONL）" aria-label={`${row.id} 的标注备注`} />
+      <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} placeholder="标注备注（可选，不会写入 gold JSONL）；角色或影响类型不对时写正确的" aria-label={`${row.id} 的标注备注`} />
       <Button size="sm" disabled={!dirty} busy={pending === `note:${row.id}`} onClick={() => void save()}>保存备注</Button>
     </div>
   );
@@ -132,6 +135,7 @@ export default function Labels({ loaderData }: Route.ComponentProps) {
                     <span>· {QUEUE_LABEL[r.queue] ?? r.queue}</span>
                     {r.split === "holdout" && <span>· 留出集</span>}
                   </div>
+                  <PractitionerRoles roles={r.roles} impact={r.impact} />
                   <Link to={`/admin/content/${r.id}`} className="mt-1 block font-medium text-ink hover:text-accent">{r.title}</Link>
                   {r.title !== r.original_title && <div className="text-[12.5px] text-ink-4">{r.original_title}</div>}
                   {r.summary && <p className="mt-1 line-clamp-3 text-[13px] text-ink-3">{r.summary}</p>}

@@ -4,7 +4,7 @@
 // threshold); the labels export as the gold file scripts/eval-selection.ts and SelectBench read.
 import { z } from "zod";
 import { SELECTION } from "@aihot/industry/selection";
-import { CATEGORIES } from "@aihot/industry/taxonomy";
+import { CATEGORIES, ROLE_KEYS } from "@aihot/industry/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { audit } from "./auth.ts";
 import { Conflict } from "./sources.ts";
@@ -153,6 +153,7 @@ function isContext(value: unknown): value is LabelContext {
 
 export interface LabelCandidate {
   id: string;
+  roles: string[];
   track: "academic" | "industry" | null;
   score: number | null;
   threshold: number | null;
@@ -168,7 +169,7 @@ export interface LabelCandidate {
 export async function labelCandidates(since: Date, until: Date): Promise<LabelCandidate[]> {
   const rows = await sql<(Omit<LabelCandidate, "score" | "threshold"> & { score: string | null; threshold: string | null })[]>`
     SELECT a.id, ${TRACK} AS track, an.score, (an.output->>'threshold')::numeric AS threshold, coalesce(an.selected, false) AS selected,
-           coalesce((an.output->>'promotion')::boolean, false) AS promotion, an.relevance
+           coalesce((an.output->>'promotion')::boolean, false) AS promotion, an.relevance, coalesce(an.output->'roles', '[]'::jsonb) AS roles
     FROM articles a JOIN sources s ON s.id = a.source_id ${LATEST}
     WHERE s.participation_mode = 'editorial' AND an.relevance IS NOT NULL
       AND a.discovered_at >= ${since} AND a.discovered_at < ${until}
@@ -181,6 +182,26 @@ export async function labelCandidates(since: Date, until: Date): Promise<LabelCa
 export const NEAR_THRESHOLD = 5;
 export const isNear = (c: Pick<LabelCandidate, "score" | "threshold">, within = NEAR_THRESHOLD) =>
   c.score !== null && c.threshold !== null && Math.abs(c.score - c.threshold) <= within;
+
+/** Adds unpicked, relevant industry items until each role is covered, preferring borderline scores. */
+export function completeRoleSample(candidates: LabelCandidate[], pickedIds: readonly string[], n: number): LabelCandidate[] {
+  const taken = new Set(pickedIds);
+  const counts = Object.fromEntries(ROLE_KEYS.map((role) => [role, candidates.filter((c) => taken.has(c.id) && c.roles.includes(role)).length]));
+  const target = Math.max(3, Math.floor(n / 10));
+  const pool = candidates.filter((c) => c.track === "industry" && c.relevance === "pass" && !c.promotion)
+    .sort((a, b) => Number(isNear(b, 8)) - Number(isNear(a, 8)) || (b.score ?? -1) - (a.score ?? -1));
+  const added: LabelCandidate[] = [];
+  for (const role of ROLE_KEYS) {
+    for (const c of pool) {
+      if (counts[role]! >= target) break;
+      if (taken.has(c.id) || !c.roles.includes(role)) continue;
+      taken.add(c.id);
+      added.push(c);
+      for (const key of ROLE_KEYS) if (c.roles.includes(key)) counts[key]! += 1;
+    }
+  }
+  return added;
+}
 
 /** Queues items for labelling; already queued or labelled ones are left as they are.
  * The context is captured before the insert and never refreshed by later article revisions. */
@@ -319,7 +340,8 @@ export async function listLabels(f: LabelListFilters = {}) {
            coalesce(nullif(an.title_zh, ''), a.title) AS title, a.title AS original_title, an.summary_zh AS summary, a.url,
            a.published_at, s.name AS source, s.tier, ${TRACK} AS track, an.category, an.score,
            (an.output->>'threshold')::numeric AS threshold, an.selected, coalesce((an.output->>'promotion')::boolean, false) AS promotion,
-           an.relevance, an.output->'prefilter'->>'reason' AS prefilter_reason
+           an.relevance, an.output->'prefilter'->>'reason' AS prefilter_reason,
+           an.output->'roles' AS roles, an.output->>'impact' AS impact
     FROM selection_labels l JOIN articles a ON a.id = l.article_id JOIN sources s ON s.id = a.source_id ${LATEST}
     WHERE ${status}
       AND (${queue}::text IS NULL OR l.queue = ${queue})

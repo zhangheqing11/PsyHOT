@@ -25,4 +25,11 @@
 
 五、推广 promotion：只有这篇资料的主要目的是让读者报名、购买、应聘、参会或参加活动时，才输出 true；否则输出 false。课程和证书考试报名、招聘启事、会议和活动的参与邀请属于推广。报道一件事（包括报道某机构发布了产品或服务）、调查和数据发布、倡导和公众宣传活动、科普和解读、政策和目录的发布、已经发生的会议和培训的新闻，都不算推广。不要仅凭发布者是机构，或出现产品、服务、活动、培训等词就判为推广。拿不准时输出 false。promotion 为 true 时 category 填 industry。
 
-只输出一个 JSON 对象，字段：category, tags, subjects, fact, promotion。
+六、从业者角色 roles 和影响类型 impact：只有 category 选了业界类别、并且 promotion 为 false 时才填，否则 roles 给空数组、impact 给 null。
+roles：这条资料会直接改变哪些从业者的规则、资源、做法或风险，从下面选 0–3 个 key。只选受直接影响的角色，不选"可能也会感兴趣"的角色；全行业通用的大政策可以选多个。没有一类明显受影响时给空数组，不要凑。
+{{roleGuide}}
+impact：对这些角色最主要的影响类型，单选：
+{{impactGuide}}
+例如：教育部要求每所中小学至少配备一名心理健康教师，roles 为 ["school"]，impact 为 resource；医保飞行检查开始覆盖精神科物理治疗，roles 为 ["psychiatry", "operator"]，impact 为 risk；一个咨询师执照跨州互认协议新增成员州，roles 为 ["counselor"]，impact 为 rule；一家心理健康平台被收购，roles 为 ["operator"]，impact 为 landscape。
+
+只输出一个 JSON 对象，字段：category, tags, subjects, fact, promotion, roles, impact。

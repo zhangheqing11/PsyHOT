@@ -30,6 +30,29 @@ export const CATEGORIES = [
   { key: "digital", track: "industry", label: "AI 与数字心理", section: "行业与政策", guide: "主角是 AI 或数字产品的业界内容：AI 心理陪伴与聊天机器人的产品、安全事件与监管，心理健康 App、数字疗法和远程服务的上市、审批、商业动态与合规，科技公司与心理健康相关的政策和做法。只要主角是 AI 或数字产品就归这里，不归 policy 或 industry；研究 AI 或数字干预效果的论文归学界" },
 ] as const;
 
+/** 业界内容影响的从业者角色（2026-10-29 站长确定的五类）。结构理解给业界条目选 0–3 个。 */
+export const PRACTITIONER_ROLES = [
+  { key: "counselor", label: "咨询与治疗", guide: "社会机构和平台上的心理咨询师、心理治疗师、独立执业者" },
+  { key: "psychiatry", label: "精神科医护", guide: "精神科医生和护士，医院心理科、睡眠科，医院里的心理治疗师，精神专科医院的管理者" },
+  { key: "school", label: "学校心理", guide: "中小学心理健康教师、高校心理中心、特殊教育教师（孤独症等）、负责学生心理工作的班主任和德育干部" },
+  { key: "community", label: "社工与热线", guide: "社区心理服务站、12356 等心理援助热线、危机干预人员、精神障碍社区康复机构、社会工作者" },
+  { key: "operator", label: "机构与产品", guide: "心理服务机构和平台的经营者、EAP 服务商、数字疗法与 AI 心理产品团队、精神科药企和投资方" },
+] as const;
+
+/** 业界内容对从业者的影响类型，单选，取最主要的一个。 */
+export const IMPACT_TYPES = [
+  { key: "rule", label: "规则", guide: "能不能做、要不要合规：资质与注册、执业范围、伦理守则、广告与数据合规、管制药品目录" },
+  { key: "resource", label: "资源", guide: "钱、岗位和配比：收费与医保项目、医保检查、财政资金与购买服务、人员配比、编制、薪酬" },
+  { key: "practice", label: "做法", guide: "手上的工作要不要改：诊疗指南与专家共识、工作规范、新药与器械、转介流程、筛查要求" },
+  { key: "risk", label: "风险", guide: "同行出了什么事、要防什么：处罚、诉讼、伦理通报、安全事件、AI 产品事故" },
+  { key: "landscape", label: "格局", guide: "行业往哪走：并购与关停、市场规模、人力供需与流失调查" },
+] as const;
+
+export type RoleKey = (typeof PRACTITIONER_ROLES)[number]["key"];
+export type ImpactKey = (typeof IMPACT_TYPES)[number]["key"];
+export const ROLE_KEYS = PRACTITIONER_ROLES.map((r) => r.key) as unknown as readonly [RoleKey, ...RoleKey[]];
+export const IMPACT_KEYS = IMPACT_TYPES.map((i) => i.key) as unknown as readonly [ImpactKey, ...ImpactKey[]];
+
 /**
  * 内容理解一步给每篇资料判的“内容类型”（写在 prompts/content-understanding.md 里，改了类型要同步改那份提示词）。
  * 评分提示词（prompts/selection-score.md）按类型给五个维度不同的权重。

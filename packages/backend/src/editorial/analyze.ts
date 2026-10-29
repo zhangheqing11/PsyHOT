@@ -11,7 +11,7 @@
 // Material with only a title or a feed summary has its article page fetched before it is judged.
 import { z } from "zod";
 import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
-import { CATEGORIES } from "@aihot/industry/taxonomy";
+import { CATEGORIES, PRACTITIONER_ROLES, IMPACT_TYPES, ROLE_KEYS, IMPACT_KEYS } from "@aihot/industry/taxonomy";
 import { SELECTION } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
 import { chatJson, MODELS, ModelOutputError, type ContentPart } from "../providers/llm.ts";
@@ -148,6 +148,8 @@ const StructureSchema = z.object({
   subjects: z.array(z.string()).max(6).catch([]),
   fact: FactSchema,
   promotion: z.boolean().catch(false),
+  roles: z.array(z.string()).max(6).catch([]),
+  impact: z.string().nullable().catch(null),
 });
 
 const UnderstandSchema = z.object({
@@ -164,7 +166,9 @@ const SummarizeSchema = z.object({ titleZh: z.string(), summaryZh: z.string(), b
 const ZH_COUNT = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十", "十一", "十二"];
 
 /** The structure step's prompt (it writes nothing a reader sees), filled from the pack's vocabulary. */
-const STRUCTURE_SYSTEM = promptText("structure", {
+export const STRUCTURE_SYSTEM = promptText("structure", {
+  roleGuide: PRACTITIONER_ROLES.map((r) => `- ${r.key}（${r.label}）：${r.guide}`).join("\n"),
+  impactGuide: IMPACT_TYPES.map((i) => `- ${i.key}（${i.label}）：${i.guide}`).join("\n"),
   categoryCount: ZH_COUNT[CATEGORIES.length] ?? String(CATEGORIES.length),
   academicGuide: trackGuide("academic"),
   industryGuide: trackGuide("industry"),
@@ -207,7 +211,7 @@ export interface AnalysisRun {
    * only in the full feed: never selected, grouped or exported, and written the cheap way.
    */
   structure: {
-    model: string; category: string | null; tags: string[]; subjects: string[]; fact: z.infer<typeof FactSchema>; promotion: boolean;
+    model: string; category: string | null; tags: string[]; subjects: string[]; fact: z.infer<typeof FactSchema>; promotion: boolean; roles: string[]; impact: string | null;
     receiptId: number; reused: boolean;
   } | null;
 }
@@ -219,7 +223,7 @@ export function waitsForPage(a: AnalyzeInputArticle): boolean {
   return a.bodyStatus === "pending" && !a.bodyText && !a.xPost && pageFetchable(a.url, a.source.kind);
 }
 
-type StepOpts = { attemptTag?: string; scoreModel?: string };
+type StepOpts = { attemptTag?: string; structureAttemptTag?: string; scoreModel?: string };
 type ReceiptObserver = (receiptId: number) => void;
 export class AnalysisInterruptedError extends Error {}
 
@@ -363,14 +367,18 @@ async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<Non
     schema: StructureSchema,
     temperature: 0.2,
     maxTokens: 800,
-    attemptTag: tagged(opts.attemptTag, "structure"),
+    attemptTag: tagged(opts.structureAttemptTag ?? opts.attemptTag, "structure"),
   });
   const subjects = [...new Set(res.data.subjects.map((s) => s.trim().toLowerCase()).filter((s) => s in ENTITIES))];
   const promotion = res.data.promotion;
   // A promotion is filed under the industry's institutions and market; anything else stays on its source's side.
   const category = promotion ? "industry" : categoryForSource(res.data.category, a.source.track);
+  const roles = trackOfCategory(category) === "industry" && !promotion
+    ? [...new Set(res.data.roles.map((r) => r.trim().toLowerCase()).filter((r) => (ROLE_KEYS as readonly string[]).includes(r)))].slice(0, 3)
+    : [];
+  const impact = roles.length && res.data.impact !== null && (IMPACT_KEYS as readonly string[]).includes(res.data.impact) ? res.data.impact : null;
   return {
-    model: res.model, category, tags: normalizeTags(res.data.tags), subjects, fact: promotion ? null : res.data.fact, promotion,
+    model: res.model, category, tags: normalizeTags(res.data.tags), subjects, fact: promotion ? null : res.data.fact, promotion, roles, impact,
     receiptId: res.receiptId, reused: res.reused,
   };
 }
@@ -532,6 +540,8 @@ export function normalizeAnalysis(run: AnalysisRun) {
     category: run.structure?.category ?? null,
     tags,
     subjects,
+    roles: run.structure?.roles ?? [],
+    impact: run.structure?.impact ?? null,
     titleZh,
     summaryZh,
     reasonZh: promotion ? null : run.writing?.reasonZh ?? null,
@@ -574,6 +584,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     ...(w ? { writer: w.kind, writerModel: w.model, itemType: w.itemType ?? null, authorRole: w.authorRole ?? null } : {}),
     ...(w?.identityGuard?.outcome === "fallback" ? { identityGuard: w.identityGuard } : {}),
     fact: out.fact,
+    ...(trackOfCategory(out.category) === "industry" ? { roles: out.roles, ...(out.roles.length ? { impact: out.impact } : {}) } : {}),
     ...(out.promotion ? { promotion: true } : {}),
   };
   const committed = await sql.begin(async (tx) => {

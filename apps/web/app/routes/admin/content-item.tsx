@@ -8,6 +8,7 @@ import { useAdminAction } from "../../features/admin/action";
 import { bj, money } from "../../features/admin/format";
 import { KIND_LABEL, MODE_LABEL, VISIBILITY_LABEL } from "../../features/admin/labels";
 import { LabelButtons } from "../../features/admin/LabelButtons";
+import { PractitionerRoles } from "../../features/admin/PractitionerRoles";
 import { AdminPage, Badge, Button, Card, Empty, Field, Input, Json, KV, ReasonDialog, Select, Textarea } from "../../features/admin/ui";
 
 type Row = Record<string, any>;
@@ -172,6 +173,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                         {an.category && <Badge>{CATEGORY_NAMES[an.category as keyof typeof CATEGORY_NAMES] ?? an.category}</Badge>}
                         <span className="text-ink-4">{an.model} · {an.prompt_version} · 输入 v{an.input_revision} · {an.origin} · {bj(an.created_at)}</span>
                       </div>
+                      <PractitionerRoles roles={an.output?.roles} impact={an.output?.impact} />
                       {an.title_zh && <div className="mt-2 font-medium text-ink">{an.title_zh}</div>}
                       {an.reason_zh && <div className="mt-1 text-[12.5px] leading-relaxed text-ink-3">{an.reason_zh}</div>}
                       {(an.receipts as Row[]).length > 0 && (

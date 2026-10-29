@@ -3,10 +3,11 @@
 // categories on its side; the industry's own promotions are listed in the full feed only.
 import { stub } from "./setup.ts";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
-import { analyzeArticle, tierThreshold } from "@aihot/backend/editorial/analyze";
+import { ANALYZE_PROMPT_VERSION, analyzeArticle, tierThreshold, STRUCTURE_SYSTEM } from "@aihot/backend/editorial/analyze";
 import { categoryForSource } from "@aihot/backend/editorial/vocabulary";
 import { groupArticle } from "@aihot/backend/events/group";
 import { overrideFields } from "@aihot/backend/admin/content";
@@ -18,6 +19,9 @@ import { stopBoss } from "@aihot/backend/jobs/queue";
 import { FEATURES } from "@aihot/industry/features";
 import { SELECTION } from "@aihot/industry/selection";
 import { CATEGORY_LABELS, CATEGORY_NAMES, categoryMembers, PUBLIC_API_CATEGORY_KEYS, toPublicApiCategory } from "@aihot/contracts/taxonomy";
+import { PRACTITIONER_ROLES, IMPACT_TYPES } from "@aihot/industry/taxonomy";
+import { completeRoleSample, labelCandidates, queueForLabel, listLabels, type LabelCandidate } from "@aihot/backend/admin/labels";
+import { contentChain } from "@aihot/backend/admin/content";
 import { tag } from "./setup.ts";
 
 const T = tag();
@@ -26,11 +30,14 @@ const INDUSTRY = `test-tracks-industry-${T}`;
 const MIXED = `test-tracks-mixed-${T}`;
 
 // What the structure step answers per marker: the category it picks and whether it calls it a promotion.
-const STRUCTURE: Record<string, { category: string; promotion?: boolean }> = {
-  PROMO: { category: "digital", promotion: true },
-  JOURNALPOLICY: { category: "policy" },
+const STRUCTURE: Record<string, { category: string; promotion?: boolean; roles?: string[]; impact?: string | null }> = {
+  PROMO: { category: "digital", promotion: true, roles: ["school"], impact: "resource" },
+  JOURNALPOLICY: { category: "policy", roles: ["school"], impact: "resource" },
   REGULATORSTUDY: { category: "research" },
   MIXEDPOLICY: { category: "policy" },
+  ROLESNORMAL: { category: "policy", roles: ["School", "school", "psychiatry", "bogus", "operator", "counselor"], impact: "resource" },
+  ROLESBADIMPACT: { category: "policy", roles: [" school "], impact: "bogus" },
+  ROLESEMPTY: { category: "policy", roles: ["bogus"], impact: "resource" },
 };
 const steps: Array<{ step: string; marker: string; user: string }> = [];
 const provider = await stub((_hit, req) => {
@@ -49,7 +56,7 @@ const provider = await stub((_hit, req) => {
   if (step === "understand") return answer({ itemType: "policy_event", authorRole: "principal", tags: ["政策/监管"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句。` });
   if (step === "structure") {
     const s = STRUCTURE[marker]!;
-    return answer({ category: s.category, tags: ["行业动态"], subjects: [], fact: { title: `事实 ${marker}`, subject: "某机构", action: "发布", object: "产品", occurredAt: null }, ...(s.promotion ? { promotion: true } : {}) });
+    return answer({ roles: s.roles, impact: s.impact, category: s.category, tags: ["行业动态"], subjects: [], fact: { title: `事实 ${marker}`, subject: "某机构", action: "发布", object: "产品", occurredAt: null }, ...(s.promotion ? { promotion: true } : {}) });
   }
   return answer(`title_zh: 翻译标题 ${marker}\nsummary_zh: 翻译摘要 ${marker}。第二句补充影响。`);
 });
@@ -127,6 +134,11 @@ test("the structure step reads the source's track, and the category it picks is 
   assert.doesNotMatch(structureInput("MIXEDPOLICY"), /可选类别/);
   const category = async (id: string) => (await sql<{ category: string }[]>`SELECT category FROM analyses WHERE article_id = ${id} ORDER BY id DESC LIMIT 1`)[0]!.category;
   assert.equal(await category(journal), "opinion");
+  const journalAgain = await analyzeArticle(journal);
+  assert.deepEqual(journalAgain?.output?.roles, []);
+  assert.equal(journalAgain?.output?.impact, null);
+  const [academicOutput] = await sql`SELECT output FROM analyses WHERE article_id = ${journal} ORDER BY id DESC LIMIT 1`;
+  assert.ok(!Object.hasOwn(academicOutput!.output, "roles"));
   assert.equal(await category(regulator), "industry");
   assert.equal(await category(news), "policy");
   // Stored, shown and filtered as itself now that the switch is on.
@@ -163,6 +175,9 @@ test("a promotion: scored but never selected, written the cheap way, in the full
   assert.equal(an!.reason_zh, null);
   assert.equal(an!.output.promotion, true);
   assert.equal(an!.output.fact, null);
+  assert.deepEqual(result?.output?.roles, []);
+  assert.equal(result?.output?.impact, null);
+  assert.deepEqual(an!.output.roles, []);
 
   await groupArticle(id);
   const p = await publication(id);
@@ -236,4 +251,102 @@ test("labels: the weekly batch queues promotions, blocks and near-threshold scor
   assert.ok(["development", "holdout"].includes(nearCase.samplingContext.benchmarkSplit));
   assert.equal(lines.find((l) => l.caseId === blocked).sourceFacts.track, "academic", "a blocked item takes its source's track");
   assert.ok(!lines.some((l) => l.caseId === manual), "a label taken back is not exported");
+});
+
+
+test("structure vocabulary includes all practitioner roles and impact types", () => {
+  for (const entry of [...PRACTITIONER_ROLES, ...IMPACT_TYPES]) assert.ok(STRUCTURE_SYSTEM.includes(`- ${entry.key}（${entry.label}）：${entry.guide}`));
+  assert.ok(!STRUCTURE_SYSTEM.includes("{{"));
+});
+
+test("industry roles are normalized, stored only in output, and exposed to admin", async () => {
+  const id = await article(INDUSTRY, "ROLESNORMAL");
+  const result = await analyzeArticle(id);
+  const roles = ["school", "psychiatry", "operator"];
+  assert.deepEqual(result?.output?.roles, roles);
+  assert.equal(result?.output?.impact, "resource");
+  const [an] = await sql`SELECT output, tags FROM analyses WHERE id = ${result!.analysisId!}`;
+  assert.deepEqual(an!.output.roles, roles);
+  assert.equal(an!.output.impact, "resource");
+  assert.ok(!PRACTITIONER_ROLES.some((r) => an!.tags.includes(r.key) || an!.tags.includes(r.label)));
+  await publishArticle(id);
+  const [p] = await sql`SELECT tags FROM publications WHERE article_id = ${id}`;
+  assert.ok(!roles.some((r) => p!.tags.includes(r)));
+  const chain = await contentChain(id);
+  assert.deepEqual(chain!.analyses[0]!.output.roles, roles);
+  const candidates = await labelCandidates(new Date(Date.now() - 3600_000), new Date());
+  assert.deepEqual(candidates.find((c) => c.id === id)?.roles, roles);
+  await queueForLabel([{ id, queue: "sample" }]);
+  const listed = await listLabels({ q: id });
+  assert.deepEqual(listed.rows[0]!.roles, roles);
+  assert.equal(listed.rows[0]!.impact, "resource");
+  assert.ok(!Object.hasOwn(listed.rows[0]!, "output"));
+
+  const before = steps.length;
+  await analyzeArticle(id, { structureAttemptTag: "roles-test" });
+  assert.deepEqual(steps.slice(before).map((s) => s.step), ["structure"], "a structure-only tag reuses prefilter, scores and writing");
+  const after = steps.length;
+  await analyzeArticle(id, { structureAttemptTag: "roles-test" });
+  assert.equal(steps.length, after, "interrupted reruns can reuse the tagged structure receipt too");
+});
+
+test("invalid impact becomes null and empty industry roles remain explicitly marked", async () => {
+  for (const marker of ["ROLESBADIMPACT", "ROLESEMPTY"]) {
+    const result = await analyzeArticle(await article(INDUSTRY, marker));
+    assert.equal(result?.output?.impact, null);
+    const [an] = await sql`SELECT output FROM analyses WHERE id = ${result!.analysisId!}`;
+    assert.deepEqual(an!.output.roles, marker === "ROLESEMPTY" ? [] : ["school"]);
+    if (marker === "ROLESBADIMPACT") assert.equal(an!.output.impact, null);
+  }
+});
+
+test("role completion prefers near then score, excludes unsuitable items and counts overlaps", () => {
+  const c = (id: string, roles: string[], score: number, extra: Partial<LabelCandidate> = {}): LabelCandidate =>
+    ({ id, roles, score, threshold: 60, track: "industry", selected: score >= 60, promotion: false, relevance: "pass", ...extra });
+  const candidates = [
+    c("picked", ["counselor", "school"], 60),
+    c("high", ["counselor", "school"], 99),
+    c("near-low", ["counselor", "school"], 55),
+    c("near-high", ["counselor", "school"], 65),
+    c("promo", ["community"], 60, { promotion: true }),
+    c("block", ["community"], 60, { relevance: "block" }),
+    c("unknown", ["community"], 60, { relevance: "unknown" }),
+    c("academic", ["community"], 60, { track: "academic" }),
+    c("only", ["psychiatry", "operator"], 20),
+  ];
+  const added = completeRoleSample(candidates, ["picked"], 20);
+  assert.deepEqual(added.map((c) => c.id), ["near-high", "near-low", "only"]);
+  assert.equal(new Set(added.map((c) => c.id)).size, added.length);
+  assert.deepEqual(completeRoleSample([], [], 60), []);
+  const many = Array.from({ length: 10 }, (_, i) => c(`n${i}`, ["community"], 10 + i));
+  assert.equal(completeRoleSample(many, [], 60).length, 6);
+  assert.deepEqual(completeRoleSample(many, many.slice(0, 6).map((c) => c.id), 60), []);
+});
+
+
+test("role reruns skip current-version academic, blocked and structure-less judgements", async () => {
+  const ids: string[] = [];
+  for (const [marker, category, relevance] of [
+    ["RERUNACADEMIC", "research", "pass"],
+    ["RERUNBLOCKED", null, "block"],
+    ["RERUNTITLEONLY", null, "unknown"],
+  ] as const) {
+    const id = await article(MIXED, marker);
+    ids.push(id);
+    await sql`INSERT INTO analyses (article_id, input_revision, origin, prompt_version, category, relevance, output) VALUES
+      (${id}, 1, 'model', 'old-roles-prompt', ${category}, ${relevance}, '{}'::jsonb),
+      (${id}, 1, 'model', ${ANALYZE_PROMPT_VERSION}, ${category}, ${relevance}, '{}'::jsonb)`;
+  }
+  const dryRun = () => execFileSync(process.execPath, ["scripts/rerun-roles.ts", "--ids", ids.join(","), "--dry-run"], {
+    encoding: "utf8", env: { ...process.env, MODEL_CALLS_ENABLED: "false" },
+  });
+  assert.match(dryRun(), /0 items left in the set; running 0/);
+  // Even an explicit roles key must not hide an outdated latest judgement.
+  await sql`INSERT INTO analyses (article_id, input_revision, origin, prompt_version, category, relevance, output) VALUES
+    (${ids[0]!}, 1, 'model', 'old-roles-prompt', 'policy', 'pass', '{"roles": []}'::jsonb)`;
+  assert.match(dryRun(), /1 items left in the set; running 1/);
+  // An outdated academic judgement stays out: the roles rerun must not touch the academic track.
+  await sql`INSERT INTO analyses (article_id, input_revision, origin, prompt_version, category, relevance, output) VALUES
+    (${ids[1]!}, 1, 'model', 'old-roles-prompt', 'research', 'pass', '{}'::jsonb)`;
+  assert.match(dryRun(), /1 items left in the set; running 1/);
 });

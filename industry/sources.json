@@ -7911,6 +7911,649 @@
    ],
    "site_fulltext": false,
    "syndicate_fulltext": false
+  },
+  {
+   "id": "web-moe-news",
+   "name": "教育部 · 新闻通稿",
+   "kind": "web_list",
+   "config": {
+    "url": "http://www.moe.gov.cn/jyb_xwfb/gzdt_gzdt/s5987/",
+    "itemSelector": "#list > li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span",
+    "publishedAtUtcOffset": "+08:00",
+    "allowUrlPrefixes": [
+     "http://www.moe.gov.cn/"
+    ],
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "心理健康",
+      "心理",
+      "孤独症",
+      "特殊教育",
+      "欺凌",
+      "危机干预",
+      "自杀",
+      "自伤",
+      "心理辅导"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "学校心理"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-moe-policy-news",
+   "name": "教育部 · 政策解读",
+   "kind": "web_list",
+   "config": {
+    "url": "http://www.moe.gov.cn/jyb_xwfb/s271/",
+    "itemSelector": "#list > li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span",
+    "publishedAtUtcOffset": "+08:00",
+    "allowUrlPrefixes": [
+     "http://www.moe.gov.cn/"
+    ],
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "心理健康",
+      "心理",
+      "孤独症",
+      "特殊教育",
+      "欺凌",
+      "危机干预",
+      "自杀",
+      "自伤",
+      "心理辅导"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "学校心理"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-moe-central-policy",
+   "name": "教育部 · 中央文件",
+   "kind": "web_list",
+   "config": {
+    "url": "http://www.moe.gov.cn/jyb_xxgk/moe_1777/moe_1778/",
+    "itemSelector": "#list > li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span",
+    "publishedAtUtcOffset": "+08:00",
+    "allowUrlPrefixes": [
+     "http://www.moe.gov.cn/"
+    ],
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "心理健康",
+      "心理",
+      "孤独症",
+      "特殊教育",
+      "欺凌",
+      "危机干预",
+      "自杀",
+      "自伤",
+      "心理辅导"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-nasp-press",
+   "name": "美国学校心理学家协会（NASP）· 新闻稿",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.nasponline.org/about-school-psychology/media-room/press-releases",
+    "baseUrl": "https://www.nasponline.org/",
+    "itemSelector": "li:has(h4.title-4):has(time)",
+    "linkSelector": "h4.title-4 a",
+    "publishedAtSelector": "time",
+    "publishedAtUtcOffset": "-04:00",
+    "allowUrlPrefixes": [
+     "https://www.nasponline.org/about-school-psychology/media-room/press-releases/"
+    ],
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "recruitment",
+      "job vacancy",
+      "job vacancies",
+      "call for volunteers",
+      "invitation to tender",
+      "tender notice",
+      "contract award"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "学会",
+    "学校心理",
+    "美国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-hcpc-news",
+   "name": "英国健康与护理专业委员会（HCPC）· 新闻",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.hcpc-uk.org/news-and-events/news/",
+    "itemSelector": ".card:has(.card__date)",
+    "linkSelector": "a.card__link",
+    "titleSelector": ".card__title",
+    "publishedAtSelector": ".card__date",
+    "publishedAtUtcOffset": "+00:00",
+    "allowUrlPrefixes": [
+     "https://www.hcpc-uk.org/news-and-events/news/"
+    ],
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "psycholog",
+      "mental health",
+      "therap",
+      "counsel"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "recruitment",
+      "job vacancy",
+      "job vacancies",
+      "call for volunteers",
+      "invitation to tender",
+      "tender notice",
+      "contract award"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "监管",
+    "心理治疗",
+    "英国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-nasw-news",
+   "name": "美国社工协会（NASW）· 新闻稿",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.socialworkers.org/News/News-Releases",
+    "itemSelector": ".articleEntry",
+    "linkSelector": ".ListingItemHeadings a",
+    "publishedAtSelector": ".PublishDate",
+    "publishedAtUtcOffset": "-04:00",
+    "allowUrlPrefixes": [
+     "https://www.socialworkers.org/News/News-Releases/ID/"
+    ],
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "recruitment",
+      "job vacancy",
+      "job vacancies",
+      "call for volunteers",
+      "invitation to tender",
+      "tender notice",
+      "contract award"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "协会",
+    "社会工作",
+    "美国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-asca-press",
+   "name": "美国学校咨询师协会（ASCA）· 新闻稿",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.schoolcounselor.org/About-ASCA/Newsroom/Press-Releases",
+    "itemSelector": ".asca-listing-item",
+    "linkSelector": ".asca-press-release-link a",
+    "publishedAtSelector": ".asca-press-release-date",
+    "publishedAtUtcOffset": "-04:00",
+    "allowUrlPrefixes": [
+     "https://www.schoolcounselor.org/getmedia/"
+    ],
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "recruitment",
+      "job vacancy",
+      "job vacancies",
+      "call for volunteers",
+      "invitation to tender",
+      "tender notice",
+      "contract award"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "协会",
+    "学校心理",
+    "美国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-apna-news",
+   "name": "美国精神科护士协会（APNA）· 新闻",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.apna.org/news/feed/",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "recruitment",
+      "job vacancy",
+      "job vacancies",
+      "call for volunteers",
+      "invitation to tender",
+      "tender notice",
+      "contract award"
+     ]
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 360,
+   "tags": [
+    "协会",
+    "精神科护理",
+    "美国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-nhsa-policy",
+   "name": "国家医保局 · 政策法规",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.nhsa.gov.cn/col/col104/index.html",
+    "publishedAtUtcOffset": "+08:00",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "精神卫生",
+      "精神科",
+      "精神疾病",
+      "精神障碍",
+      "心理",
+      "医疗服务价格项目",
+      "立项指南",
+      "飞行检查"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "parseMode": "hanweb_records",
+    "itemSelector": "li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span:last-child",
+    "allowUrlPrefixes": [
+     "https://www.nhsa.gov.cn/art/"
+    ]
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-nhsa-interpretations",
+   "name": "国家医保局 · 政策解读",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.nhsa.gov.cn/col/col105/index.html",
+    "publishedAtUtcOffset": "+08:00",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "精神卫生",
+      "精神科",
+      "精神疾病",
+      "精神障碍",
+      "心理",
+      "医疗服务价格项目",
+      "立项指南",
+      "飞行检查"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "消化系统",
+      "物理治疗"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "parseMode": "hanweb_records",
+    "itemSelector": "li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span:last-child",
+    "allowUrlPrefixes": [
+     "https://www.nhsa.gov.cn/art/"
+    ]
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "web-nhsa-notices",
+   "name": "国家医保局 · 通知公告",
+   "kind": "web_list",
+   "config": {
+    "url": "https://www.nhsa.gov.cn/col/col109/index.html",
+    "publishedAtUtcOffset": "+08:00",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "精神卫生",
+      "精神科",
+      "精神疾病",
+      "精神障碍",
+      "心理",
+      "医疗服务价格项目",
+      "立项指南",
+      "飞行检查"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "parseMode": "hanweb_records",
+    "itemSelector": "li",
+    "linkSelector": "a",
+    "publishedAtSelector": "span:last-child",
+    "allowUrlPrefixes": [
+     "https://www.nhsa.gov.cn/art/"
+    ]
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "政府",
+    "中文",
+    "政策"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "rss-fierce-healthcare",
+   "name": "Fierce Healthcare · 医疗行业新闻",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.fiercehealthcare.com/rss/xml",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "behavioral health",
+      "mental health",
+      "psychiatr",
+      "therapy",
+      "substance use",
+      "suicide",
+      "opioid",
+      "stimulant use",
+      "addiction",
+      "overdose"
+     ],
+     "dropMarkersTitleOnly": [
+      "采购",
+      "招聘",
+      "录用",
+      "成交",
+      "中标",
+      "询价",
+      "公示",
+      "比选",
+      "recruitment",
+      "job vacancy",
+      "job vacancies",
+      "invitation to tender",
+      "tender notice",
+      "contract award"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "international",
+   "interval_minutes": 120,
+   "tags": [
+    "媒体",
+    "医疗机构",
+    "美国"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
   }
  ]
 }

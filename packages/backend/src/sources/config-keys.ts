@@ -38,7 +38,7 @@ const NESTED: Record<string, string[]> = {
 };
 
 const VALUES: Record<string, string[]> = {
-  parseMode: ["html", "markdown", "docusaurus_changelog"],
+  parseMode: ["html", "markdown", "docusaurus_changelog", "hanweb_records"],
   publishedAtUnit: ["epoch_ms", "epoch_s", "yyyymmdd"],
 };
 // Values that depend on the kind of source: each adapter belongs to one fetcher.

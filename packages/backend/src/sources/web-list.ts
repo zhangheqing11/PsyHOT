@@ -156,6 +156,18 @@ export function fromMarkdown(md: string, base: string, source: SourceRow): Candi
   return out;
 }
 
+/** Hanweb CMS (NHSA/CMA) puts list HTML inside XML script records instead of the page DOM. */
+export function fromHanwebRecords(html: string, base: string, source: SourceRow): Candidate[] {
+  const $ = cheerio.load(html);
+  const records: string[] = [];
+  $('script[type="text/xml"]').each((_i, script) => {
+    for (const record of $(script).text().matchAll(/<record\b[^>]*>\s*<!\[CDATA\[([\s\S]*?)\]\]>\s*<\/record>/gi)) {
+      records.push(record[1]!);
+    }
+  });
+  return fromHtml(records.join("\n"), base, source);
+}
+
 export function fromHtml(html: string, base: string, source: SourceRow): Candidate[] {
   const c = source.config;
   const $ = cheerio.load(html);
@@ -315,6 +327,7 @@ export async function fetchWebList(source: SourceRow): Promise<Candidate[]> {
   if (mode === "mimo_home") out = await fromMimoHome(text, base, source);
   else if (mode === "markdown") out = fromMarkdown(text, base, source);
   else if (mode === "docusaurus_changelog") out = fromDocusaurusChangelog(text, base, source);
+  else if (mode === "hanweb_records") out = fromHanwebRecords(text, base, source);
   else out = fromHtml(text, base, source);
   if (out.length === 0) throw new FetchError(`no items matched (${mode})`);
   return out;

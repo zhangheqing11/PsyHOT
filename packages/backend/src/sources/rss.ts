@@ -25,14 +25,16 @@ const parser = new XMLParser({
 // literal wrapper, which stripTags would take for one tag and drop with the whole title inside.
 const ESCAPED_CDATA = /^<!\[CDATA\[([\s\S]*)\]\]>$/;
 
-function text(v: unknown): string {
+function text(v: unknown, nestedElements = false): string {
   if (v === null || v === undefined) return "";
   if (typeof v === "string" || typeof v === "number") return String(v).replace(ESCAPED_CDATA, "$1");
-  if (Array.isArray(v)) return text(v[0]);
+  if (Array.isArray(v)) return text(v[0], nestedElements);
   if (typeof v === "object") {
     const o = v as Record<string, unknown>;
-    if ("#cdata" in o) return text(o["#cdata"]);
-    if ("#text" in o) return text(o["#text"]);
+    if ("#cdata" in o) return text(o["#cdata"], nestedElements);
+    if ("#text" in o) return text(o["#text"], nestedElements);
+    // Some RSS titles wrap their text in an element (Fierce Healthcare uses <a>).
+    if (nestedElements) return Object.entries(o).filter(([key]) => !key.startsWith("@")).map(([, child]) => text(child, true)).join(" ");
   }
   return "";
 }
@@ -61,10 +63,12 @@ function parseDate(v: string): Date | null {
     const check = new Date(Date.UTC(calendar.year, calendar.month - 1, calendar.day));
     if (check.getUTCFullYear() !== calendar.year || check.getUTCMonth() !== calendar.month - 1 || check.getUTCDate() !== calendar.day) return null;
   }
-  const t = Date.parse(v);
+  // Some feeds omit the space before am/pm (Fierce Healthcare: "Oct 28, 2026 5:37pm").
+  const normalized = v.replace(/(\d:\d{2})(am|pm)\b/gi, "$1 $2");
+  const t = Date.parse(normalized);
   if (Number.isFinite(t)) return new Date(t);
   // RFC 822 variants with Chinese weekday or odd zones
-  const cleaned = v.replace(/星期[一二三四五六日天]/, "").replace(/\s+/g, " ").trim();
+  const cleaned = normalized.replace(/星期[一二三四五六日天]/, "").replace(/\s+/g, " ").trim();
   const t2 = Date.parse(cleaned);
   return Number.isFinite(t2) ? new Date(t2) : null;
 }
@@ -211,7 +215,7 @@ export function parseRss(xml: string, source: SourceRow, url: string): Candidate
     const items = arr(doc.rss?.channel?.item ?? doc["rdf:RDF"]?.item);
     for (const it of items) {
       const link = text(it.link) || text(it.guid);
-      const title = collapseWhitespace(stripTags(text(it.title)));
+      const title = collapseWhitespace(stripTags(text(it.title, true)));
       if (!link || !title) continue;
       const contentEncoded = text(it["content:encoded"]);
       const description = text(it.description);
@@ -243,7 +247,7 @@ export function parseRss(xml: string, source: SourceRow, url: string): Candidate
   if (feed) {
     for (const e of arr(feed.entry)) {
       const link = atomLink(e.link);
-      const title = collapseWhitespace(stripTags(text(e.title)));
+      const title = collapseWhitespace(stripTags(text(e.title, true)));
       if (!link || !title) continue;
       const content = text(e.content);
       const summary = text(e.summary);

@@ -44,6 +44,19 @@ const MIRRORS = /(^|\.)(ebiotrade\.com|scilit\.com|epiforecasts\.io|jove\.com|gu
 const FEDIVERSE_POST = /^\/@/;
 const TWO_LEVEL = /\.(com|net|org|gov|edu|ac|co)\.(cn|uk|au|jp|hk|tw|nz|in|sg)$/i;
 
+/** A focused Chinese search query; full titles still go to the coverage judge. */
+export function lookupQuery(title: string): string {
+  if (!/\p{Script=Han}/u.test(title)) return title;
+  let query = title.trim().replace(/^(?:【[^】]*】|\[[^\]]*\])\s*/u, "");
+  const pipe = query.search(/[｜|]/u);
+  // Column length counts non-space characters ("bioRxiv 方法学解读" is twelve).
+  if (pipe >= 0 && [...query.slice(0, pipe).replace(/\s/gu, "")].length <= 12) query = query.slice(pipe + 1).trim();
+  const colon = query.search(/[：:]/u);
+  if (colon >= 0 && [...query.slice(0, colon).trim()].length >= 6) query = query.slice(0, colon);
+  query = [...query.trim()].slice(0, 40).join("");
+  return [...query].length < 4 ? title : query;
+}
+
 /** The site behind a URL: its registrable domain (m.163.com and www.163.com are both 163.com). */
 export function siteOf(url: string): string | null {
   let host: string;
@@ -179,16 +192,30 @@ function coverageUser(story: LookupStory, cands: Candidate[]): string {
   return lines.join("\n");
 }
 
+// Both candidate paths use the same receipt count and second-lookup condition (st is the story).
+const lookupEligible = sql`(
+  SELECT made.n < ${MAX_LOOKUPS} AND (
+    made.n = 0
+    OR EXISTS (SELECT 1 FROM story_signals ss WHERE ss.story_id = st.id AND ss.source_id = ${WEB_LOOKUP_SOURCE})
+    OR EXISTS (SELECT 1 FROM story_signals ss WHERE ss.story_id = st.id AND ss.source_id <> ${WEB_LOOKUP_SOURCE} AND ss.observed_at > made.first_at)
+  ) FROM (
+    SELECT count(DISTINCT r.request->>'bucket') AS n, min(r.created_at) AS first_at FROM receipts r
+    WHERE r.service = 'deepseek-tools' AND r.purpose = 'web_story_lookup' AND r.subject = 'story:' || st.id
+  ) made
+)`;
+
 async function stories(now: Date): Promise<LookupStory[]> {
-  const hot = (await hotCandidates(now)).slice(0, STORIES_PER_RUN).map((r) => Number(r.story_id));
+  const hot = (await hotCandidates(now)).map((r) => Number(r.story_id));
   const recent = await sql<{ id: number }[]>`
     SELECT p.story_id::int AS id, max(p.score) AS score FROM publications p JOIN stories st ON st.id = p.story_id
     WHERE (p.selected OR p.score >= ${MIN_SCORE}) AND p.visibility = 'public' AND st.merged_into IS NULL
       AND coalesce(p.published_at, p.discovered_at) > ${now}::timestamptz - interval '3 days'
-      AND (SELECT count(DISTINCT x.bucket) FROM (SELECT r.request->>'bucket' AS bucket FROM receipts r
-             WHERE r.service = 'deepseek-tools' AND r.purpose = 'web_story_lookup' AND r.subject = 'story:' || p.story_id) x) < ${MAX_LOOKUPS}
+      AND ${lookupEligible}
     GROUP BY p.story_id ORDER BY score DESC NULLS LAST LIMIT ${STORIES_PER_RUN}`;
-  return loadStories([...new Set([...recent.map((r) => r.id), ...hot])]);
+  const eligibleHot = hot.length ? await sql<{ id: number }[]>`
+    SELECT st.id::int AS id FROM stories st WHERE st.id = ANY(${hot}::bigint[]) AND ${lookupEligible}
+    ORDER BY array_position(${hot}::bigint[], st.id) LIMIT ${STORIES_PER_RUN}` : [];
+  return loadStories([...new Set([...recent.map((r) => r.id), ...eligibleHot.map((r) => r.id)])]);
 }
 
 /** What a lookup needs of each story: its titles, when it was first reported, the sites already counted. */
@@ -275,7 +302,7 @@ export async function lookupStoryCoverage(now = new Date()): Promise<WebLookupRe
 
 /** One story's lookup: its searches, the candidates the rules let through, and the pages kept as signals. */
 export async function lookupStory(story: LookupStory, bucket: string, now = new Date()): Promise<{ searches: number; judged: Candidate[]; kept: Candidate[] }> {
-  const queries = [story.title, story.originalTitle].filter((q): q is string => !!q);
+  const queries = [lookupQuery(story.title), story.originalTitle].filter((q): q is string => !!q);
   const found: Array<{ query: string; results: WebSearchResult[] }> = [];
   const receipts: number[] = [];
   for (const query of queries) {

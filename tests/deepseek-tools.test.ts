@@ -16,7 +16,8 @@ import { publishArticle } from "@aihot/backend/publication/publish";
 
 const T = tag();
 const SOURCE = `test-dst-${T}`;
-const TITLE = `睡眠节律紊乱与抑郁亚型相关研究${T}`;
+const QUERY = `睡眠节律紊乱与抑郁亚型相关研究${T}`;
+const TITLE = `研究速览｜${QUERY}：最新进展`;
 const ORIGINAL = `Researchers identify circadian subtype of depression ${T}`;
 const now = new Date();
 const day = (d: number) => new Date(now.getTime() + d * 24 * 3600 * 1000).toISOString();
@@ -154,7 +155,8 @@ test("an unselected story scoring 50 or more is searched by both titles, judged 
   assert.equal(pub!.selected, false, "a story one source reports and nobody selected is searched too");
 
   const first = await lookupStoryCoverage();
-  assert.ok(searches.includes(TITLE) && searches.includes(ORIGINAL), "searched by the Chinese and the original title");
+  assert.ok(searches.includes(QUERY) && searches.includes(ORIGINAL), "searched by the shortened Chinese query and the unchanged original title");
+  assert.ok(!searches.includes(TITLE), "the full Chinese title is kept for the judge, not the search query");
   assert.equal(judged, 1);
   const signals = await sql<{ participant_key: string; source_id: string; kind: string }[]>`
     SELECT ss.participant_key, ss.source_id, ss.kind FROM story_signals ss WHERE ss.story_id = ${st!.id} AND ss.source_id = ${WEB_LOOKUP_SOURCE}`;
@@ -164,7 +166,7 @@ test("an unselected story scoring 50 or more is searched by both titles, judged 
   assert.equal(page!.processing_state, "skipped", "a coverage page is never analysed");
 
   // Within the same twelve hours the story is not searched again.
-  const ours = () => searches.filter((q) => q === TITLE || q === ORIGINAL).length;
+  const ours = () => searches.filter((q) => q === QUERY || q === ORIGINAL).length;
   const count = ours();
   await lookupStoryCoverage();
   assert.equal(ours(), count);

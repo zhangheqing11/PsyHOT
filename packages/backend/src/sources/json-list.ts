@@ -152,7 +152,7 @@ function unmark(s: string): string {
 }
 
 const ENGAGEMENT_KEYS = ["like_count", "collect_count", "comment_count", "share_count"] as const;
-function engagementOf(item: unknown): Record<string, number> {
+export function engagementOf(item: unknown): Record<string, number> {
   const out: Record<string, number> = {};
   for (const k of ENGAGEMENT_KEYS) {
     const v = getPath(item, k);

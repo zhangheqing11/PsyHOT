@@ -29,6 +29,7 @@ const cli = async (...args: string[]) => promisify(execFile)(process.execPath, [
 after(async () => { await provider.close(); await closeDb(); await rm(dir, { recursive: true, force: true }); });
 
 test("probe CLI samples reports read-only, reuses paid receipts, and respects budgets and the lifetime cap", async () => {
+  const subjects: string[] = [];
   const budgets = await sql`SELECT * FROM budgets WHERE service IN ('everyinfra', 'everyinfra:twitter')`;
   await sql`UPDATE budgets SET per_minute = 10000, per_hour = 10000, per_day = 10000 WHERE service IN ('everyinfra', 'everyinfra:twitter')`;
   try {
@@ -51,6 +52,7 @@ test("probe CLI samples reports read-only, reuses paid receipts, and respects bu
     await cli("--plan", path);
     assert.equal(provider.hits(), 0, "plan creation makes no paid calls");
     const plan = JSON.parse(await readFile(path, "utf8"));
+    subjects.push(`x-probe:${createHash("sha256").update(JSON.stringify(plan)).digest("hex").slice(0, 24)}`);
     assert.equal(plan.stories.length, 1);
     assert.equal(plan.stories[0].reports[0].id, articleId);
     await cli("--plan", path, "--run");
@@ -79,6 +81,7 @@ test("probe CLI samples reports read-only, reuses paid receipts, and respects bu
     await cli("--plan", capPath);
     const capPlan = JSON.parse(await readFile(capPath, "utf8"));
     const capSubject = `x-probe:${createHash('sha256').update(JSON.stringify(capPlan)).digest('hex').slice(0, 24)}`;
+    subjects.push(capSubject);
     const [receipt] = await sql`INSERT INTO receipts (logical_key, service, purpose, subject, status, attempts)
       VALUES (${`x-probe-cap-${T}`}, 'everyinfra', 'x_story_probe', ${capSubject}, 'unknown', 30) RETURNING id`;
     await sql`INSERT INTO receipt_attempts (receipt_id, attempt, service, pool, status)
@@ -87,6 +90,8 @@ test("probe CLI samples reports read-only, reuses paid receipts, and respects bu
     assert.equal(JSON.parse(await readFile(`${capPath}.results.json`, "utf8")).state.stopped, "budget");
     assert.equal(provider.hits(), 3, "thirty existing attempts prevent a 31st call");
   } finally {
+    // The cap fixture's thirty attempts must not exhaust budgets in a subsequent full-suite run.
+    await sql`DELETE FROM receipts WHERE service = 'everyinfra' AND purpose = 'x_story_probe' AND subject = ANY(${subjects}::text[])`;
     for (const b of budgets) await sql`UPDATE budgets SET per_minute = ${b.per_minute}, per_hour = ${b.per_hour}, per_day = ${b.per_day} WHERE service = ${b.service}`;
   }
 });

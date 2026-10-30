@@ -36,6 +36,7 @@ export async function everyInfraCall<T = unknown>(opts: {
   window?: string;
   /** The budget share; the platform's by default. */
   pool?: string;
+  timeoutMs?: number;
 }): Promise<{ results: T; receiptId: number; reused: boolean; response: EveryInfraEnvelope<T> }> {
   const key = apiKey();
   const params = opts.params ?? {};
@@ -55,7 +56,7 @@ export async function everyInfraCall<T = unknown>(opts: {
         method: "POST",
         headers: { authorization: `Bearer ${key}`, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ platform: opts.platform, action: opts.action, params }),
-        timeoutMs: 60_000,
+        timeoutMs: opts.timeoutMs ?? 60_000,
         maxBytes: 16 * 1024 * 1024,
         maxRedirects: 0,
         route: "direct",
@@ -103,6 +104,7 @@ export async function everyInfraMpHistory(account: string, opts: { subject: stri
     purpose: "mp_history",
     window: opts.window,
     pool: opts.pool,
+    timeoutMs: 120_000,
   });
   const rows: unknown[] = Array.isArray(call.results) ? call.results : [];
   const posts = rows.flatMap((row): EveryInfraMpPost[] => {

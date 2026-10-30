@@ -118,9 +118,20 @@ async function checkWindow(tx: Db, name: string, column: "service" | "pool"): Pr
   if (budget.per_minute <= 0 || budget.per_hour <= 0 || budget.per_day <= 0) {
     throw new BudgetExceededError(name, "stopped", 3600);
   }
-  if (c.minute >= budget.per_minute) throw new BudgetExceededError(name, "minute", 60);
-  if (c.hour >= budget.per_hour) throw new BudgetExceededError(name, "hour", 600);
-  if (c.day >= budget.per_day) throw new BudgetExceededError(name, "day", 3600);
+  for (const [period, count, limit, seconds, fallback] of [
+    ["minute", c.minute, budget.per_minute, 60, 60],
+    ["hour", c.hour, budget.per_hour, 3600, 600],
+    ["day", c.day, budget.per_day, 86400, 3600],
+  ] as const) {
+    if (count < limit) continue;
+    // Enough old attempts must leave the rolling window to admit one new call.
+    const [wait] = await tx<{ seconds: number }[]>`
+      SELECT greatest(1, ceil(extract(epoch FROM started_at + make_interval(secs => ${seconds}) - now())))::int AS seconds
+      FROM receipt_attempts
+      WHERE ${tx(column)} = ${name} AND origin = 'live' AND started_at > now() - make_interval(secs => ${seconds})
+      ORDER BY started_at OFFSET ${count - limit} LIMIT 1`;
+    throw new BudgetExceededError(name, period, wait?.seconds ?? fallback);
+  }
 }
 
 /**

@@ -7064,7 +7064,7 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号",
     "学会",
@@ -7088,7 +7088,7 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号",
     "期刊"
@@ -7111,7 +7111,7 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号",
     "期刊"
@@ -7437,7 +7437,7 @@
    "participation_mode": "editorial",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号",
     "精神医学"
@@ -7484,7 +7484,7 @@
    "participation_mode": "editorial",
    "track": "academic",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号",
     "神经科学",
@@ -7517,7 +7517,7 @@
    "participation_mode": "editorial",
    "track": "industry",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号",
     "政府",
@@ -7722,7 +7722,7 @@
    "signal_group_id": "neureality",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 1440,
    "tags": [
     "公众号"
    ],
@@ -7786,7 +7786,7 @@
    "signal_group_id": "ye-haosheng",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号"
    ],
@@ -7829,7 +7829,7 @@
    "signal_group_id": "psych-cas",
    "track": "mixed",
    "region": "domestic",
-   "interval_minutes": 4320,
+   "interval_minutes": 10080,
    "tags": [
     "公众号"
    ],

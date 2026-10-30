@@ -154,6 +154,7 @@ export async function collectFindings(now = Date.now()): Promise<Finding[]> {
   }
 
   // ---- Follow-ups for the daily digest ------------------------------------------------------------
+  out.push(...(await paidSourceFindings(now)));
   const [r] = await sql<{ receipts: number; services: string | null; deliveries: number }[]>`
     SELECT (SELECT count(*)::int FROM receipts WHERE status = 'unknown') AS receipts,
            (SELECT string_agg(DISTINCT service || '/' || purpose, '、') FROM receipts WHERE status = 'unknown') AS services,
@@ -185,6 +186,48 @@ export async function collectFindings(now = Date.now()): Promise<Finding[]> {
     });
   }
 
+  return out;
+}
+
+/** Paid source checks that may miss updates, and WeChat quota spent without a useful listing. */
+async function paidSourceFindings(now: number): Promise<Finding[]> {
+  const out: Finding[] = [];
+  const at = new Date(now);
+  const since = new Date(now - 24 * 3600_000);
+  const stale = await sql<{ name: string; last_success_at: Date | null; interval_minutes: number }[]>`
+    SELECT name, last_success_at, interval_minutes FROM (
+      SELECT id, name, interval_minutes, created_at,
+             CASE WHEN kind = 'mp_account' THEN nullif(cursor->>'lastCheckedAt', '')::timestamptz ELSE last_ok_at END AS last_success_at
+      FROM sources WHERE enabled AND (kind = 'mp_account' OR config->>'adapter' LIKE 'everyinfra_%')
+    ) paid
+    WHERE last_success_at < ${at}::timestamptz - make_interval(mins => 2 * interval_minutes + 360)
+       OR (last_success_at IS NULL AND created_at < ${since})
+    ORDER BY last_success_at NULLS FIRST, id`;
+  if (stale.length) {
+    out.push({
+      key: "sources.paid-stale",
+      level: "digest",
+      title: `${stale.length} 个付费信源太久没有成功检查`,
+      detail: stale.slice(0, 8).map((s) => `${s.name}：上次成功 ${s.last_success_at ? beijingStamp(s.last_success_at) : "从未成功"}，计划间隔 ${s.interval_minutes} 分钟`).join("；"),
+    });
+  }
+  const [usage] = await sql<{ lists: number; successful_lists: number; failed_lists: number; bodies: number; skipped: number }[]>`
+    SELECT count(*) FILTER (WHERE r.purpose = 'mp_history')::int AS lists,
+           count(*) FILTER (WHERE r.purpose = 'mp_history' AND a.status = 'received')::int AS successful_lists,
+           count(*) FILTER (WHERE r.purpose = 'mp_history' AND a.status = 'failed')::int AS failed_lists,
+           count(*) FILTER (WHERE r.purpose = 'mp_article')::int AS bodies,
+           (SELECT count(*)::int FROM job_runs WHERE status = 'skipped' AND detail->>'service' LIKE 'everyinfra%'
+              AND started_at > ${since} AND started_at <= ${at}) AS skipped
+    FROM receipt_attempts a JOIN receipts r ON r.id = a.receipt_id
+    WHERE a.pool = 'everyinfra:wechat_oa' AND a.origin = 'live' AND a.started_at > ${since} AND a.started_at <= ${at}`;
+  if ((usage!.lists >= 10 && usage!.failed_lists > usage!.lists * 0.3) || usage!.skipped > 200) {
+    out.push({
+      key: "budget.wechat-waste",
+      level: "digest",
+      title: "公众号额度可能在被重复消耗",
+      detail: `过去 24 小时成功列表 ${usage!.successful_lists} 次，失败列表 ${usage!.failed_lists} 次，正文 ${usage!.bodies} 次，预算跳过 ${usage!.skipped} 次；持续出现说明调度又在重复投递，或服务商列表接口变慢`,
+    });
+  }
   return out;
 }
 

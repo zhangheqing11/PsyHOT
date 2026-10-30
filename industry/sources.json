@@ -7304,6 +7304,30 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "wechat-psyengine",
+   "name": "PsyEngine",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_3c2405b91587",
+    "nickname": "PsyEngine",
+    "wechatBiz": "MzY5NzExNTQ5MQ=="
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读",
+    "AI心理学"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "wechat-mindseek",
    "name": "MindSeek",
    "kind": "mp_account",

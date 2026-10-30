@@ -7838,6 +7838,7 @@
   },
   {
    "id": "x-everyinfra-ai-mental-health",
+   "enabled": false,
    "name": "X · AI 心理健康",
    "kind": "json_list",
    "config": {
@@ -7867,6 +7868,7 @@
   },
   {
    "id": "x-everyinfra-psychology-research",
+   "enabled": false,
    "name": "X · 心理学研究",
    "kind": "json_list",
    "config": {
@@ -7896,6 +7898,7 @@
   },
   {
    "id": "x-everyinfra-mental-health-policy",
+   "enabled": false,
    "name": "X · 精神健康政策与服务",
    "kind": "json_list",
    "config": {

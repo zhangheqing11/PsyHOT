@@ -201,7 +201,7 @@ export async function fetchNow(id: string, actor: string) {
   if (!s) return null;
   const jobId =
     s.kind === "mp_account"
-      ? await enqueue(QUEUES.mpCheck, { sourceId: id, reason: "manual" }, { singletonKey: `mp:${id}` })
+      ? await enqueue(QUEUES.mpCheck, { sourceId: id, reason: "manual" }, { singletonKey: `mp:${id}`, expireInSeconds: 900 })
       : await enqueue(QUEUES.fetchSource, { sourceId: id, force: true }, { singletonKey: `manual:${id}` });
   await audit(actor, "source.fetch", `source:${id}`, null, null, { jobId });
   return { jobId };

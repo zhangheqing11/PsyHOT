@@ -3,11 +3,12 @@
 // carries no digest, so a body is what makes an article worth analysing.
 import { sql } from "../db.ts";
 import { upsertMaterial } from "../content/materials.ts";
-import { enqueue, QUEUES } from "../jobs/queue.ts";
+import { enqueue, ensureQueue, QUEUES } from "../jobs/queue.ts";
 import { queueProcessing } from "../jobs/content.ts";
 import { stripTags } from "../lib/text.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
+import { sha256 } from "../lib/ids.ts";
 import { everyInfraMpArticle, everyInfraMpHistory, type EveryInfraMpPost } from "../providers/everyinfra.ts";
 import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
 import { noiseFilterReason } from "./collect.ts";
@@ -33,6 +34,16 @@ interface MpSource {
   cursor: Record<string, unknown> | null;
   enabled: boolean;
   participation_mode: string;
+  interval_minutes: number;
+}
+
+export function mpDue(cursor: Record<string, unknown> | null, intervalMinutes: number, now = Date.now()): boolean {
+  if (typeof cursor?.lastCheckedAt === "string" && now - Date.parse(cursor.lastCheckedAt) <= intervalMinutes * 60_000) return false;
+  return !(typeof cursor?.retryAt === "string" && Date.parse(cursor.retryAt) > now);
+}
+
+function mpRetryOffset(sourceId: string): number {
+  return parseInt(sha256(sourceId).slice(0, 8), 16) % (15 * 60_000 + 1);
 }
 
 /** The account a WeChat article link belongs to (its __biz), when the link is a real article address. */
@@ -74,9 +85,10 @@ async function fetchBody(url: string, sourceId: string, identity: string) {
 }
 
 export async function checkMpAccount(sourceId: string, reason: "schedule" | "manual") {
-  const [source] = await sql<MpSource[]>`SELECT id, name, config, cursor, enabled, participation_mode FROM sources WHERE id = ${sourceId} AND kind = 'mp_account'`;
+  const [source] = await sql<MpSource[]>`SELECT id, name, config, cursor, enabled, participation_mode, interval_minutes FROM sources WHERE id = ${sourceId} AND kind = 'mp_account'`;
   if (!source) return { sourceId, status: "missing" as const };
   if (!source.enabled && reason !== "manual") return { sourceId, status: "paused" as const };
+  if (reason === "schedule" && !mpDue(source.cursor, source.interval_minutes)) return { sourceId, status: "not-due" as const };
   const account = source.config.ghid ?? source.config.wxid;
   if (!account) {
     await sql`UPDATE sources SET health = 'failing', last_error = '没有配置公众号 ghid，无法抓取', updated_at = now() WHERE id = ${sourceId}`;
@@ -168,27 +180,35 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
         health = CASE WHEN ${soft} THEN health WHEN fail_count + 1 >= 3 THEN 'failing' ELSE 'degraded' END, updated_at = now()
       WHERE id = ${sourceId}`;
     await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
+    if (error instanceof BudgetExceededError) {
+      const retryAt = new Date(Date.now() + error.retryAfterSeconds * 1000 + mpRetryOffset(sourceId)).toISOString();
+      await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt })} WHERE id = ${sourceId}`;
+      // Reconcile owns scheduled budget waits, so the queue does not accumulate old retries.
+      if (reason === "schedule") return { sourceId, status: "deferred" as const, retryAt };
+      throw error;
+    }
     // The provider cannot list this account now (EveryInfra answers 503 for some accounts for hours):
     // try again in an hour rather than on every reconcile, whose attempts would use up the budget.
     if (error instanceof ProviderRejectedError && error.retryable) {
       await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + UNAVAILABLE_RETRY_MS).toISOString() })} WHERE id = ${sourceId}`;
       return { sourceId, status: "failed" as const, error: message };
     }
-    if (soft) throw error; // over budget: retried by the queue
     return { sourceId, status: "failed" as const, error: message };
   }
 }
 
 /** Every enabled account is checked once per its interval (the paid list call is the cost). */
 export async function scheduleMpReconcile(now = new Date()) {
-  const rows = await sql<{ id: string; last: string | null; retry_at: string | null; interval_minutes: number }[]>`
-    SELECT id, cursor->>'lastCheckedAt' AS last, cursor->>'retryAt' AS retry_at, interval_minutes FROM sources WHERE kind = 'mp_account' AND enabled`;
+  const rows = await sql<{ id: string; cursor: Record<string, unknown> | null; interval_minutes: number }[]>`
+    SELECT id, cursor, interval_minutes FROM sources WHERE kind = 'mp_account' AND enabled`;
+  await ensureQueue(QUEUES.mpCheck);
+  const pending = await sql<{ singleton_key: string | null }[]>`
+    SELECT singleton_key FROM pgboss.job WHERE name = ${QUEUES.mpCheck} AND state IN ('created', 'retry', 'active')`;
+  const pendingKeys = new Set(pending.map((j) => j.singleton_key));
   let enqueued = 0;
   for (const s of rows) {
-    const since = s.last ? now.getTime() - Date.parse(s.last) : Infinity;
-    if (since <= s.interval_minutes * 60_000) continue;
-    if (s.retry_at && Date.parse(s.retry_at) > now.getTime()) continue;
-    await enqueue(QUEUES.mpCheck, { sourceId: s.id, reason: "schedule" }, { singletonKey: `mp:${s.id}` });
+    if (!mpDue(s.cursor, s.interval_minutes, now.getTime()) || pendingKeys.has(`mp:${s.id}`)) continue;
+    await enqueue(QUEUES.mpCheck, { sourceId: s.id, reason: "schedule" }, { singletonKey: `mp:${s.id}`, expireInSeconds: 900 });
     enqueued += 1;
   }
   return { enqueued };

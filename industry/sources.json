@@ -7125,7 +7125,8 @@
    "kind": "mp_account",
    "config": {
     "nickname": "心理科学",
-    "wechatBiz": "MzkzMzM5MTcxNQ=="
+    "wechatBiz": "MzkzMzM5MTcxNQ==",
+    "ghid": "gh_57f04beaf1c9"
    },
    "tier": "T1",
    "first_party": true,
@@ -7355,8 +7356,9 @@
    "name": "观心日记",
    "kind": "mp_account",
    "config": {
-    "nickname": "观心日记",
-    "wechatBiz": "MzYzNTg4MjQyMg=="
+    "nickname": "观心日记PsyNote",
+    "wechatBiz": "MzYzNTg4MjQyMg==",
+    "ghid": "gh_d0c359e0b80a"
    },
    "tier": "T1_5",
    "first_party": false,
@@ -7669,7 +7671,8 @@
    "kind": "mp_account",
    "config": {
     "wechatBiz": "MzUxMTA0ODQ0OA==",
-    "nickname": "OpenScience"
+    "nickname": "OpenScience",
+    "ghid": "gh_483c18a262d7"
    },
    "tier": "T2",
    "first_party": false,
@@ -7732,7 +7735,8 @@
    "kind": "mp_account",
    "config": {
     "wechatBiz": "MzI1MjYyODE3Mw==",
-    "nickname": "PsyCulture&Science"
+    "nickname": "PsyCulture&Science",
+    "ghid": "gh_f402504678d0"
    },
    "tier": "T2",
    "first_party": false,
@@ -7808,7 +7812,8 @@
     "公众号"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "wechat-melab",

@@ -23,6 +23,8 @@ const CANDIDATES = 100;
 const MIN_SCORE = 50;
 const BUCKET_HOURS = 12;
 const MAX_LOOKUPS = 2;
+// Cap X accounts so international stories do not overwhelm domestic stories absent from X.
+const MAX_PARTICIPANTS = 3;
 // An empty search takes 50-70 seconds (and is not billed); the default 60 would turn it into "unknown".
 export const TIMEOUT_MS = 150_000;
 
@@ -34,7 +36,9 @@ export interface XLookupStory {
 
 // Both candidate paths use the same receipt count and second-lookup condition (st is the story).
 const lookupEligible = sql`(
-  SELECT made.n < ${MAX_LOOKUPS} AND (
+  SELECT made.n < ${MAX_LOOKUPS}
+  AND (SELECT count(DISTINCT participant_key) FROM story_signals WHERE story_id = st.id AND source_id = ${X_LOOKUP_SOURCE}) < ${MAX_PARTICIPANTS}
+  AND (
     made.n = 0
     OR EXISTS (SELECT 1 FROM story_signals ss WHERE ss.story_id = st.id AND ss.source_id = ${X_LOOKUP_SOURCE})
     OR EXISTS (SELECT 1 FROM story_signals ss WHERE ss.story_id = st.id AND ss.source_id <> ${X_LOOKUP_SOURCE} AND ss.observed_at > made.first_at)
@@ -149,7 +153,18 @@ export async function lookupStoryX(now = new Date()): Promise<XLookupResult> {
     out.looked += 1;
     out.searches += 1;
     out.matched += posts.length;
-    for (const post of posts) if (await keep(story, post, now)) out.kept += 1;
+    const existing = await sql<{ participant_key: string }[]>`
+      SELECT DISTINCT participant_key FROM story_signals WHERE story_id = ${story.id} AND source_id = ${X_LOOKUP_SOURCE}`;
+    const participants = new Set(existing.map((r) => r.participant_key));
+    for (const post of posts) {
+      if (participants.size >= MAX_PARTICIPANTS) break;
+      const participant = (post.raw as { participant?: string } | undefined)?.participant;
+      if (!participant || participants.has(participant)) continue;
+      if (await keep(story, post, now)) {
+        participants.add(participant);
+        out.kept += 1;
+      }
+    }
     await completeReceipt(sql, call.receiptId);
   }
   return out;

@@ -129,18 +129,19 @@ test("only stories with a phrase are searched, one request each, through the Twi
   assert.equal(lookup.TIMEOUT_MS, 150_000);
 });
 
-test("posts holding the whole phrase become signals, five at most, one participant per account", async () => {
+test("the best five phrase matches add at most three accounts, keeping only the best post per account", async () => {
   const st = await story("matching");
   const text = `Worth reading: ${st.title}.`;
+  const repeated = post("carol", `${text} again`, 7);
   answers.set(st.title, [
-    post("alice", text, 10), post("bob", text, 9), post("carol", text, 8), post("carol", `${text} again`, 7), post("dave", text, 6), post("erin", text, 5),
+    post("alice", text, 10), post("bob", text, 9), post("carol", text, 8), repeated, post("dave", text, 6), post("erin", text, 5),
     post("frank", "A different paper about sleep"), post("grace", "Adolescent sleep reshapes emotional memory"),
   ]);
   const out = await lookup.lookupStoryX(now);
-  assert.deepEqual({ looked: out.looked, matched: out.matched, kept: out.kept }, { looked: 1, matched: 5, kept: 5 });
+  assert.deepEqual({ looked: out.looked, matched: out.matched, kept: out.kept }, { looked: 1, matched: 5, kept: 3 });
   const signals = await kept(st.id);
-  assert.equal(signals.length, 5);
-  assert.deepEqual([...new Set(signals.map((s) => s.participant_key))].sort(), ["x-author:alice", "x-author:bob", "x-author:carol", "x-author:dave"]);
+  assert.deepEqual(signals.map((s) => s.participant_key), ["x-author:alice", "x-author:bob", "x-author:carol"]);
+  assert.equal((await sql`SELECT 1 FROM articles WHERE identity_key = ${`x:${repeated.id}`}`).length, 0, "the second post by carol is not stored");
   assert.ok(signals.every((s) => s.kind === "signal" && s.observed_at >= firstAt && s.observed_at <= now));
   const [article] = await sql<{ processing_state: string; body_status: string; raw: { participant: string; lookup: { storyId: number; query: string } } }[]>`
     SELECT processing_state, body_status, raw FROM articles WHERE id = ${signals[0]!.article_id}`;
@@ -149,6 +150,35 @@ test("posts holding the whole phrase become signals, five at most, one participa
   assert.equal(article!.raw.participant, "x-author:alice");
   assert.deepEqual(article!.raw.lookup, { storyId: st.id, query: requests[0] });
   assert.equal((await sql`SELECT 1 FROM publications WHERE article_id = ${signals[0]!.article_id} AND NOT selected AND NOT eligible`).length, 1);
+});
+
+test("a second lookup fills only the remaining account slot across both lookups", async () => {
+  const st = await story("remaining");
+  answers.set(st.title, [post("alice", st.title, 2), post("bob", st.title, 1)]);
+  const first = await lookup.lookupStoryX(now);
+  assert.deepEqual({ matched: first.matched, kept: first.kept }, { matched: 2, kept: 2 });
+
+  const repeated = post("alice", `${st.title} again`, 10);
+  answers.set(st.title, [repeated, post("carol", st.title, 9), post("dave", st.title, 8), post("erin", st.title, 7)]);
+  const later = new Date(now.getTime() + 12 * 3600_000);
+  const second = await lookup.lookupStoryX(later);
+  assert.deepEqual({ searches: second.searches, matched: second.matched, kept: second.kept }, { searches: 1, matched: 4, kept: 1 });
+  assert.equal(requests.length, 2);
+  assert.deepEqual((await kept(st.id)).map((s) => s.participant_key), ["x-author:alice", "x-author:bob", "x-author:carol"]);
+  assert.equal((await sql`SELECT 1 FROM articles WHERE identity_key = ${`x:${repeated.id}`}`).length, 0, "a new post by an existing account is not stored");
+});
+
+test("a story with three X accounts is not searched again in the next bucket", async () => {
+  const st = await story("full");
+  answers.set(st.title, [post("alice", st.title, 3), post("bob", st.title, 2), post("carol", st.title, 1)]);
+  assert.equal((await lookup.lookupStoryX(now)).kept, 3);
+
+  const later = new Date(now.getTime() + 12 * 3600_000);
+  const out = await lookup.lookupStoryX(later);
+  assert.deepEqual({ stories: out.stories, searches: out.searches, looked: out.looked, kept: out.kept }, { stories: 0, searches: 0, looked: 0, kept: 0 });
+  assert.equal(requests.length, 1);
+  assert.equal((await sql`SELECT 1 FROM receipts WHERE subject = ${`story:${st.id}`}`).length, 1);
+  assert.equal((await kept(st.id)).length, 3);
 });
 
 test("a story is searched once per twelve-hour bucket, again only if productive or joined, and twice at most", async () => {
@@ -246,7 +276,9 @@ test("kept posts raise the story's participants in the hot ranking", async () =>
   const row = async () => (await hotCandidates(now)).find((r) => Number(r.story_id) === st.id)!;
   const before = await row();
   answers.set(st.title, [post("alice", st.title, 3), post("bob", st.title, 2), post("alice", `${st.title} too`, 1)]);
-  await lookup.lookupStoryX(now);
+  const out = await lookup.lookupStoryX(now);
+  assert.deepEqual({ matched: out.matched, kept: out.kept }, { matched: 3, kept: 2 });
+  assert.equal((await kept(st.id)).length, 2);
   const after = await row();
   assert.equal(Number(after.participants), Number(before.participants) + 2);
   assert.equal(Number(after.signal_participants), Number(before.signal_participants) + 2);

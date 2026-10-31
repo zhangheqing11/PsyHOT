@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { probeQueries, matchingXPosts } from "../packages/backend/src/events/x-story-query.ts";
+import { lookupQuery, probeQueries, matchingXPosts } from "../packages/backend/src/events/x-story-query.ts";
 
 const at = new Date("2026-10-24T12:00:00Z");
 const reports = [{ id: "paper", url: "https://www.nature.com/articles/s41562-026-01234-5?utm_source=rss",
@@ -73,4 +73,13 @@ test("untrusted timestamps and unsafe post identities cannot become event eviden
     post(3, query.needle, { posted_at: null }), post(4, query.needle, { id: 4 }),
     post(5, query.needle, { url: "https://evil.test/research/status/5" })];
   assert.equal(matchingXPosts(rows, query, at).length, 0);
+});
+
+test("lookup runs the phrase query only, the same one the probe builds, and nothing without an English title", () => {
+  const query = lookupQuery(reports, at)!;
+  assert.equal(query.format, "phrase");
+  assert.deepEqual(query, probeQueries(reports, at).find((q) => q.format === "phrase"));
+  assert.equal(lookupQuery([{ ...reports[0], title: "睡眠与记忆的新研究" }], at), null);
+  assert.equal(lookupQuery([{ id: "x", url: reports[0].url, title: "Short title", body: null }], at), null);
+  assert.equal(lookupQuery([{ id: "x", url: "https://example.com/", title: "短", body: null }, reports[0]], at)!.articleId, "paper");
 });

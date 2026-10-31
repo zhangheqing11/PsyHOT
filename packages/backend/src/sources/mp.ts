@@ -22,8 +22,10 @@ const MAX_WINDOW_MS = 10 * 86400_000;
 /** A body missing for a passing reason is fetched again on later checks: this often, while the post is this recent. */
 const BODY_RETRIES = 3;
 const BODY_RETRY_WINDOW_MS = 3 * 86400_000;
-/** How long an account the provider cannot list now waits before the next try (failed calls are not billed). */
+/** Account-level unavailable retries start at an hour and double to at most twelve hours. */
 const UNAVAILABLE_RETRY_MS = 60 * 60_000;
+/** Spread accounts released together by the rolling budget window over successive 15-minute reconciles. */
+const MAX_ENQUEUE_PER_RECONCILE = 3;
 /** A listing of another account than the configured one: the operator has to fix the account id. */
 const MISMATCH_RETRY_MS = 7 * 86400_000;
 
@@ -37,9 +39,16 @@ interface MpSource {
   interval_minutes: number;
 }
 
+interface PendingPost {
+  url: string;
+  title: string;
+  postedAt: string | null;
+}
+
 export function mpDue(cursor: Record<string, unknown> | null, intervalMinutes: number, now = Date.now()): boolean {
-  if (typeof cursor?.lastCheckedAt === "string" && now - Date.parse(cursor.lastCheckedAt) <= intervalMinutes * 60_000) return false;
-  return !(typeof cursor?.retryAt === "string" && Date.parse(cursor.retryAt) > now);
+  if (typeof cursor?.retryAt === "string" && Date.parse(cursor.retryAt) > now) return false;
+  if (Array.isArray(cursor?.pending) && cursor.pending.length) return true;
+  return !(typeof cursor?.lastCheckedAt === "string" && now - Date.parse(cursor.lastCheckedAt) <= intervalMinutes * 60_000);
 }
 
 function mpRetryOffset(sourceId: string): number {
@@ -88,7 +97,14 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
   const [source] = await sql<MpSource[]>`SELECT id, name, config, cursor, enabled, participation_mode, interval_minutes FROM sources WHERE id = ${sourceId} AND kind = 'mp_account'`;
   if (!source) return { sourceId, status: "missing" as const };
   if (!source.enabled && reason !== "manual") return { sourceId, status: "paused" as const };
-  if (reason === "schedule" && !mpDue(source.cursor, source.interval_minutes)) return { sourceId, status: "not-due" as const };
+  const cursor: Record<string, unknown> = { ...(source.cursor ?? {}) };
+  if (Array.isArray(cursor.pending) && cursor.pending.length && typeof cursor.pendingSince === "string"
+    && Date.now() - Date.parse(cursor.pendingSince) > BODY_RETRY_WINDOW_MS) {
+    delete cursor.pending;
+    delete cursor.pendingSince;
+    await sql`UPDATE sources SET cursor = ${sql.json(cursor as never)} WHERE id = ${sourceId}`;
+  }
+  if (reason === "schedule" && !mpDue(cursor, source.interval_minutes)) return { sourceId, status: "not-due" as const };
   const account = source.config.ghid ?? source.config.wxid;
   if (!account) {
     await sql`UPDATE sources SET health = 'failing', last_error = '没有配置公众号 ghid，无法抓取', updated_at = now() WHERE id = ${sourceId}`;
@@ -96,21 +112,39 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
   }
   const [run] = await sql<{ id: number }[]>`INSERT INTO fetch_runs (source_id, detail) VALUES (${sourceId}, ${sql.json({ reason, collector: "everyinfra" })}) RETURNING id`;
   let created = 0;
+  let found = 0;
+  let reused = false;
   const exclusions: Record<string, number> = {};
   try {
-    // One paid list call per account per 10-minute window, whoever asks.
-    const window = `${reason === "schedule" ? "s" : "m"}:${Math.floor(Date.now() / 600_000)}`;
-    const history = await everyInfraMpHistory(account, { subject: sourceId, window });
-    const { mismatch, take } = postsToTake(history.posts, source.config.wechatBiz ?? null, source.cursor);
-    if (mismatch) {
-      const message = `公众号身份不符：列表里的文章不属于配置的账号（__biz ${source.config.wechatBiz}），请核对 ghid`;
-      await sql`UPDATE sources SET last_fetch_at = now(), last_error = ${message}, fail_count = fail_count + 1, health = 'failing',
-        cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + MISMATCH_RETRY_MS).toISOString() })}, updated_at = now()
-        WHERE id = ${sourceId}`;
-      await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${history.posts.length}, error = ${message} WHERE id = ${run!.id}`;
-      return { sourceId, status: "failed" as const, error: message };
+    let take: EveryInfraMpPost[];
+    if (Array.isArray(cursor.pending) && cursor.pending.length) {
+      take = (cursor.pending as PendingPost[]).map((p) => ({ ...p, postedAt: p.postedAt ? new Date(p.postedAt) : null, ghid: source.config.ghid ?? null }));
+      found = take.length;
+    } else {
+      // One paid list call per account per 10-minute window, whoever asks.
+      const window = `${reason === "schedule" ? "s" : "m"}:${Math.floor(Date.now() / 600_000)}`;
+      const history = await everyInfraMpHistory(account, { subject: sourceId, window });
+      const listedAt = new Date().toISOString();
+      const posts = postsToTake(history.posts, source.config.wechatBiz ?? null, cursor);
+      if (posts.mismatch) {
+        const message = `公众号身份不符：列表里的文章不属于配置的账号（__biz ${source.config.wechatBiz}），请核对 ghid`;
+        await sql`UPDATE sources SET last_fetch_at = now(), last_error = ${message}, fail_count = fail_count + 1, health = 'failing',
+          cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + MISMATCH_RETRY_MS).toISOString() })}, updated_at = now()
+          WHERE id = ${sourceId}`;
+        await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${history.posts.length}, error = ${message} WHERE id = ${run!.id}`;
+        return { sourceId, status: "failed" as const, error: message };
+      }
+      take = posts.take;
+      found = history.posts.length;
+      reused = history.reused;
+      cursor.lastCheckedAt = listedAt;
+      delete cursor.retryAt;
+      delete cursor.unavailableCount;
     }
+    // Fresh listings and saved posts share all filtering, body retry and ingestion rules below.
     let fetched = 0;
+    let budgetPause: BudgetExceededError | null = null;
+    const pending: EveryInfraMpPost[] = [];
     for (const p of take) {
       if (fetched >= MAX_NEW_PER_CHECK) break;
       // A broad account (a government health account) keeps only what is on topic; the paid body is not fetched for the rest.
@@ -129,8 +163,21 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       const retryBody = !!known?.retry && known.body_status === "none" && known.retry.attempts < BODY_RETRIES && Date.now() - known.discovered_at.getTime() < BODY_RETRY_WINDOW_MS;
       if (known && !retryBody) continue;
       fetched += 1;
+      if (budgetPause) {
+        pending.push(p);
+        continue;
+      }
       // Without a body the post is listed anyway; analysis works from its title.
-      const { body, passing } = await fetchBody(p.url, sourceId, key ?? p.url);
+      let result: Awaited<ReturnType<typeof fetchBody>>;
+      try {
+        result = await fetchBody(p.url, sourceId, key ?? p.url);
+      } catch (error) {
+        if (!(error instanceof BudgetExceededError)) throw error;
+        budgetPause = error;
+        pending.push(p);
+        continue;
+      }
+      const { body, passing } = result;
       const content = body?.html ?? body?.text ?? null;
       if (known && !content) {
         const retry = passing ? sql`jsonb_set(raw, '{everyinfra,bodyRetry}', ${sql.json({ attempts: known.retry!.attempts + 1, error: passing })})` : sql`raw #- '{everyinfra,bodyRetry}'`;
@@ -162,35 +209,46 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
         await queueProcessing(res.articleId);
       }
     }
-    const cursor: Record<string, unknown> = { ...(source.cursor ?? {}), lastCheckedAt: new Date().toISOString() };
+    if (budgetPause) {
+      cursor.pending = pending.map((p) => ({ url: p.url, title: p.title, postedAt: p.postedAt?.toISOString() ?? null }));
+      cursor.pendingSince ??= cursor.lastCheckedAt;
+      throw budgetPause;
+    }
+    delete cursor.pending;
+    delete cursor.pendingSince;
     delete cursor.retryAt;
     await sql`
       UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok', cursor = ${sql.json(cursor as never)},
         next_fetch_at = now() + make_interval(mins => interval_minutes), updated_at = now()
       WHERE id = ${sourceId}`;
-    await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${history.posts.length}, new_count = ${created},
+    await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${found}, new_count = ${created},
       detail = ${sql.json({ reason, ...(Object.keys(exclusions).length ? { exclusions } : {}) } as never)} WHERE id = ${run!.id}`;
-    return { sourceId, status: "ok" as const, found: history.posts.length, created, reused: history.reused };
+    return { sourceId, status: "ok" as const, found, created, reused };
   } catch (error) {
-    const message = String(error instanceof Error ? error.message : error).slice(0, 500);
+    const message = (error instanceof BudgetExceededError && Array.isArray(cursor.pending) && cursor.pending.length
+      ? `正文因额度暂停，${cursor.pending.length} 篇待续：${error.message}`
+      : String(error instanceof Error ? error.message : error)).slice(0, 500);
     const soft = error instanceof BudgetExceededError || (error instanceof ProviderRejectedError && error.retryable);
     await sql`
       UPDATE sources SET last_fetch_at = now(), last_error = ${message},
         fail_count = CASE WHEN ${soft} THEN fail_count ELSE fail_count + 1 END,
         health = CASE WHEN ${soft} THEN health WHEN fail_count + 1 >= 3 THEN 'failing' ELSE 'degraded' END, updated_at = now()
       WHERE id = ${sourceId}`;
-    await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
+    await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${found}, new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
     if (error instanceof BudgetExceededError) {
       const retryAt = new Date(Date.now() + error.retryAfterSeconds * 1000 + mpRetryOffset(sourceId)).toISOString();
-      await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt })} WHERE id = ${sourceId}`;
+      cursor.retryAt = retryAt;
+      await sql`UPDATE sources SET cursor = ${sql.json(cursor as never)} WHERE id = ${sourceId}`;
       // Reconcile owns scheduled budget waits, so the queue does not accumulate old retries.
       if (reason === "schedule") return { sourceId, status: "deferred" as const, retryAt };
       throw error;
     }
-    // The provider cannot list this account now (EveryInfra answers 503 for some accounts for hours):
-    // try again in an hour rather than on every reconcile, whose attempts would use up the budget.
+    // Some accounts stay unavailable for hours; back off each account and stagger its next attempt.
     if (error instanceof ProviderRejectedError && error.retryable) {
-      await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ retryAt: new Date(Date.now() + UNAVAILABLE_RETRY_MS).toISOString() })} WHERE id = ${sourceId}`;
+      const unavailableCount = (typeof cursor.unavailableCount === "number" ? cursor.unavailableCount : 0) + 1;
+      const wait = Math.min(UNAVAILABLE_RETRY_MS * 2 ** (unavailableCount - 1), 12 * UNAVAILABLE_RETRY_MS);
+      await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ unavailableCount,
+        retryAt: new Date(Date.now() + wait + mpRetryOffset(sourceId)).toISOString() })} WHERE id = ${sourceId}`;
       return { sourceId, status: "failed" as const, error: message };
     }
     return { sourceId, status: "failed" as const, error: message };
@@ -205,9 +263,18 @@ export async function scheduleMpReconcile(now = new Date()) {
   const pending = await sql<{ singleton_key: string | null }[]>`
     SELECT singleton_key FROM pgboss.job WHERE name = ${QUEUES.mpCheck} AND state IN ('created', 'retry', 'active')`;
   const pendingKeys = new Set(pending.map((j) => j.singleton_key));
+  const dueAt = (s: typeof rows[number]) => {
+    const last = typeof s.cursor?.lastCheckedAt === "string" ? Date.parse(s.cursor.lastCheckedAt) : NaN;
+    if (!Number.isFinite(last)) return -Infinity;
+    const retry = typeof s.cursor?.retryAt === "string" ? Date.parse(s.cursor.retryAt) : NaN;
+    const retryAt = Number.isFinite(retry) ? retry : -Infinity;
+    if (Array.isArray(s.cursor?.pending) && s.cursor.pending.length) return retryAt;
+    return Math.max(last + s.interval_minutes * 60_000, retryAt);
+  };
+  const due = rows.filter((s) => mpDue(s.cursor, s.interval_minutes, now.getTime()) && !pendingKeys.has(`mp:${s.id}`))
+    .sort((a, b) => dueAt(a) - dueAt(b));
   let enqueued = 0;
-  for (const s of rows) {
-    if (!mpDue(s.cursor, s.interval_minutes, now.getTime()) || pendingKeys.has(`mp:${s.id}`)) continue;
+  for (const s of due.slice(0, MAX_ENQUEUE_PER_RECONCILE)) {
     await enqueue(QUEUES.mpCheck, { sourceId: s.id, reason: "schedule" }, { singletonKey: `mp:${s.id}`, expireInSeconds: 900 });
     enqueued += 1;
   }

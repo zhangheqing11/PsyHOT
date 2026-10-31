@@ -47,8 +47,20 @@ export function probeQueries(reports: StoryReport[], at: Date): StoryQuery[] {
   if (urlReport) found.push({ format: "url", needle: linkToken(urlReport.url)!, articleId: urlReport.id });
   const titleReport = reports.find((r) => phrase(r.title));
   if (titleReport) found.push({ format: "phrase", needle: phrase(titleReport.title)!, articleId: titleReport.id });
+  return found.map((q) => ({ ...q, keyword: keywordFor(q, at) }));
+}
+
+function keywordFor(q: Omit<StoryQuery, "keyword">, at: Date): string {
   const since = new Date(at.getTime() - 7 * 86400_000).toISOString().slice(0, 10);
-  return found.map((q) => ({ ...q, keyword: `${q.format === "url" ? `url:${q.needle}` : q.format === "phrase" ? `"${q.needle.replace(/["“”]/g, "")}"` : q.needle} since:${since} -filter:replies` }));
+  return `${q.format === "url" ? `url:${q.needle}` : q.format === "phrase" ? `"${q.needle.replace(/["“”]/g, "")}"` : q.needle} since:${since} -filter:replies`;
+}
+
+/** The one query production runs for a story: the phrase of its first report with an English title. Null when none has one. */
+export function lookupQuery(reports: StoryReport[], at: Date): StoryQuery | null {
+  const report = reports.find((r) => phrase(r.title));
+  if (!report) return null;
+  const query = { format: "phrase" as const, needle: phrase(report.title)!, articleId: report.id };
+  return { ...query, keyword: keywordFor(query, at) };
 }
 
 /** Read explicit link fields, never arbitrary metadata (e.g. an author's bio). Do not fetch short links. */

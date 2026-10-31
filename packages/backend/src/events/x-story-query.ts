@@ -55,9 +55,14 @@ function keywordFor(q: Omit<StoryQuery, "keyword">, at: Date): string {
   return `${q.format === "url" ? `url:${q.needle}` : q.format === "phrase" ? `"${q.needle.replace(/["“”]/g, "")}"` : q.needle} since:${since} -filter:replies`;
 }
 
-/** The one query production runs for a story: the phrase of its first report with an English title. Null when none has one. */
+// A short phrase (often a whole short title) is ordinary English: "Who Has the Power to Change" matched
+// crypto promotions on 2026-11-01 (27 characters). The probe's productive phrases were 47-58 characters.
+const MIN_PHRASE_CHARS = 40;
+const distinctive = (needle: string) => needle.length >= MIN_PHRASE_CHARS;
+
+/** The one query production runs for a story: a distinctive phrase of its first report with an English title. Null when none has one. */
 export function lookupQuery(reports: StoryReport[], at: Date): StoryQuery | null {
-  const report = reports.find((r) => phrase(r.title));
+  const report = reports.find((r) => { const p = phrase(r.title); return !!p && distinctive(p); });
   if (!report) return null;
   const query = { format: "phrase" as const, needle: phrase(report.title)!, articleId: report.id };
   return { ...query, keyword: keywordFor(query, at) };

@@ -81,5 +81,8 @@ test("lookup runs the phrase query only, the same one the probe builds, and noth
   assert.deepEqual(query, probeQueries(reports, at).find((q) => q.format === "phrase"));
   assert.equal(lookupQuery([{ ...reports[0], title: "睡眠与记忆的新研究" }], at), null);
   assert.equal(lookupQuery([{ id: "x", url: reports[0].url, title: "Short title", body: null }], at), null);
+  // A whole short title is ordinary English and matched unrelated promotions on production.
+  assert.equal(lookupQuery([{ id: "x", url: reports[0].url, title: "Who Has the Power to Change?", body: null }], at), null);
+  assert.ok(lookupQuery([{ id: "x", url: reports[0].url, title: "Only about half of social science findings held up when retested", body: null }], at));
   assert.equal(lookupQuery([{ id: "x", url: "https://example.com/", title: "短", body: null }, reports[0]], at)!.articleId, "paper");
 });

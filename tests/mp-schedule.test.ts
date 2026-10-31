@@ -64,6 +64,16 @@ test("mpDue keeps the interval boundary and retry boundary used by reconcile", (
   assert.equal(mpDue({ lastCheckedAt: "invalid", retryAt: "invalid" }, intervalMinutes, now), true);
 });
 
+test("mpDue uses only retryAt for nonempty pending, regardless of the listing interval", () => {
+  const now = Date.parse("2026-10-31T00:00:00Z");
+  const cursor = { lastCheckedAt: new Date(now).toISOString(), pending: [{ url: "https://mp.weixin.qq.com/s/test", title: "待续", postedAt: null }] };
+  assert.equal(mpDue(cursor, 10080, now), true);
+  assert.equal(mpDue({ ...cursor, retryAt: new Date(now - 1).toISOString() }, 10080, now), true);
+  assert.equal(mpDue({ ...cursor, retryAt: new Date(now).toISOString() }, 10080, now), true);
+  assert.equal(mpDue({ ...cursor, retryAt: new Date(now + 1).toISOString() }, 0, now), false);
+  assert.equal(mpDue({ ...cursor, pending: [] }, 10080, now), false);
+});
+
 test("a scheduled check that is not due buys nothing and creates no run, while manual forces a listing", async () => {
   const id = await source({ lastCheckedAt: new Date(Date.now() - 3600_000).toISOString() });
   const hits = provider.hits();
@@ -158,6 +168,31 @@ test("reconcile skips created, retry and active account jobs, and sends due acco
   assert.ok(created);
   assert.equal(created.expire_seconds, 900);
   assert.equal(created.data.reason, "schedule");
+});
+
+test("reconcile enqueues the three most overdue accounts, then the remaining two on the next run", async () => {
+  const enabled = await sql<{ id: string }[]>`SELECT id FROM sources WHERE kind = 'mp_account' AND enabled`;
+  if (enabled.length) await sql`UPDATE sources SET enabled = false WHERE id IN ${sql(enabled.map((s) => s.id))}`;
+  const now = new Date();
+  const ago = (hours: number) => new Date(now.getTime() - hours * 3600_000).toISOString();
+  try {
+    const recent = await source({ lastCheckedAt: ago(25) });
+    const deferred = await source({ lastCheckedAt: ago(240), retryAt: ago(2) });
+    const pending = await source({ lastCheckedAt: ago(1), retryAt: ago(5), pendingSince: ago(1),
+      pending: [{ url: "https://mp.weixin.qq.com/s/test", title: "待续", postedAt: null }] });
+    const overdue = await source({ lastCheckedAt: ago(100) });
+    await sql`UPDATE sources SET interval_minutes = 2880 WHERE id = ${overdue}`;
+    const never = await source();
+    const ids = [recent, deferred, pending, overdue, never];
+    const queued = () => sql<{ source_id: string }[]>`SELECT data->>'sourceId' AS source_id FROM pgboss.job
+      WHERE name = ${QUEUES.mpCheck} AND state = 'created' AND data->>'sourceId' IN ${sql(ids)} ORDER BY created_on, id`;
+    assert.deepEqual(await scheduleMpReconcile(now), { enqueued: 3 });
+    assert.deepEqual((await queued()).map((j) => j.source_id), [never, overdue, pending]);
+    assert.deepEqual(await scheduleMpReconcile(now), { enqueued: 2 });
+    assert.deepEqual((await queued()).map((j) => j.source_id), [never, overdue, pending, deferred, recent]);
+  } finally {
+    if (enabled.length) await sql`UPDATE sources SET enabled = true WHERE id IN ${sql(enabled.map((s) => s.id))}`;
+  }
 });
 
 test("manual checks use a 900s send expiry and keep the explicit force reason", async () => {

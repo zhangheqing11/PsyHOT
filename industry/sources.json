@@ -7837,6 +7837,144 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "wechat-xinqingju",
+   "name": "心情局",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_450fe28f6c82",
+    "nickname": "心情局",
+    "wechatBiz": "Mzk4ODgzMzAwOA=="
+   },
+   "tier": "T1_5",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psylens",
+   "name": "认知棱镜PsyLens",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_8593aa713993",
+    "nickname": "认知棱镜PsyLens",
+    "wechatBiz": "Mzk3NTg2MjUyMA=="
+   },
+   "tier": "T1_5",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "研究解读",
+    "科普"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-kyxy",
+   "name": "科研小鱼历险记",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_ee91ef466c5f",
+    "nickname": "科研小鱼历险记",
+    "wechatBiz": "Mzg5Njk0NzYyOA=="
+   },
+   "tier": "T1_5",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 4320,
+   "tags": [
+    "公众号",
+    "研究解读",
+    "科研周报"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-china-sci",
+   "name": "中国科学报",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_718b1d029dfa",
+    "nickname": "中国科学报",
+    "wechatBiz": "MzA3NTE5MzIzMg==",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "心理",
+      "精神",
+      "抑郁",
+      "焦虑",
+      "自杀",
+      "自伤",
+      "睡眠",
+      "孤独症",
+      "自闭症",
+      "多动",
+      "adhd",
+      "双相",
+      "成瘾",
+      "认知",
+      "脑"
+     ]
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "mixed",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "媒体",
+    "科学新闻"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
+   "id": "wechat-psychforum",
+   "name": "中国心理学家大会",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_dd1035c06c0d",
+    "nickname": "中国心理学家大会",
+    "wechatBiz": "MjM5MzI1NDMwMA=="
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "行业",
+    "心理咨询"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "x-everyinfra-ai-mental-health",
    "enabled": false,
    "name": "X · AI 心理健康",

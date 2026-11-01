@@ -2,7 +2,7 @@
 import * as cheerio from "cheerio";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
-import { readable, type ExtractedBody } from "../content/extract.ts";
+import { isSignInRedirect, isSignInUrl, readable, type ExtractedBody } from "../content/extract.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
@@ -143,11 +143,11 @@ function listingItself(url: string, listing: string): boolean {
 }
 
 /**
- * Navigation a listing links to but that is no post: the listing itself, year archives, and taxonomy,
- * author and pagination pages.
+ * Navigation a listing links to but that is no post: the listing itself, sign-in and registration
+ * pages, year archives, and taxonomy, author and pagination pages.
  */
 function navigationLink(url: string, listing: string): boolean {
-  if (listingItself(url, listing)) return true;
+  if (listingItself(url, listing) || isSignInUrl(url)) return true;
   const u = new URL(url);
   return /\/(label|labels|tag|tags|category|categories|author|authors|page)(\/|$)/i.test(u.pathname) || /\/(19|20)\d{2}(\/\d{1,2})?\/?$/.test(u.pathname);
 }
@@ -232,6 +232,8 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
     const linkEl = c.linkSelector ? (el.is(c.linkSelector) ? el : el.find(c.linkSelector).first()) : el.is("a") ? el : el.find("a[href]").first();
     const url = absolute(linkEl.attr("href"), base);
     if (!url || seen.has(url) || !allowed(url, source)) continue;
+    // A card or a nav link to the site's sign-in form is no post.
+    if (isSignInUrl(url)) continue;
     if (!sectionsArePosts && listingItself(url, listing)) continue;
     const titleEl = c.titleSelector ? (el.is(c.titleSelector) ? el : el.find(c.titleSelector).first()) : linkEl;
     const title = collapseWhitespace(titleEl.text() || linkEl.attr("title") || "");
@@ -406,6 +408,8 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   let body: ExtractedBody | null = null;
   if ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary) {
     const res = await guardedFetch(url, { headers: sourceHeaders(source, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8"), timeoutMs: 20_000 });
+    // A sign-in form is no detail page: its title, date and text are not the post's.
+    if (isSignInRedirect(url, res.url)) throw new FetchError("redirected to a sign-in form", res.status);
     if (res.status === 200) {
       html = res.text();
       if (need.body && /html/.test(res.headers.get("content-type") ?? "")) {

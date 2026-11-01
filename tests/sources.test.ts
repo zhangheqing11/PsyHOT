@@ -54,8 +54,9 @@ const pages: Record<string, (cdn: string) => string> = {
   "/ld-post": () =>
     `<html><head><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Blog"},` +
     `{"@type":"BlogPosting","headline":"Turn REST APIs into MCP tools","datePublished":"2026-09-24"}]}</script></head><body><p>Post</p></body></html>`,
-  // A detail page whose date element prints an age.
+  // A detail page whose date element prints an age, and one the site sends to its sign-in form.
   "/age-post": () => '<html><body><h1>Age post</h1><span class="when">昨天</span></body></html>',
+  "/login": () => `<html><head><title>Sign in</title></head><body><h1>Sign in to Example</h1><p>${"Enter your email address and password to continue. ".repeat(10)}</p><span class="when">2026-10-01</span></body></html>`,
   "/cdn/static/js/lib-react.a6be410a.js": () => '"use strict";(self.webpackChunk=self.webpackChunk||[]).push([["lib-react"],{}]);',
   "/cdn/static/js/index.c5195ace.js": (cdn) =>
     '(()=>{var e={},a={};function t(d){return a[d]}t.u=e=>"static/js/async/"+e+"."+({6159:"4efb0769",7298:"a1b2c3d4",8557:"2d420be2"})[e]+".js",' +
@@ -82,6 +83,7 @@ const pages: Record<string, (cdn: string) => string> = {
 };
 const server = http.createServer((req, res) => {
   const path = req.url ?? "";
+  if (path === "/members/post") { res.writeHead(302, { location: "/login?next=%2Fmembers%2Fpost" }); return void res.end(); }
   const found = Object.hasOwn(pages, path);
   res.writeHead(found ? 200 : 404, { "content-type": path.endsWith(".js") ? "application/javascript" : "text/html; charset=utf-8" });
   res.end(found ? pages[path]!(`${site}/cdn/`) : "");
@@ -116,6 +118,19 @@ test("anchors into the listing page itself are navigation, not posts", () => {
   ].join("");
   const out = fromHtml(html, "https://example.org/", source({ url: "https://example.org/" }));
   assert.deepEqual(out.map((c) => c.url), ["https://example.org/blog/mimo-v2-6-tool-call"]);
+});
+
+test("a listing's sign-in and registration links are not posts, wherever they sit", () => {
+  const html = [
+    '<article><a href="/blog/password-autofill">Password autofill in browsers</a></article>',
+    '<nav><a href="/login">Log in</a><a href="/signup">Sign up</a><a href="https://claude.ai/login">Claude</a><a href="/account/login">Account</a><a href="/users/sign_in">Members</a></nav>',
+  ].join("");
+  const fromList = fromHtml(html, "https://example.org/", source({ url: "https://example.org/blog/" }));
+  assert.deepEqual(fromList.map((c) => c.url), ["https://example.org/blog/password-autofill"]);
+  const configured = fromHtml(html, "https://example.org/", source({ url: "https://example.org/blog/", itemSelector: "a[href]", linkSelector: "a[href]" }));
+  assert.deepEqual(configured.map((c) => c.url), ["https://example.org/blog/password-autofill"]);
+  const md = "[Password autofill in browsers](https://example.org/blog/password-autofill)\n\n[Log in to continue](https://example.org/login) [Create an account](https://example.org/sign-up)";
+  assert.deepEqual(fromMarkdown(md, "https://example.org", source({ url: "https://r.jina.ai/https://example.org/blog/" })).map((c) => c.url), ["https://example.org/blog/password-autofill"]);
 });
 
 test("promotions a feed rotates inside its posts are left out of the body", () => {
@@ -266,6 +281,14 @@ test("a detail page whose date element prints an age is dated from the moment it
   const yesterday = Date.now() - 86400e3;
   assert.ok(got.publishedAt && Math.abs(got.publishedAt.getTime() - yesterday) < 86400e3, "yesterday's midnight in +08:00 is within a day of this time yesterday");
   assert.equal(got.publishedAt!.getTime() % 86400e3, 16 * 3600e3, "and it is midnight in +08:00");
+});
+
+test("a detail page the site sends to its sign-in form gives neither body, date nor title", async () => {
+  const detail = { maxFetches: 20, publishedAtSelector: ".when", titleSelector: "h1", titleAuthoritative: true };
+  await assert.rejects(
+    fetchDetail(`${site}/members/post`, { id: "test-feed", participation_mode: "editorial", config: { detail } } as never, { date: true, title: true, summary: false, body: true }),
+    /sign-in form/,
+  );
 });
 
 test("industry/sources.json: every seed source passes its config check and the table's limits", async () => {

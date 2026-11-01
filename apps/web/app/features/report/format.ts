@@ -3,7 +3,7 @@ import { FEATURES } from "@aihot/industry/features";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { isTrackKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import type { ReportNavigationEntry, ReportKind } from "@aihot/contracts/site";
-import { beijingWeekday } from "../../lib/format";
+import { beijingDate, beijingWeekday, monthDay } from "../../lib/format.ts";
 
 export const KINDS: ReportKind[] = ["daily", "weekly", "monthly"];
 export const KIND_PATH: Record<ReportKind, string> = { daily: "/daily", weekly: "/weekly", monthly: "/monthly" };
@@ -53,9 +53,11 @@ export function shortDay(iso: string): string {
   return `${pad(d.getUTCMonth() + 1)}.${pad(d.getUTCDate())}`;
 }
 
-/** Month-day label of a daily key: "9月26日". */
-export function dayLabel(key: string): string {
-  return `${Number(key.slice(5, 7))}月${Number(key.slice(8, 10))}日`;
+/** "09.14 — 09.20" of a week's Monday and Sunday; a week across New Year names both years: "2026.12.28 — 2027.01.03". */
+function weekSpan([a, b]: [string, string], gap: string): string {
+  const cross = a.slice(0, 4) !== b.slice(0, 4);
+  const text = (day: string) => (cross ? day : day.slice(5)).replace(/-/g, ".");
+  return `${text(a)}${gap}${text(b)}`;
 }
 
 
@@ -106,13 +108,14 @@ export function archiveMark(kind: ReportKind, key: string): { big: string; small
   return { big: key.slice(5, 7), small: null };
 }
 
-/** Short chip label for the phone switcher: "今天", "9月26日", "9月第2周", "8 月". */
+/** Short chip label for the phone switcher: "今天", "9月26日", "9月第2周", "8 月"; another year than `today`'s is named. */
 export function chipLabel(kind: ReportKind, key: string, index: ReportNavigationEntry[], today: string): string {
-  if (kind === "daily") return key === today ? "今天" : dayLabel(key);
-  if (kind === "monthly") return `${Number(key.slice(5, 7))} 月`;
+  const other = key.slice(0, 4) !== today.slice(0, 4);
+  if (kind === "daily") return key === today ? "今天" : monthDay(key, today);
+  if (kind === "monthly") return `${other ? `${key.slice(0, 4)} 年 ` : ""}${Number(key.slice(5, 7))} 月`;
   const group = archiveGroups("weekly", index).find((g) => g.entries.some((e) => e.key === key));
   const entry = group?.entries.find((e) => e.key === key);
-  return group && entry ? `${Number(group.id.slice(5))}月${entry.short}` : key;
+  return group && entry ? `${group.id.slice(0, 4) !== today.slice(0, 4) ? `${group.id.slice(0, 4)}年` : ""}${Number(group.id.slice(5))}月${entry.short}` : key;
 }
 
 /** "第 N 期": the issue's place in its series, counted from the first report that exists. */
@@ -126,7 +129,7 @@ export function dateMark(kind: ReportKind, key: string): { figure: string; top: 
   if (kind === "daily") return { figure: key.slice(8, 10), top: `${key.slice(0, 4)} 年 ${Number(key.slice(5, 7))} 月`, bottom: beijingWeekday(key) };
   if (kind === "weekly") {
     const [a, b] = isoWeekRange(key);
-    return { figure: key.slice(6), top: `${key.slice(0, 4)} 年第 ${Number(key.slice(6))} 周`, bottom: `${a.slice(5).replace("-", ".")} — ${b.slice(5).replace("-", ".")}` };
+    return { figure: key.slice(6), top: `${key.slice(0, 4)} 年第 ${Number(key.slice(6))} 周`, bottom: weekSpan([a, b], " — ") };
   }
   return { figure: key.slice(5, 7), top: `${key.slice(0, 4)} 年`, bottom: `${Number(key.slice(5, 7))} 月` };
 }
@@ -148,11 +151,12 @@ export function metricItems(metrics: Record<string, number>): Array<{ value: num
   return METRICS.filter(([k]) => typeof metrics[k] === "number" && (k !== "modelsReleased" || metrics[k]! > 0)).map(([k, unit]) => ({ value: metrics[k]!, unit }));
 }
 
-/** "前一日 · 9月25日", "上一期 · 第 37 周", "下一期 · 7 月". */
-export function neighbourLabel(kind: ReportKind, key: string, direction: "prev" | "next"): string {
-  if (kind === "daily") return `${direction === "prev" ? "前一日" : "后一日"} · ${dayLabel(key)}`;
+/** "前一日 · 9月25日", "上一期 · 第 37 周", "下一期 · 7 月". An issue of another year than `today`'s (Beijing) names it. */
+export function neighbourLabel(kind: ReportKind, key: string, direction: "prev" | "next", today: string = beijingDate(Date.now())): string {
+  if (kind === "daily") return `${direction === "prev" ? "前一日" : "后一日"} · ${monthDay(key, today)}`;
   const which = direction === "prev" ? "上一期" : "下一期";
-  return kind === "weekly" ? `${which} · 第 ${Number(key.slice(6))} 周` : `${which} · ${Number(key.slice(5, 7))} 月`;
+  const year = key.slice(0, 4) !== today.slice(0, 4) ? `${key.slice(0, 4)} 年` : "";
+  return kind === "weekly" ? `${which} · ${year}第 ${Number(key.slice(6))} 周` : `${which} · ${year && `${year} `}${Number(key.slice(5, 7))} 月`;
 }
 
 const CN = ["零", "一", "二", "三", "四", "五", "六", "七", "八", "九", "十"];
@@ -207,7 +211,7 @@ export function periodGrid(kind: ReportKind, key: string, index: ReportNavigatio
     const lead = (new Date(Date.UTC(Number(year), m - 1, 1)).getUTCDay() + 6) % 7;
     const cells: PeriodCell[] = [
       ...Array.from({ length: lead }, (): PeriodCell => ({ key: null, label: "", state: "pad" })),
-      ...Array.from({ length: days }, (_, i) => cell(`${key.slice(0, 7)}-${pad(i + 1)}`, `${m}月${i + 1}日`)),
+      ...Array.from({ length: days }, (_, i) => cell(`${key.slice(0, 7)}-${pad(i + 1)}`, monthDay(`${key.slice(0, 7)}-${pad(i + 1)}`))),
     ];
     return { title: `${cnNumber(m)}月`, note: `本月 ${count(cells)} 期`, columns: 7, heads: ["一", "二", "三", "四", "五", "六", "日"], cells };
   }
@@ -215,8 +219,7 @@ export function periodGrid(kind: ReportKind, key: string, index: ReportNavigatio
     const weeks = isoWeek(`${year}-12-28`);
     const cells = Array.from({ length: weeks }, (_, i) => {
       const k = `${year}-W${pad(i + 1)}`;
-      const [a, b] = isoWeekRange(k);
-      return cell(k, `第 ${i + 1} 周（${a.slice(5).replace("-", ".")}—${b.slice(5).replace("-", ".")}）`);
+      return cell(k, `第 ${i + 1} 周（${weekSpan(isoWeekRange(k), "—")}）`);
     });
     return { title: `${year} 年`, note: `全年 ${count(cells)} 期`, columns: 13, heads: null, cells };
   }

@@ -1,5 +1,5 @@
 // Beijing-time wording for the reset monitor. Inputs are ISO strings with +08:00.
-import { addDays } from "@aihot/contracts/time";
+import { addDays, beijingDate, monthDay as engineMonthDay } from "@aihot/contracts/time";
 
 export function bjDate(iso: string): string {
   return iso.slice(0, 10);
@@ -9,16 +9,17 @@ export function bjTime(iso: string): string {
   return iso.slice(11, 16);
 }
 
-export function monthDay(date: string): string {
-  return `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`;
+/** "9月12日"; with `today`, a day of another year carries it: "2026年12月31日". */
+export function monthDay(date: string, today?: string): string {
+  return engineMonthDay(date, today);
 }
 
-/** 今天 / 明天 / 昨天 / 9月12日 */
+/** 今天 / 明天 / 昨天 / 9月12日 / 2026年12月31日 */
 export function dayWord(date: string, today: string): string {
   if (date === today) return "今天";
   if (date === addDays(today, 1)) return "明天";
   if (date === addDays(today, -1)) return "昨天";
-  return monthDay(date);
+  return monthDay(date, today);
 }
 
 export function windowText(from: string | null, through: string | null, today: string): string {
@@ -37,10 +38,11 @@ export function durationText(ms: number): string {
   return m ? `${h} 小时 ${m} 分` : `${h} 小时`;
 }
 
-/** "9/26 21:40" */
-export function stamp(iso: string | null | undefined): string {
+/** "9/26 21:40"; a stamp of another year than `today` (Beijing, now by default) carries it: "2026/12/31 21:40". */
+export function stamp(iso: string | null | undefined, today: string = beijingDate(Date.now())): string {
   if (!iso) return "—";
-  return `${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))} ${bjTime(iso)}`;
+  const year = iso.slice(0, 4) === today.slice(0, 4) ? "" : `${iso.slice(0, 4)}/`;
+  return `${year}${Number(iso.slice(5, 7))}/${Number(iso.slice(8, 10))} ${bjTime(iso)}`;
 }
 
 export function typeName(type: "direct_reset" | "reset_credit"): string {

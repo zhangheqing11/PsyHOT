@@ -220,7 +220,7 @@ export function ResetCalendar({ marks, events, today, historyFrom, now, avatar, 
           <div className="mb-4 flex items-baseline justify-between gap-3 border-b border-line pb-4">
             <h3 className="text-[15px] font-[650] text-ink">
               {Number(selected.slice(5, 7))} 月 {Number(selected.slice(8))} 日
-              {dayWord(selected, today) !== monthDay(selected) && <span className="ml-2 text-[12px] font-normal text-ink-4">{dayWord(selected, today)}</span>}
+              {dayWord(selected, today) !== monthDay(selected, today) && <span className="ml-2 text-[12px] font-normal text-ink-4">{dayWord(selected, today)}</span>}
             </h3>
             <span className="num text-[12px] text-ink-4">{selected.slice(0, 4)}</span>
           </div>
@@ -249,7 +249,7 @@ export function ResetCalendar({ marks, events, today, historyFrom, now, avatar, 
                     <span className="ml-1 font-normal text-ink-4">（不是精确到账时间）</span>
                   </p>
                 )}
-                {!e.confirmedAt && e.occurredOn && <p className="num mb-1 text-[13px] font-medium text-ink">核实到账 {monthDay(e.occurredOn)}</p>}
+                {!e.confirmedAt && e.occurredOn && <p className="num mb-1 text-[13px] font-medium text-ink">核实到账 {monthDay(e.occurredOn, today)}</p>}
                 {window && e.status !== "confirmed" && (
                   <p className="mb-1 text-[13px] font-medium leading-[1.5] text-ink">
                     <span className="num">预计 {windowText(window.from, window.through, today)}</span>

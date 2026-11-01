@@ -24,6 +24,15 @@ export function addDays(date: string, days: number): string {
   return new Date(t).toISOString().slice(0, 10);
 }
 
+/**
+ * "9月28日" of a calendar date (YYYY-MM-DD). Given `today` (YYYY-MM-DD, Beijing), a day of another year carries its
+ * year, so an archived or last year's item is not read as this year's: "2019年2月19日".
+ */
+export function monthDay(date: string, today?: string): string {
+  const year = today && date.slice(0, 4) !== today.slice(0, 4) ? `${date.slice(0, 4)}年` : "";
+  return `${year}${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`;
+}
+
 const WEEKDAYS = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"];
 
 export function beijingWeekday(date: string): string {

@@ -85,7 +85,7 @@ function Hero({ d, now }: { d: CodexResetSitePage; now: number }) {
             当前没有等待生效的重置
           </p>
           <h2 className="mt-3 text-[20px] font-[650] leading-[1.25] text-ink sm:text-[24px]">
-            {d.stats.lastResetDate ? `上一次额度重置在 ${monthDay(d.stats.lastResetDate)}` : "暂无重置记录"}
+            {d.stats.lastResetDate ? `上一次额度重置在 ${monthDay(d.stats.lastResetDate, d.today)}` : "暂无重置记录"}
           </h2>
           <p className="mt-2 text-[13px] leading-[1.75] text-ink-4">不预测尚未宣布的下一次重置。Tibo 一旦宣布，这里会显示预计生效时间与原帖。</p>
           {d.outage && (

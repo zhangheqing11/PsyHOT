@@ -1,6 +1,14 @@
-import { beijingDate, beijingTime, beijingWeekday } from "@aihot/contracts/time";
+import { beijingDate, beijingTime, beijingWeekday, monthDay as engineMonthDay } from "@aihot/contracts/time";
 
 export { beijingDate, beijingTime, beijingWeekday };
+
+/**
+ * "9月28日" of a calendar date (YYYY-MM-DD). A day of another year than `today` (Beijing, now by default) carries its
+ * year, so last year's item is not read as this year's: "2026年12月31日".
+ */
+export function monthDay(date: string, today: string = beijingDate(Date.now())): string {
+  return engineMonthDay(date, today);
+}
 
 export function dayLabel(date: string, today: string): string {
   const [y, m, d] = date.split("-").map(Number) as [number, number, number];
@@ -29,10 +37,9 @@ export function fullDateTime(iso: string): string {
   return `${beijingDate(iso)} ${beijingTime(iso)}`;
 }
 
-/** "9月24日 10:51" (Beijing), for lists that span days. */
-export function monthDayTime(iso: string): string {
-  const [, m, d] = beijingDate(iso).split("-").map(Number) as [number, number, number];
-  return `${m}月${d}日 ${beijingTime(iso)}`;
+/** "9月24日 10:51" (Beijing), for lists that span days; the year comes first when it is not today's. */
+export function monthDayTime(iso: string, today?: string): string {
+  return `${monthDay(beijingDate(iso), today)} ${beijingTime(iso)}`;
 }
 
 /** "X：Ethan Mollick (@emollick)" → "Ethan Mollick"; other sources keep their name. */

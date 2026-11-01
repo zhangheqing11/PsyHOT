@@ -18,6 +18,7 @@ export type EgressRoute = "egress" | "direct";
 
 let proxyAgent: ProxyAgent | null = null;
 let directAgent: Agent | null = null;
+let pinnedCurve: Agent | null = null;
 
 function proxied(url: URL, route: EgressRoute): boolean {
   if (route !== "egress" || !config.egressProxyUrl) return false;
@@ -34,6 +35,34 @@ function dispatcherFor(viaProxy: boolean): Dispatcher | undefined {
   // Direct connections resolve through the guarded lookup: the address actually dialled is checked.
   directAgent ??= new Agent({ connect: { lookup: guardedLookup as never } });
   return directAgent;
+}
+
+/**
+ * Some government TLS stacks answer Node's preferred X25519 key share with a point OpenSSL refuses
+ * (ERR_SSL_BAD_ECPOINT, e.g. mzt.hunan.gov.cn) while the page loads in a browser and in curl, both
+ * of which negotiate P-256. Node's "auto" curve list starts with X25519, so such a request is retried
+ * once on an agent that offers only P-256; every browser still negotiates P-256, so pinning loses nothing.
+ */
+function pinnedCurveAgent(): Agent | undefined {
+  // With the private-network allowance on, requests use undici's default agent and no address check
+  // runs; pinning a curve would silently re-introduce the check.
+  if (config.allowPrivateNetworkFetch) return undefined;
+  pinnedCurve ??= new Agent({ connect: { lookup: guardedLookup as never, ecdhCurve: "prime256v1" } });
+  return pinnedCurve;
+}
+
+/**
+ * The refused key share, read off the cause chain undici wraps it in. It can only come from the key
+ * exchange, before any request byte is sent, so the retry never replays a request a server has seen
+ * (a paid API would bill it twice). EPROTO is not matched: it also follows a request already sent.
+ */
+function refusedKeyShare(error: unknown): boolean {
+  let cause: unknown = error;
+  for (let depth = 0; depth < 4 && cause; depth++) {
+    if ((cause as { code?: string }).code === "ERR_SSL_BAD_ECPOINT") return true;
+    cause = (cause as { cause?: unknown }).cause;
+  }
+  return false;
 }
 
 export interface GuardedFetchOptions {
@@ -76,13 +105,22 @@ export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}
   let method = opts.method ?? "GET";
   let requestBody = opts.body;
   for (let hop = 0; ; hop++) {
-    const res = await undiciFetch(url, {
+    const viaProxy = proxied(url, route);
+    const send = (dispatcher: Dispatcher | undefined) => undiciFetch(url, {
       method,
       headers,
       body: requestBody,
       redirect: "manual",
-      dispatcher: dispatcherFor(proxied(url, route)),
+      dispatcher,
       signal,
+    });
+    const res = await send(dispatcherFor(viaProxy)).catch((error: unknown) => {
+      // Only a direct connection is retried: .cn names, where this happens, never go through the egress
+      // proxy, whose tunnel has an agent of its own. And only while the budget lasts: a retry on an
+      // aborted signal fails the same way and hides the original error.
+      const pinned = viaProxy || signal.aborted || !refusedKeyShare(error) ? undefined : pinnedCurveAgent();
+      if (!pinned) throw error;
+      return send(pinned);
     });
     if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
       // Release the connection even when the next URL is refused or the redirect limit is reached.

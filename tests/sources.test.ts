@@ -54,6 +54,8 @@ const pages: Record<string, (cdn: string) => string> = {
   "/ld-post": () =>
     `<html><head><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Blog"},` +
     `{"@type":"BlogPosting","headline":"Turn REST APIs into MCP tools","datePublished":"2026-09-24"}]}</script></head><body><p>Post</p></body></html>`,
+  // A detail page whose date element prints an age.
+  "/age-post": () => '<html><body><h1>Age post</h1><span class="when">昨天</span></body></html>',
   "/cdn/static/js/lib-react.a6be410a.js": () => '"use strict";(self.webpackChunk=self.webpackChunk||[]).push([["lib-react"],{}]);',
   "/cdn/static/js/index.c5195ace.js": (cdn) =>
     '(()=>{var e={},a={};function t(d){return a[d]}t.u=e=>"static/js/async/"+e+"."+({6159:"4efb0769",7298:"a1b2c3d4",8557:"2d420be2"})[e]+".js",' +
@@ -256,6 +258,14 @@ test("dates in yyyymmdd and in JSON-LD are read", async () => {
   assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-22T00:00:00.000Z", null], "February 30 is no date");
   const got = await fetchDetail(`${site}/ld-post`, { id: "test-feed", config: { detail: { maxFetches: 20 } } } as never, { date: true, title: false, summary: false, body: false });
   assert.equal(got.publishedAt?.toISOString(), "2026-09-24T00:00:00.000Z");
+});
+
+test("a detail page whose date element prints an age is dated from the moment it is read", async () => {
+  const detail = { maxFetches: 20, publishedAtSelector: ".when", publishedAtUtcOffset: "+08:00" };
+  const got = await fetchDetail(`${site}/age-post`, { id: "test-feed", config: { detail } } as never, { date: true, title: false, summary: false, body: false });
+  const yesterday = Date.now() - 86400e3;
+  assert.ok(got.publishedAt && Math.abs(got.publishedAt.getTime() - yesterday) < 86400e3, "yesterday's midnight in +08:00 is within a day of this time yesterday");
+  assert.equal(got.publishedAt!.getTime() % 86400e3, 16 * 3600e3, "and it is midnight in +08:00");
 });
 
 test("industry/sources.json: every seed source passes its config check and the table's limits", async () => {

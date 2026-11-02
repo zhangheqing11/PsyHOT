@@ -94,6 +94,21 @@ export function readRelativeDate(value: string | null | undefined, now: Date, ut
   return day ? atOffset(day.slice(0, 4), day.slice(5, 7), day.slice(8, 10), 0, 0, 0, utcOffset) : null;
 }
 
+/**
+ * What a publishedAtRegex found. One capture group is the date as the page prints it. Three groups are its
+ * year, month and day, for a date a path writes without separators (jkb.com.cn: /industryNews/2026/1029/515042.html):
+ * the day, at midnight in the source's offset. A day that does not exist (February 30, month 13) is no date.
+ */
+function regexDate(m: RegExpExecArray | null, utcOffset?: string): Date | null {
+  if (!m) return null;
+  if (m.length === 4 && m.slice(1).every((g) => /^\d+$/.test(g ?? ""))) {
+    const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+    if (m[1]!.length !== 4 || mo < 1 || mo > 12 || d < 1 || d > new Date(Date.UTC(y, mo, 0)).getUTCDate()) return null;
+    return atOffset(y, mo, d, 0, 0, 0, utcOffset ?? "+08:00");
+  }
+  return parseLooseDate(m[1], utcOffset);
+}
+
 /** A date rule names one element: its own datetime or title, else its text, else an age that text prints. */
 function elementDate(el: ReturnType<cheerio.CheerioAPI>, utcOffset?: string): Date | null {
   return parseLooseDate(el.attr("datetime") ?? el.attr("title") ?? el.text(), utcOffset) ?? readRelativeDate(el.text(), new Date(), utcOffset);
@@ -245,7 +260,7 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
     }
     if (!publishedAt && c.publishedAtRegex) {
       const m = new RegExp(c.publishedAtRegex).exec($.html(el));
-      publishedAt = parseLooseDate(m?.[1], c.publishedAtUtcOffset);
+      publishedAt = regexDate(m, c.publishedAtUtcOffset);
     }
     seen.add(url);
     out.push({ url, title, publishedAt });
@@ -427,7 +442,7 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
       const el = $(d.publishedAtSelector).first();
       publishedAt = elementDate(el, d.publishedAtUtcOffset);
     }
-    if (!publishedAt && d.publishedAtRegex) publishedAt = parseLooseDate(new RegExp(d.publishedAtRegex).exec(dateText)?.[1], d.publishedAtUtcOffset);
+    if (!publishedAt && d.publishedAtRegex) publishedAt = regexDate(new RegExp(d.publishedAtRegex).exec(dateText), d.publishedAtUtcOffset);
     // An authoritative rule is the only source of the date: when its byline is missing, no other
     // timestamp on the page (an update time, a related post) stands in for it.
     const authoritative = d.publishedAtAuthoritative === true && !!(d.publishedAtSelector || d.publishedAtRegex);

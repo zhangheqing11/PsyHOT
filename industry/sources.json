@@ -608,6 +608,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://acamh.onlinelibrary.wiley.com/feed/14697610/most-recent",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -634,6 +635,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://rss.sciencedirect.com/publication/science/00063223",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -731,6 +733,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://onlinelibrary.wiley.com/feed/10991379/most-recent",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -779,6 +782,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://www.tandfonline.com/feed/rss/rhpr20",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1165,6 +1169,10 @@
     "itemSelector": "div.noselectrow",
     "linkSelector": "a.txt_biaoti",
     "titleSelector": "a.txt_biaoti",
+    "detail": {
+     "maxFetches": 20,
+     "publishedAtRegex": "citation_online_date\"\\s+content=\"(\\d{4}-\\d{2}-\\d{2})\""
+    },
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1246,6 +1254,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://bpspsychub.onlinelibrary.wiley.com/feed/20448279/most-recent",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1319,6 +1328,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://www.tandfonline.com/feed/rss/hedp20",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1393,6 +1403,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://www.tandfonline.com/feed/rss/gpcl20",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1441,6 +1452,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://www.tandfonline.com/feed/rss/tpsr20",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1513,6 +1525,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://www.tandfonline.com/feed/rss/rpos20",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -2022,11 +2035,14 @@
     "itemSelector": "div.news li",
     "linkSelector": "a",
     "titleSelector": "a",
+    "publishedAtRegex": "/(\\d{4})/(\\d{2})(\\d{2})/\\d+\\.html",
     "denyUrlPrefixes": [
-     "http://www.jkb.com.cn/news/character/"
+     "http://www.jkb.com.cn/news/character/",
+     "http://www.jkb.com.cn/character/"
     ],
     "detail": {
      "maxFetches": 12,
+     "upgradeDatePrecision": true,
      "publishedAtRegex": "\"crtime\":\"([^\"]+)\"",
      "titleRegex": "\"title\":\"([^\"]+)\"",
      "titleAuthoritative": true,
@@ -2419,6 +2435,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://openai.com/news/rss.xml",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }

@@ -29,6 +29,35 @@ test("a date that carries its zone keeps it", () => {
   assert.equal(iso("Sat, 26 Sep 2026 10:00:00 +0200", "-07:00"), "2026-09-26T08:00:00.000Z");
 });
 
+test("the formats pages print keep their reading", () => {
+  // The fallback reads these through Date.parse; they are pinned here so tightening it cannot lose one.
+  assert.equal(iso("2026年10月23日14:30:05"), "2026-10-23T06:30:05.000Z");
+  assert.equal(iso("发布时间：2026-10-23 来源：x"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("Oct. 23, 2026"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("23 October 2026"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("Oct 23rd, 2026"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("Thursday, October 23, 2026"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("Oct 23, 2026 10:30 PM"), "2026-10-23T14:30:00.000Z");
+  assert.equal(iso("10/23/2026"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("23 Oct 26"), "2026-10-22T16:00:00.000Z");
+  assert.equal(iso("Oct 2026"), "2026-09-30T16:00:00.000Z");
+  assert.equal(iso("Thu, 23 Oct 2026 10:00:00 +0200"), "2026-10-23T08:00:00.000Z");
+  assert.equal(iso("2026-10-23T14:30:00.123-0700"), "2026-10-23T21:30:00.123Z");
+  assert.equal(iso("Thu Oct 23 2026 10:00:00 GMT+0800 (China Standard Time)"), "2026-10-23T02:00:00.000Z");
+});
+
+test("a month and day without a year is no date, however Date.parse would fill it in", () => {
+  // V8 reads these as the year 2001 (or a made-up month for a bare number).
+  for (const v of ["10-23", "10/23", "1/2", "Oct 23", "October 23", "23 Oct", "Sept 2", "10-23 14:30", "10-23 10:00 +0800", "10-23 10:00Z", "Oct 23 10:00 GMT", "Oct 23 10:00 GMT+0800"]) {
+    assert.equal(iso(v), null, v);
+  }
+  assert.equal(iso("10-23", "-07:00"), null);
+});
+
+test("text that only looks like a number or a word to Date.parse is no date", () => {
+  for (const v of ["Page 3", "12", "5", "99", "2026", "第3页", "Q3", "v2.3", "10:30", "N/A"]) assert.equal(iso(v), null, v);
+});
+
 test("no date at all is null", () => {
   assert.equal(iso(""), null);
   assert.equal(iso("yesterday"), null);
@@ -97,4 +126,5 @@ test("a list's date element is read as a date, else as an age", () => {
   assert.ok(hoursAgo >= before - 20 * 3600e3 - 1000 && hoursAgo <= Date.now() - 20 * 3600e3, "20小时前 is 20 hours before the page was read");
   assert.equal(read("两天前开业的店"), null);
   assert.equal(read("17:05"), null);
+  assert.equal(read("10-23"), null, "a month and day is not read as 2001");
 });

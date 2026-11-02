@@ -3,6 +3,7 @@
 // changed, update the USD/CNY rate used for prices and fill in the official prices of models that have
 // none yet, then run the method round, which publishes only when the evidence changed.
 import { sql } from "../../db.ts";
+import { describeError } from "../../lib/error-text.ts";
 import { guardedFetch } from "../../lib/http-fetch.ts";
 import { runLeaderboardRound, type RoundResult } from "../method/run.ts";
 import { importOfficialPrices } from "../prices.ts";
@@ -46,7 +47,7 @@ export async function fetchSources(opts: { keys?: string[]; force?: boolean } = 
     for (const [i, outcome] of fetched.entries()) {
       const f = batch[i]!;
       if (outcome.status === "rejected") {
-        for (const k of f.sourceKeys) fail(k, (outcome.reason as Error).message);
+        for (const k of f.sourceKeys) fail(k, describeError(outcome.reason, 300));
         continue;
       }
       const results = outcome.value;
@@ -60,7 +61,7 @@ export async function fetchSources(opts: { keys?: string[]; force?: boolean } = 
           const at = new Date().toISOString();
           states[r.sourceKey] = { ok: true, at, lastOkAt: at, changed: s.changed, rows: s.rows, newModels: s.newModels };
         } catch (e) {
-          fail(r.sourceKey, (e as Error).message);
+          fail(r.sourceKey, describeError(e, 300));
         }
       }
     }
@@ -84,8 +85,8 @@ export async function refreshFx(): Promise<{ asOf: string; rate: number }> {
 
 export async function refreshLeaderboard(): Promise<{ sources: { ok: number; changed: string[]; failed: Array<{ key: string; error?: string }> }; fx: unknown; prices: unknown; round: Pick<RoundResult, "status" | "runId" | "reason"> }> {
   const states = await fetchSources();
-  const fx = await refreshFx().catch((e: Error) => ({ error: e.message }));
-  const prices = await importOfficialPrices().catch((e: Error) => ({ error: e.message }));
+  const fx = await refreshFx().catch((e: unknown) => ({ error: describeError(e, 300) }));
+  const prices = await importOfficialPrices().catch((e: unknown) => ({ error: describeError(e, 300) }));
   const round = await runLeaderboardRound();
   const entries = Object.entries(states);
   return {

@@ -11,6 +11,7 @@ import { isHistorical } from "../content/materials.ts";
 import { publishArticle } from "../publication/publish.ts";
 import { BudgetExceededError, ProviderRejectedError, ReceiptBusyError, ReceiptUnknownError } from "../providers/receipts.ts";
 import { ModelOutputError } from "../providers/llm.ts";
+import { describeError } from "../lib/error-text.ts";
 import { ensureQueue, enqueue, QUEUES, runBudgetAware, shutdownSignal } from "./queue.ts";
 
 /** Minutes to wait after the n-th failed attempt; one more failure after the last ends in "failed". */
@@ -134,7 +135,7 @@ async function afterFailure(articleId: string, error: unknown): Promise<{ state:
   // Let pg-boss retry this job after restart, reusing settled receipts. A deploy is not an article
   // failure and must neither consume processing_attempts nor turn an incomplete chain terminal.
   if (error instanceof AnalysisInterruptedError || shutdownSignal.signal.aborted) throw error;
-  const message = String(error instanceof Error ? error.message : error).slice(0, 500);
+  const message = describeError(error, 500);
   if (error instanceof ReceiptBusyError || error instanceof BudgetExceededError) {
     // Not the article's fault: the same request is in flight, or the budget window is full.
     const seconds = error instanceof BudgetExceededError ? error.retryAfterSeconds : 60;
@@ -193,7 +194,7 @@ export async function registerExtractionJobs(boss: PgBoss) {
       await queueProcessing(articleId, { step: "analyze" });
       return { state };
     } catch (error) {
-      const message = String(error instanceof Error ? error.message : error).slice(0, 500);
+      const message = describeError(error, 500);
       const [a] = await sql<{ processing_attempts: number }[]>`
         UPDATE articles SET processing_attempts = processing_attempts + 1, processing_error = ${`extract: ${message}`},
           processing_queued_at = NULL, processing_retry_at = now() + interval '10 minutes'

@@ -88,14 +88,27 @@ interface ReceiptRow {
   updated_at: Date;
 }
 
+/**
+ * What a provider's refusal says when its balance or plan is spent: HTTP 402, and the 429s that are
+ * billing rather than rate limits (DashScope: CommodityNotPurchased, a bill overdue, the free quota or a
+ * plan used up). A TPM/RPM throttle ("Too many requests. Your current concurrency is N", DashScope's
+ * Throttling) and a 401/403 (a key or one private resource) are not in it: they can pass, or are about
+ * one request. Postgres regular expression, matched case-insensitively against receipt_attempts.error;
+ * the provider-refused alert (operations/alerts.ts) matches it too, so a paused provider is always reported.
+ */
+export const BALANCE_REFUSAL = "(HTTP 402\\M|quota_exhausted|insufficient|balance|arrear|欠费|余额|"
+  + "CommodityNotPurchased|PrepaidBillOverdue|PostpaidBillOverdue|BudgetLimitExceeded|GoUsageLimitError|FreeUsageLimitError|"
+  + "Free allocated quota exceeded)";
+
 async function checkBudget(tx: Db, service: string, pool?: string): Promise<void> {
-  // A provider that refused us for its balance three times within the hour (the alert's threshold,
-  // operations/alerts.ts) is not asked again before the hour is over: the refusals cost nothing but
-  // would mark every source failing. Recharging resumes collection on its own.
+  // A provider that refused us for its balance three times within the hour is not asked again before the
+  // hour is over: the refusals cost nothing but would mark every source failing. Only the threshold is the
+  // alert's (3 within the hour, operations/alerts.ts provider.refused.*); the wording is not: the alert also
+  // counts a 401/403 and "good standing", which never pause anything. Recharging resumes collection on its own.
   const [refused] = await tx<{ n: number }[]>`
     SELECT count(*)::int AS n FROM receipt_attempts
     WHERE service = ${service} AND status = 'failed' AND started_at > now() - interval '1 hour'
-      AND error ~* '(HTTP 402\\M|quota_exhausted|insufficient|balance|arrear|欠费|余额)'`;
+      AND error ~* ${BALANCE_REFUSAL}`;
   if (refused!.n >= 3) throw new BudgetExceededError(service, "balance", 3600);
   await checkWindow(tx, service, "service");
   if (pool) await checkWindow(tx, pool, "pool");

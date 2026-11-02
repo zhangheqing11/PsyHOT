@@ -79,6 +79,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=pssa&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -103,6 +104,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=ppsa&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -127,6 +129,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=cdpa&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -151,6 +154,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=psia&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -340,6 +344,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=cpxa&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -510,6 +515,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=psra&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -560,6 +566,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=jcca&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -803,6 +810,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=ampa&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1417,6 +1425,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=cjba&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1537,6 +1546,7 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://journals.sagepub.com/action/showFeed?ui=0&mi=ehikzz&ai=2b4&jc=auta&type=etoc&feed=rss",
+    "sortByPublishedAt": true,
     "_aihot": {
      "initialBackfillLimit": 5
     }

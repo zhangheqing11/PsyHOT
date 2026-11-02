@@ -1200,6 +1200,34 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "web-xinlixuebao-asap",
+   "name": "心理学报 · 网络首发",
+   "kind": "web_list",
+   "config": {
+    "url": "https://journal.psych.ac.cn/xlxb/CN/article/showAsap.do",
+    "itemSelector": "div.noselectrow",
+    "linkSelector": "a.txt_biaoti",
+    "titleSelector": "a.txt_biaoti",
+    "publishedAtRegex": "网络发表日期：\\s*(\\d{4}-\\d{2}-\\d{2})",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "domestic",
+   "interval_minutes": 360,
+   "tags": [
+    "期刊",
+    "中文"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "web-xinlikexuejinzhan",
    "name": "心理科学进展",
    "kind": "web_list",
@@ -2462,7 +2490,8 @@
     "AI"
    ],
    "site_fulltext": false,
-   "syndicate_fulltext": false
+   "syndicate_fulltext": false,
+   "enabled": false
   },
   {
    "id": "web-anthropic-news",

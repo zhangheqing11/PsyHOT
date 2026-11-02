@@ -140,6 +140,18 @@ test("心理学报: a collection run dates what its detail pages date, and leave
   assert.equal(got[0]!.backfill, true);
 });
 
+test("心理学报 online first: the list prints the day each article went online, at the same address the issue later lists", () => {
+  // The issue lists an article 5–8 weeks after it went online; the online-first list is where it is new.
+  const s = seed("web-xinlixuebao-asap");
+  const rows = fromHtml(fixture("xlxb-asap-rows.html"), s.config.url, { id: s.id, config: s.config } as never);
+  assert.deepEqual(rows.map((r) => [r.url, r.publishedAt?.toISOString() ?? null]), [
+    ["https://journal.psych.ac.cn/xlxb/CN/10.3724/SP.J.1041.2026.089", "2026-11-02T00:00:00.000Z"],
+    ["https://journal.psych.ac.cn/xlxb/CN/10.3724/SP.J.1041.2026.090", "2026-10-29T00:00:00.000Z"],
+    ["https://journal.psych.ac.cn/xlxb/CN/10.3724/SP.J.1041.2026.105", "2026-10-23T00:00:00.000Z"],
+  ]);
+  assert.equal(rows[0]!.title, "错误记忆影响决策偏好的双重意识机制");
+});
+
 // ---- 健康报 ----
 
 test("健康报: the list gives each article's day from its address, even where the page cannot be read", () => {

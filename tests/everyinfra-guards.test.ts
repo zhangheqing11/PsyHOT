@@ -38,6 +38,43 @@ test("after three balance refusals within the hour the provider is not asked aga
   assert.equal(sent, 3);
 });
 
+/** Three refusals with this text within the hour, then a fourth request: stopped before sending, or sent. */
+async function pausedAfter(label: string, status: number, text: string): Promise<boolean> {
+  const service = `svc-${label}-${T}`;
+  let sent = 0;
+  const refuse = async (): Promise<never> => {
+    sent += 1;
+    throw new ProviderRejectedError(text, status, status === 429);
+  };
+  for (let n = 1; n <= 3; n++) await assert.rejects(paidRequest(request(service, undefined, n), refuse), ProviderRejectedError);
+  await assert.rejects(paidRequest(request(service, undefined, 4), refuse), (e: unknown) => e instanceof ProviderRejectedError || e instanceof BudgetExceededError);
+  return sent === 3;
+}
+
+test("DashScope's billing refusals pause the provider like a 402 does", async () => {
+  const refusals = [
+    'HTTP 429: {"error":{"code":"CommodityNotPurchased","message":"Access denied, please make sure your account is in good standing."}}',
+    'HTTP 429: {"code":"GoUsageLimitError","message":"You have reached the usage limit of your plan."}',
+    'HTTP 429: {"error":{"code":"FreeUsageLimitError","message":"The free tier is used up."}}',
+    'HTTP 429: {"code":"PostpaidBillOverdue","message":"Your postpaid bill is overdue."}',
+    'HTTP 429: {"code":"Throttling.AllocationQuota","message":"Free allocated quota exceeded."}',
+    'HTTP 429: {"error":{"message":"Free allocated quota exceeded.","type":"Throttling"}}',
+  ];
+  for (const [i, text] of refusals.entries()) assert.equal(await pausedAfter(`billing${i}`, 429, text), true, text);
+});
+
+test("a rate limit or a refused key does not pause the provider", async () => {
+  const passing = [
+    ["429", 429, 'HTTP 429: {"error":{"message":"Too many requests. Your current concurrency is 12","type":"rate_limit_error"}}'],
+    ["throttle", 429, 'HTTP 429: {"code":"Throttling","message":"Requests rate limit exceeded, please try again later."}'],
+    ["allocation", 429, 'HTTP 429: {"code":"Throttling.AllocationQuota","message":"Allocated quota exceeded, please increase your quota limit."}'],
+    ["tpm", 429, 'HTTP 429: {"code":"Throttling.RateQuota","message":"Request rate increased too quickly."}'],
+    ["401", 401, 'HTTP 401: {"error":{"code":"invalid_api_key","message":"Incorrect API key provided."}}'],
+    ["403", 403, 'HTTP 403: {"error":{"message":"Access denied for this resource."}}'],
+  ] as const;
+  for (const [label, status, text] of passing) assert.equal(await pausedAfter(label, status, text), false, text);
+});
+
 test("a paid listing cannot be polled faster than its floor, by the admin or by any SQL", async () => {
   assert.throws(() => assertPaidInterval("json_list", { adapter: "everyinfra_xhs" }, 60), /720/);
   assert.doesNotThrow(() => assertPaidInterval("json_list", { adapter: "everyinfra_xhs" }, 1440));

@@ -22,6 +22,14 @@ const server = http.createServer((req, res) => {
   if ((etag && req.headers['if-none-match'] === etag) || (!etag && req.headers['if-modified-since'] === modified)) {
     res.writeHead(304, { ...(etag ? { etag } : {}), 'last-modified': modified }); res.end(); return;
   }
+  if (path.startsWith('/sections-')) {
+    // A journal feed in issue-section order (as SAGE's): 65 older articles, then the 5 newest at the end.
+    const items = Array.from({ length: 70 }, (_, i) =>
+      `<item><title>Section entry ${i} ${T}</title><link>https://example.org/rss-sections-${T}${path.replace('.xml', '')}/${i}</link><pubDate>${new Date(Date.now() - (i < 65 ? 30 + i : i - 65) * 86400_000).toUTCString()}</pubDate></item>`).join('');
+    res.writeHead(200, { 'content-type': 'application/rss+xml' });
+    res.end(`<rss version="2.0"><channel><title>Feed</title>${items}</channel></rss>`);
+    return;
+  }
   const entries = Array.from({ length: path === '/feed.xml' ? 40 : 1 }, (_, i) =>
     `<item><title>Entry ${i} ${path === '/feed.xml' && i === 0 ? version : path} ${T}</title><link>https://example.org/rss-conditional-${T}/${path.replaceAll('/', '')}/${i}</link><pubDate>${new Date(Date.now() - 1000 * i).toUTCString()}</pubDate></item>`).join('');
   res.writeHead(200, { 'content-type': 'application/rss+xml', ...(etag ? { etag } : {}), 'last-modified': modified });
@@ -31,9 +39,9 @@ await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 config.allowPrivateNetworkFetch = true;
 after(async () => { await new Promise<void>(resolve => server.close(() => resolve())); await stopBoss(); await closeDb(); });
-async function source(id: string, path: string, initialized = true) {
+async function source(id: string, path: string, initialized = true, extra: Record<string, unknown> = {}) {
   await sql`INSERT INTO sources (id,name,kind,config,tier,participation_mode,cursor,next_fetch_at)
-    VALUES (${id},'RSS conditional test','rss',${sql.json({ feedUrl: base + path })},'T1','editorial',${initialized ? sql.json({ initializedAt: new Date().toISOString() }) : null},'2100-01-01')`;
+    VALUES (${id},'RSS conditional test','rss',${sql.json({ feedUrl: base + path, ...extra })},'T1','editorial',${initialized ? sql.json({ initializedAt: new Date().toISOString() }) : null},'2100-01-01')`;
 }
 const cursor = async (id: string) => (await sql`SELECT cursor FROM sources WHERE id=${id}`)[0]!.cursor;
 
@@ -83,4 +91,20 @@ test('Last-Modified works without ETag and changing redirect targets cannot acce
   assert.equal((await collectSource(redirect)).created, 1, 'new destination is fetched without old destination validators');
   assert.equal(requests.at(-1)!.path, '/new.xml');
   assert.equal(requests.at(-1)!.etag, undefined);
+});
+
+test('a feed in section order past the per-run cap keeps its newest items when sorted by date', async () => {
+  const stored = async (id: string) => (await sql<{ url: string }[]>`SELECT url FROM articles WHERE source_id=${id}`).map((r) => Number(r.url.split('/').at(-1)));
+  const newest = [65, 66, 67, 68, 69];
+  const plain = `rss-sections-plain-${T}`;
+  await source(plain, '/sections-plain.xml');
+  assert.equal((await collectSource(plain)).created, 60);
+  const capped = await stored(plain);
+  assert.deepEqual(newest.filter((i) => capped.includes(i)), [], 'unsorted, the 60-item cap drops the tail');
+  const sorted = `rss-sections-sorted-${T}`;
+  await source(sorted, '/sections-sorted.xml', true, { sortByPublishedAt: true });
+  assert.equal((await collectSource(sorted)).created, 60);
+  const got = await stored(sorted);
+  assert.deepEqual(newest.filter((i) => got.includes(i)), newest, 'sorted, the newest five are stored');
+  assert.deepEqual([60, 61, 62, 63, 64].filter((i) => got.includes(i)), [], 'the oldest five give way');
 });

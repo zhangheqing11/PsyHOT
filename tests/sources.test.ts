@@ -303,4 +303,8 @@ test("industry/sources.json: every seed source passes its config check and the t
   const t15 = ["wechat-mindseek", "wechat-psybrain-frontier", "wechat-psychiatry-new-views", "wechat-psynote"];
   assert.deepEqual(Object.fromEntries(t15.map((id) => [id, sources.find((s) => s.id === id)?.tier])),
     Object.fromEntries(t15.map((id) => [id, "T1_5"])), "the reviewed research-interpretation sources stay at T1.5");
+  // SAGE feeds list issue sections, not dates, and can exceed the 60 items a run stores (73 on 2026-11-03).
+  const sage = sources.filter((s) => String(s.config.feedUrl ?? "").startsWith("https://journals.sagepub.com/"));
+  assert.ok(sage.length > 0);
+  for (const s of sage) assert.equal(s.config.sortByPublishedAt, true, `${s.id}: a SAGE feed is read newest first`);
 });

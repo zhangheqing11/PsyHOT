@@ -93,9 +93,10 @@ interface ReceiptRow {
  * billing rather than rate limits (DashScope: CommodityNotPurchased, a bill overdue, the free quota or a
  * plan used up). A TPM/RPM throttle ("Too many requests. Your current concurrency is N", DashScope's
  * Throttling) and a 401/403 (a key or one private resource) are not in it: they can pass, or are about
- * one request. Postgres regular expression, matched case-insensitively against receipt_attempts.error.
+ * one request. Postgres regular expression, matched case-insensitively against receipt_attempts.error;
+ * the provider-refused alert (operations/alerts.ts) matches it too, so a paused provider is always reported.
  */
-const BALANCE_REFUSAL = "(HTTP 402\\M|quota_exhausted|insufficient|balance|arrear|欠费|余额|"
+export const BALANCE_REFUSAL = "(HTTP 402\\M|quota_exhausted|insufficient|balance|arrear|欠费|余额|"
   + "CommodityNotPurchased|PrepaidBillOverdue|PostpaidBillOverdue|BudgetLimitExceeded|GoUsageLimitError|FreeUsageLimitError|"
   + "Free allocated quota exceeded)";
 

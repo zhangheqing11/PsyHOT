@@ -7,6 +7,7 @@
 import { beijingDate, beijingTime } from "@aihot/contracts/time";
 import { sql } from "../db.ts";
 import { beijingDay, beijingStamp, duration, formatAlert, formatRecovery, sendAlert, type Finding, type Level } from "../notify/feishu.ts";
+import { BALANCE_REFUSAL } from "../providers/receipts.ts";
 import { backupConfigured } from "./backup.ts";
 
 const REPEAT_MS: Record<Exclude<Level, "digest">, number> = { now: 3600_000, today: 24 * 3600_000 };
@@ -257,7 +258,7 @@ async function providerFindings(): Promise<Finding[]> {
   const refused = await sql<{ service: string; n: number; last: string }[]>`
     SELECT service, count(*)::int AS n, (array_agg(left(error, 200) ORDER BY started_at DESC))[1] AS last FROM receipt_attempts
     WHERE status = 'failed' AND started_at > now() - interval '1 hour'
-      AND error ~* '(HTTP 40[123]\\M|insufficient|balance|arrear|good standing|欠费|余额)'
+      AND (error ~* '(HTTP 40[123]\\M|good standing)' OR error ~* ${BALANCE_REFUSAL})
     GROUP BY 1 HAVING count(*) >= 3`;
   for (const p of refused) {
     out.push({

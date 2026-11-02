@@ -9,6 +9,7 @@ import { stripTags } from "../lib/text.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { sha256 } from "../lib/ids.ts";
+import { describeError } from "../lib/error-text.ts";
 import { everyInfraMpArticle, everyInfraMpHistory, type EveryInfraMpPost } from "../providers/everyinfra.ts";
 import { BudgetExceededError, ProviderRejectedError } from "../providers/receipts.ts";
 import { noiseFilterReason } from "./collect.ts";
@@ -89,7 +90,7 @@ async function fetchBody(url: string, sourceId: string, identity: string) {
   } catch (error) {
     if (error instanceof BudgetExceededError) throw error;
     const final = error instanceof ProviderRejectedError && !error.retryable;
-    return { body: null, passing: final ? null : String(error instanceof Error ? error.message : error).slice(0, 200) };
+    return { body: null, passing: final ? null : describeError(error, 200) };
   }
 }
 
@@ -227,7 +228,7 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
   } catch (error) {
     const message = (error instanceof BudgetExceededError && Array.isArray(cursor.pending) && cursor.pending.length
       ? `正文因额度暂停，${cursor.pending.length} 篇待续：${error.message}`
-      : String(error instanceof Error ? error.message : error)).slice(0, 500);
+      : describeError(error)).slice(0, 500);
     const soft = error instanceof BudgetExceededError || (error instanceof ProviderRejectedError && error.retryable);
     await sql`
       UPDATE sources SET last_fetch_at = now(), last_error = ${message},

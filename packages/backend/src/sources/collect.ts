@@ -9,6 +9,7 @@ import { fetchRss } from "./rss.ts";
 import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
 import { fetchJsonListWithDiagnostics } from "./json-list.ts";
+import { describeError } from "../lib/error-text.ts";
 import { everyInfraXhsNote } from "../providers/everyinfra.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
@@ -260,7 +261,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
                 detail = ${detail ? sql.json(detail as never) : null} WHERE id = ${run!.id}`;
     return { sourceId, status: "ok", found, created, revised };
   } catch (error) {
-    const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
+    const message = describeError(error, 1000);
     const budget = error instanceof BudgetExceededError;
     await sql`
       UPDATE sources SET last_fetch_at = now(),
@@ -327,7 +328,7 @@ export async function collectXShard(key: string, sourceIds: string[]): Promise<{
   try {
     read = await readXSearch(shardQuery(members.map((m) => shardHandle(m)!)), { lastId: String(since), backlog, subject: `x-shard:${key}` });
   } catch (error) {
-    const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
+    const message = describeError(error, 1000);
     const budget = error instanceof BudgetExceededError;
     for (const m of members) {
       await sql`

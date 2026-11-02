@@ -14,6 +14,7 @@ import { thinText } from "../editorial/writing.ts";
 import { queueProcessing } from "../jobs/content.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { doiFromUrl } from "../lib/url.ts";
+import { describeError } from "../lib/error-text.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { contentHash } from "./materials.ts";
 import { pageFetchable } from "./extract.ts";
@@ -141,7 +142,7 @@ export async function findAbstract(a: { title: string; url: string }, opts: { jo
     try {
       doi = await doiForPii(pii);
     } catch (error) {
-      errors.push(`crossref pii: ${(error as Error).message}`);
+      errors.push(`crossref pii: ${describeError(error, 160)}`);
     }
   }
   // The DOI endpoint can already have an abstract while the provider's title index still lags.
@@ -156,7 +157,7 @@ export async function findAbstract(a: { title: string; url: string }, opts: { jo
       crossrefWork = dois.size <= 1 ? best[0] ?? null : null;
       doi = doiFromUrl(crossrefWork?.DOI ?? "");
     } catch (error) {
-      errors.push(`crossref title: ${(error as Error).message}`);
+      errors.push(`crossref title: ${describeError(error, 160)}`);
       crossrefWork = null;
     }
   }
@@ -168,7 +169,7 @@ export async function findAbstract(a: { title: string; url: string }, opts: { jo
         : await lookup(doi, a.title, opts.journal ? cleanJournalAbstract : cleanAbstract);
       if (text) return { found: { provider, doi, text }, errors };
     } catch (error) {
-      errors.push(`${provider}: ${(error as Error).message}`);
+      errors.push(`${provider}: ${describeError(error, 160)}`);
     }
   }
   return { found: null, errors };
@@ -241,7 +242,7 @@ async function recoverAbstract(row: RecoveryRow): Promise<RecoveryResult> {
         unavailable = journalAbstractUnavailable(html);
       } else if (res.status !== 200) errors.push(`publisher: HTTP ${res.status}`);
     } catch (error) {
-      errors.push(`publisher: ${(error as Error).message}`);
+      errors.push(`publisher: ${describeError(error, 160)}`);
     }
   }
   const result = await findAbstract(row, { journal: row.journal });

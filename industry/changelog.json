@@ -1,6 +1,15 @@
 {
-  "latestVersion": "2026-11-03T04:31",
+  "latestVersion": "2026-11-03T17:30",
   "releases": [
+    {
+      "date": "2026-11-03",
+      "time": "17:30",
+      "kind": "更新",
+      "title": "新增心理健康与数字医学期刊，收录 arXiv 相关论文",
+      "body": [
+        "新增 JMIR Mental Health、npj Mental Health Research 等心理健康与数字医学期刊，并开始收录 arXiv 上与心理学相关的人机交互、计算语言学和人工智能论文。"
+      ]
+    },
     {
       "date": "2026-11-03",
       "time": "04:31",

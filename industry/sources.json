@@ -868,6 +868,458 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "json-jmir-mental-health",
+   "name": "JMIR Mental Health",
+   "kind": "json_list",
+   "config": {
+    "url": "https://api.crossref.org/journals/2368-7959/works?sort=created&order=desc&rows=25&select=title,DOI,URL,created,abstract",
+    "itemsPath": "message.items",
+    "titlePaths": [
+     "title.0"
+    ],
+    "summaryPaths": [
+     "abstract"
+    ],
+    "publishedAtPath": "created.date-time",
+    "urlTemplate": "https://doi.org/{raw:DOI}",
+    "externalIdPath": "DOI",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "心理健康",
+    "数字医学"
+   ]
+  },
+  {
+   "id": "rss-npj-mental-health-research",
+   "name": "npj Mental Health Research",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/npjmentalhealth.rss",
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "心理健康"
+   ]
+  },
+  {
+   "id": "rss-npj-digital-medicine",
+   "name": "npj Digital Medicine",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://www.nature.com/npjdigitalmed.rss",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "mental health",
+      "mental disorder",
+      "psychiatr",
+      "psycholog",
+      "psychotherap",
+      "depress",
+      "anxiety",
+      "suicid",
+      "self-harm",
+      "schizophren",
+      "bipolar",
+      "psychosis",
+      "autis",
+      "adhd",
+      "dementia",
+      "cognitive impairment",
+      "loneliness",
+      "wellbeing",
+      "well-being",
+      "trauma",
+      "ptsd",
+      "substance use",
+      "addiction",
+      "eating disorder",
+      "insomnia",
+      "counsel",
+      "therapist",
+      "chatbot",
+      "companion",
+      "behavioral health",
+      "behavioural health"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "数字医学"
+   ]
+  },
+  {
+   "id": "json-jmir-ai",
+   "name": "JMIR AI",
+   "kind": "json_list",
+   "config": {
+    "url": "https://api.crossref.org/journals/2817-1705/works?sort=created&order=desc&rows=25&select=title,DOI,URL,created,abstract",
+    "itemsPath": "message.items",
+    "titlePaths": [
+     "title.0"
+    ],
+    "summaryPaths": [
+     "abstract"
+    ],
+    "publishedAtPath": "created.date-time",
+    "urlTemplate": "https://doi.org/{raw:DOI}",
+    "externalIdPath": "DOI",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "mental health",
+      "mental disorder",
+      "psychiatr",
+      "psycholog",
+      "psychotherap",
+      "depress",
+      "anxiety",
+      "suicid",
+      "self-harm",
+      "schizophren",
+      "bipolar",
+      "psychosis",
+      "autis",
+      "adhd",
+      "dementia",
+      "cognitive impairment",
+      "loneliness",
+      "wellbeing",
+      "well-being",
+      "trauma",
+      "ptsd",
+      "substance use",
+      "addiction",
+      "eating disorder",
+      "insomnia",
+      "counsel",
+      "therapist",
+      "chatbot",
+      "companion",
+      "behavioral health",
+      "behavioural health"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    }
+   },
+   "tier": "T1",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 180,
+   "tags": [
+    "期刊",
+    "人工智能",
+    "数字医学"
+   ]
+  },
+  {
+   "id": "rss-arxiv-cs-hc",
+   "name": "arXiv · 人机交互（cs.HC）",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.arxiv.org/rss/cs.HC",
+    "ingestNoiseFilter": {
+     "dropMarkers": [
+      "announce type: replace",
+      "announce type: cross"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "poolMinScore": 53
+   },
+   "tier": "T2",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 360,
+   "tags": [
+    "预印本",
+    "计算机"
+   ],
+   "signal_group_id": "arxiv"
+  },
+  {
+   "id": "rss-arxiv-cs-cy",
+   "name": "arXiv · 计算机与社会（cs.CY）",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.arxiv.org/rss/cs.CY",
+    "ingestNoiseFilter": {
+     "dropMarkers": [
+      "announce type: replace",
+      "announce type: cross"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "poolMinScore": 53
+   },
+   "tier": "T2",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 360,
+   "tags": [
+    "预印本",
+    "计算机"
+   ],
+   "signal_group_id": "arxiv"
+  },
+  {
+   "id": "rss-arxiv-cs-cl",
+   "name": "arXiv · 计算语言学（cs.CL）",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.arxiv.org/rss/cs.CL",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "psycholog",
+      "psychiatr",
+      "mental health",
+      "mental illness",
+      "mental-health",
+      "well-being",
+      "wellbeing",
+      "therap",
+      "counsel",
+      "depress",
+      "anxiety",
+      "suicid",
+      "self-harm",
+      "loneliness",
+      "emotion",
+      "empath",
+      "affective",
+      "personality",
+      "big five",
+      "theory of mind",
+      "cognitive science",
+      "cognitive bias",
+      "cognitive model",
+      "cognitive psycholog",
+      "human cognition",
+      "working memory",
+      "decision-making",
+      "decision making",
+      "moral",
+      "persuasion",
+      "attitude",
+      "belief",
+      "stress",
+      "trauma",
+      "ptsd",
+      "adhd",
+      "autis",
+      "schizo",
+      "bipolar",
+      "addict",
+      "substance use",
+      "clinical",
+      "patient",
+      "crisis",
+      "companion",
+      "attachment",
+      "parasocial",
+      "anthropomorph",
+      "child",
+      "adolescen",
+      "teen",
+      "student",
+      "learning outcome",
+      "human participants",
+      "human subjects",
+      "user study",
+      "participants",
+      "behavioral",
+      "behaviour",
+      "neuroscien",
+      "brain",
+      "fmri",
+      "eeg",
+      "perception",
+      "consciousness",
+      "global workspace"
+     ],
+     "dropMarkers": [
+      "announce type: replace",
+      "announce type: cross"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "poolMinScore": 53
+   },
+   "tier": "T2",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 360,
+   "tags": [
+    "预印本",
+    "计算机"
+   ],
+   "signal_group_id": "arxiv"
+  },
+  {
+   "id": "rss-arxiv-cs-ai",
+   "name": "arXiv · 人工智能（cs.AI）",
+   "kind": "rss",
+   "config": {
+    "feedUrl": "https://rss.arxiv.org/rss/cs.AI",
+    "ingestNoiseFilter": {
+     "requireMarkers": [
+      "psycholog",
+      "psychiatr",
+      "mental health",
+      "mental illness",
+      "mental-health",
+      "well-being",
+      "wellbeing",
+      "therap",
+      "counsel",
+      "depress",
+      "anxiety",
+      "suicid",
+      "self-harm",
+      "loneliness",
+      "emotion",
+      "empath",
+      "affective",
+      "personality",
+      "big five",
+      "theory of mind",
+      "cognitive science",
+      "cognitive bias",
+      "cognitive model",
+      "cognitive psycholog",
+      "human cognition",
+      "working memory",
+      "decision-making",
+      "decision making",
+      "moral",
+      "persuasion",
+      "attitude",
+      "belief",
+      "stress",
+      "trauma",
+      "ptsd",
+      "adhd",
+      "autis",
+      "schizo",
+      "bipolar",
+      "addict",
+      "substance use",
+      "clinical",
+      "patient",
+      "crisis",
+      "companion",
+      "attachment",
+      "parasocial",
+      "anthropomorph",
+      "child",
+      "adolescen",
+      "teen",
+      "student",
+      "learning outcome",
+      "human participants",
+      "human subjects",
+      "user study",
+      "participants",
+      "behavioral",
+      "behaviour",
+      "neuroscien",
+      "brain",
+      "fmri",
+      "eeg",
+      "perception",
+      "consciousness",
+      "global workspace"
+     ],
+     "dropMarkers": [
+      "announce type: replace",
+      "announce type: cross"
+     ]
+    },
+    "_aihot": {
+     "initialBackfillLimit": 5
+    },
+    "poolMinScore": 53
+   },
+   "tier": "T2",
+   "first_party": true,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "academic",
+   "region": "international",
+   "site_fulltext": false,
+   "syndicate_fulltext": false,
+   "interval_minutes": 360,
+   "tags": [
+    "预印本",
+    "计算机"
+   ],
+   "signal_group_id": "arxiv"
+  },
+  {
    "id": "rss-medrxiv-psychiatry",
    "name": "medRxiv 精神医学与临床心理",
    "kind": "rss",

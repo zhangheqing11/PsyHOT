@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rss xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <channel>
+    <title>cs.HC updates on arXiv.org</title>
+    <link>http://rss.arxiv.org/rss/cs.HC</link>
+    <description>cs.HC updates on the arXiv.org e-print archive.</description>
+    <atom:link href="http://rss.arxiv.org/rss/cs.HC" rel="self" type="application/rss+xml"/>
+    <docs>http://www.rssboard.org/rss-specification</docs>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 03 Nov 2026 08:49:56 +0000</lastBuildDate>
+    <managingEditor>rss-help@arxiv.org</managingEditor>
+    <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+    <skipDays>
+      <day>Saturday</day>
+      <day>Sunday</day>
+    </skipDays>
+    <item>
+      <title>Wide but Shallow: Coding Agents in Generative Art</title>
+      <link>https://arxiv.org/abs/2611.00001</link>
+      <description>arXiv:2611.00001v1 Announce Type: new 
+Abstract: This paper presents an autoethnographic study on the use of coding agents in code-based generative art. Over the course of the 31-day Genuary art challenge, the author examined and compared a manual approach with the use of coding agents in their practice. The growth in quality of coding agents enables their use to autonomously produce programming code. Generative art's bricolage quality of combining existing algorithms and a coding agent's ability to draw on extended training data leads to a difficulty collapse: nearly any well-known algorithm can be used directly. While this enables easier free-form experimentation and a wider variety of outputs, it comes at the cost of less depth. Overall, this points towards a slow progression in artists' roles from inventing algorithms to changing parameters of existing ones and a potential overall artistic surrender to the results from large-language models.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2611.00001v1</guid>
+      <category>cs.HC</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>new</arxiv:announce_type>
+      <dc:rights>http://creativecommons.org/licenses/by-nc-nd/4.0/</dc:rights>
+      <dc:creator>Dominikus Baur</dc:creator>
+    </item>
+    <item>
+      <title>Do Social Influence Pressures Move LLM Agents? Evidence from Delegated Audit Judgment</title>
+      <link>https://arxiv.org/abs/2611.00508</link>
+      <description>arXiv:2611.00508v1 Announce Type: cross 
+Abstract: Large language model (LLM) agents are rapidly being integrated into complex professional workflows such as auditing and entrusted with judgments under human review. Human auditors are known to yield to social influence pressures from superiors, peers and clients, and this paper asks whether LLM agents yield to the same pressures and, if so, how they respond. In an experiment on twelve model settings, an LLM agent acting as a senior associate in audit analytical review forms an estimate and is then challenged without new evidence by colleagues inside the firm, by a reviewer from another firm and by the client's CFO, with and without a career inducement. Experimental findings show that LLM agents yield to pressure from the engagement partner, from peers and from a reviewer from another firm, but in most settings not to pressure from the client's CFO. Under a career inducement the LLM agents revise their estimates less, not more, and they name the inducement as a threat to independence. Furthermore, some models revise only toward the more conservative estimate, while others revise in both directions. LLM agents thus do not respond to social influence pressures as human auditors do, and LLM-based decision support systems should be designed with the differences in mind.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2611.00508v1</guid>
+      <category>cs.CY</category>
+      <category>cs.AI</category>
+      <category>cs.HC</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>cross</arxiv:announce_type>
+      <dc:rights>http://arxiv.org/licenses/nonexclusive-distrib/1.0/</dc:rights>
+      <dc:creator>Richard Zhe Wang</dc:creator>
+    </item>
+    <item>
+      <title>Adoption of Generative AI in the Workplace: Increasing and Shifting the Balance of Productivity and Communication Activity</title>
+      <link>https://arxiv.org/abs/2608.15550</link>
+      <description>arXiv:2608.15550v2 Announce Type: replace 
+Abstract: Generative AI is transforming the workplace by augmenting and automating cognitive tasks, reshaping how organizations work and innovate while raising questions about workplace inequality and the future of work. Despite rapid adoption, empirical evidence on how these tools alter work practices and generate productivity gains remains limited. We examine how AI use affects the quantity and nature of information work using digital trace data from the Microsoft M365 application suite across multiple large international companies. Specifically, we study how generative AI adoption shifts the balance between communication and productivity-oriented activities, such as content creation in Word. Difference-in-Differences analyses show that AI adoption is associated with significant increases in both productivity (21.2%) and communication (7.1%) application actions among users who used the AI system more than 100 times over a 20-week post-adoption period. Among users with 100-500 AI use instances, higher AI usage is also associated with continued increases in both types of activity. The smaller increase in communication represents an overall shift toward individual, documentation-focused work and reflects mixed changes in communication, including decreases in reading and organizing email, compared with more uniform increases in productivity actions. These findings suggest potential efficiency gains and reductions in information overload, while highlighting the need to ensure that AI adoption does not weaken interpersonal communication and the diffusion of diverse information that supports innovation.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2608.15550v2</guid>
+      <category>cs.HC</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>replace</arxiv:announce_type>
+      <dc:rights>http://creativecommons.org/licenses/by-nc-nd/4.0/</dc:rights>
+      <dc:creator>Yulin Yu, Yan Chen, Rui Hu, Siddharth Suri, Scott Counts</dc:creator>
+    </item>
+    <item>
+      <title>LLMberjack: Guided Trimming of Debate Trees for Multi-Party Conversation Creation</title>
+      <link>https://arxiv.org/abs/2601.04135</link>
+      <description>arXiv:2601.04135v2 Announce Type: replace-cross 
+Abstract: Online debates on platforms like Reddit or Kialo are structured as reply trees: each message can receive several replies, which in turn can each receive several replies, producing a branching structure rather than a linear conversation. Turning one path (or a mix of paths) through such a tree into a natural, turn-by-turn conversation among multiple speakers (a process we call linearization) requires deciding which messages to keep, in what order, and who each message is addressed to. To this aim, we present LLMberjack, a platform for creating multi-party conversations starting from existing debates, originally structured as reply trees. The system offers an interactive interface that visualizes discussion trees and enables users to construct coherent linearized dialogue sequences while preserving participant identity and discourse relations. It integrates optional large language model (LLM) assistance to support automatic editing of the messages and speakers' descriptions. We provide preliminary evidence about the platform's utility by showing how tree visualization facilitates the creation of coherent, meaningful conversation threads and how LLM support enhances output quality while reducing human effort. The tool is open-source and designed to promote transparent and reproducible workflows to create multi-party conversations, addressing a lack of resources of this type.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2601.04135v2</guid>
+      <category>cs.CL</category>
+      <category>cs.HC</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>replace-cross</arxiv:announce_type>
+      <dc:rights>http://creativecommons.org/licenses/by/4.0/</dc:rights>
+      <dc:creator>Leonardo Bottona, Nicol\`o Penzo, Bruno Lepri, Marco Guerini, Sara Tonelli</dc:creator>
+    </item>
+  </channel>
+</rss>

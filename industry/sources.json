@@ -885,6 +885,9 @@
     "externalIdPath": "DOI",
     "_aihot": {
      "initialBackfillLimit": 5
+    },
+    "excludePatterns": {
+     "title.0": "^(Correction|Erratum|Authors[’'] Reply)\\b"
     }
    },
    "tier": "T1",
@@ -932,41 +935,6 @@
    "kind": "rss",
    "config": {
     "feedUrl": "https://www.nature.com/npjdigitalmed.rss",
-    "ingestNoiseFilter": {
-     "requireMarkers": [
-      "mental health",
-      "mental disorder",
-      "psychiatr",
-      "psycholog",
-      "psychotherap",
-      "depress",
-      "anxiety",
-      "suicid",
-      "self-harm",
-      "schizophren",
-      "bipolar",
-      "psychosis",
-      "autis",
-      "adhd",
-      "dementia",
-      "cognitive impairment",
-      "loneliness",
-      "wellbeing",
-      "well-being",
-      "trauma",
-      "ptsd",
-      "substance use",
-      "addiction",
-      "eating disorder",
-      "insomnia",
-      "counsel",
-      "therapist",
-      "chatbot",
-      "companion",
-      "behavioral health",
-      "behavioural health"
-     ]
-    },
     "_aihot": {
      "initialBackfillLimit": 5
     }
@@ -1038,6 +1006,9 @@
     },
     "_aihot": {
      "initialBackfillLimit": 5
+    },
+    "excludePatterns": {
+     "title.0": "^(Correction|Erratum|Authors[’'] Reply)\\b"
     }
    },
    "tier": "T1",
@@ -1153,12 +1124,9 @@
       "cognitive psycholog",
       "human cognition",
       "working memory",
-      "decision-making",
-      "decision making",
       "moral",
       "persuasion",
       "attitude",
-      "belief",
       "stress",
       "trauma",
       "ptsd",
@@ -1177,15 +1145,12 @@
       "anthropomorph",
       "child",
       "adolescen",
-      "teen",
-      "student",
       "learning outcome",
       "human participants",
       "human subjects",
       "user study",
       "participants",
       "behavioral",
-      "behaviour",
       "neuroscien",
       "brain",
       "fmri",
@@ -1253,12 +1218,9 @@
       "cognitive psycholog",
       "human cognition",
       "working memory",
-      "decision-making",
-      "decision making",
       "moral",
       "persuasion",
       "attitude",
-      "belief",
       "stress",
       "trauma",
       "ptsd",
@@ -1277,15 +1239,12 @@
       "anthropomorph",
       "child",
       "adolescen",
-      "teen",
-      "student",
       "learning outcome",
       "human participants",
       "human subjects",
       "user study",
       "participants",
       "behavioral",
-      "behaviour",
       "neuroscien",
       "brain",
       "fmri",

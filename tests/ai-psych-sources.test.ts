@@ -54,8 +54,13 @@ test("the eight sources are valid seed entries with the intended attributes", ()
   assert.equal(seed("rss-arxiv-cs-cy").config.ingestNoiseFilter.requireMarkers, undefined);
   assert.ok(seed("rss-arxiv-cs-cl").config.ingestNoiseFilter.requireMarkers.length > 50);
   assert.deepEqual(seed("rss-arxiv-cs-ai").config.ingestNoiseFilter.requireMarkers, seed("rss-arxiv-cs-cl").config.ingestNoiseFilter.requireMarkers);
-  const journalMarkers = seed("rss-npj-digital-medicine").config.ingestNoiseFilter.requireMarkers as string[];
-  assert.deepEqual(seed("json-jmir-ai").config.ingestNoiseFilter.requireMarkers, journalMarkers);
+  // Words that were often the only hit on unrelated papers are left out, so cs.AI stays under the 60-item run cap.
+  for (const word of ["student", "teen", "belief", "behaviour", "decision-making", "decision making"]) {
+    assert.ok(!seed("rss-arxiv-cs-ai").config.ingestNoiseFilter.requireMarkers.includes(word), word);
+  }
+  const journalMarkers = seed("json-jmir-ai").config.ingestNoiseFilter.requireMarkers as string[];
+  // The Nature feed carries no abstract, so a title-only gate would lose papers: npj Digital Medicine is left to the prefilter.
+  assert.equal(seed("rss-npj-digital-medicine").config.ingestNoiseFilter, undefined);
   assert.ok(journalMarkers.includes("psychiatr") && journalMarkers.includes("chatbot"));
   for (const word of ["stress", "emotional", "cognition"]) assert.ok(!journalMarkers.includes(word), `${word} is too common in medical AI`);
   // The two psychology journals take everything; JMIR Mental Health reads Crossref because its RSS is refused from the server.
@@ -87,13 +92,13 @@ test("arXiv feeds without a psychology gate keep every new paper and still drop 
   }
 });
 
-test("npj Digital Medicine keeps psychiatry titles and rejects other medical AI; npj Mental Health Research takes all", () => {
+test("the Nature journals take every paper: their feeds have no abstract for a gate to read", () => {
   const got = Object.fromEntries(feed("rss-npj-digital-medicine", "npj-digital-medicine.xml").map((c) => [c.title.slice(0, 25), noiseFilterReason(c, row("rss-npj-digital-medicine"))]));
   assert.deepEqual(got, {
     "Implementation strategies": null,
-    "Generation of synthetic c": "requireMarkers",
+    "Generation of synthetic c": null,
   });
-  // The Nature feed gives a title and a date, not an abstract, so the gate reads the title alone.
+  // The Nature feed gives a title and a date, not an abstract: the prefilter judges these once the abstract is filled in.
   assert.ok(feed("rss-npj-digital-medicine", "npj-digital-medicine.xml").every((c) => !c.excerpt));
   for (const c of feed("rss-npj-digital-medicine", "npj-digital-medicine.xml")) assert.equal(noiseFilterReason(c, row("rss-npj-mental-health-research")), null);
 });
@@ -111,4 +116,13 @@ test("JMIR AI (Crossref) keeps items naming a psychology marker and rejects the 
   // The Crossref abstract is stored as text, not JATS markup.
   assert.ok(items.every((c) => !c.excerpt || !/<\/?jats:/.test(c.excerpt)));
   assert.equal(items.filter((c) => noiseFilterReason(c, row("json-jmir-mental-health"))).length, 0);
+});
+
+test("JMIR: corrections, errata and author replies are not articles", () => {
+  const item = (title: string) => ({ title: [title], DOI: `10.2196/${title.length}`, URL: "", created: { "date-time": "2026-11-02T00:00:00Z" }, abstract: "<jats:p>Depression.</jats:p>" });
+  const titles = ["Correction: Chatbot Use for Emotional Support", "Authors’ Reply: Same Name, Moving Target", "Erratum to a depression trial", "Correctional mental health care with chatbots"];
+  for (const id of ["json-jmir-mental-health", "json-jmir-ai"]) {
+    const kept = parseJsonList({ message: { items: titles.map(item) } }, row(id)).map((c) => c.title);
+    assert.deepEqual(kept, ["Correctional mental health care with chatbots"], id);
+  }
 });

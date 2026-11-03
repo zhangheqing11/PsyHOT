@@ -2,7 +2,7 @@
 // manual overrides and grouping, then record selected-set changes in the sync ledger.
 // Rebuilding only re-reads stored results; it never calls a model.
 import { SITE } from "@aihot/industry/site";
-import { toPublicApiCategory } from "@aihot/contracts/taxonomy";
+import { CATEGORY_TRACK, industryRolesOn, isCategoryKey, isImpactKey, isRoleKey, toPublicApiCategory, type ImpactKey, type RoleKey } from "@aihot/contracts/taxonomy";
 import { config } from "../config.ts";
 import { one, sql, type Tx } from "../db.ts";
 import { sha256, stableJson } from "../lib/ids.ts";
@@ -42,6 +42,9 @@ interface AnalysisRow {
   score: number | null;
   selected: boolean | null;
   promotion: boolean | null;
+  /** The structure step's industry roles and impact, as stored in the analysis output. */
+  roles: unknown;
+  impact: unknown;
 }
 
 interface OverrideRow {
@@ -61,6 +64,8 @@ interface PublicationRow {
   reason: string | null;
   category: string | null;
   tags: string[];
+  roles: string[];
+  impact: string | null;
   score: number | null;
   promotion: boolean;
   body_mode: string;
@@ -87,6 +92,9 @@ export interface V1ItemPayload {
   selected: boolean;
   reason: string | null;
   attribution: { name: string; url: string };
+  /** Practitioner roles and main impact of an industry item; only present with FEATURES.industryRoles. */
+  roles?: RoleKey[];
+  impact?: ImpactKey | null;
 }
 
 export interface PublishOptions {
@@ -116,6 +124,7 @@ function round1(n: number | null): number | null {
 export function v1Payload(p: {
   articleId: string; title: string; originalTitle: string | null; summary: string | null; sourceName: string; url: string;
   publishedAt: Date | null; discoveredAt: Date; category: string | null; score: number | null; selected: boolean; reason: string | null;
+  roles?: string[]; impact?: string | null;
 }): V1ItemPayload {
   const aihot = itemUrl(p.articleId);
   return {
@@ -132,6 +141,7 @@ export function v1Payload(p: {
     selected: p.selected,
     reason: p.selected ? p.reason : null,
     attribution: { name: SITE.name, url: aihot },
+    ...(industryRolesOn() ? { roles: (p.roles ?? []).filter(isRoleKey), impact: isImpactKey(p.impact) ? p.impact : null } : {}),
   };
 }
 
@@ -162,7 +172,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
     SELECT id, name, kind, tier, participation_mode, first_party, site_fulltext, syndicate_fulltext, config FROM sources WHERE id = ${article.source_id}`;
   if (!source) return null;
   const [analysis] = await tx<AnalysisRow[]>`
-    SELECT id, relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected, (output->>'promotion')::boolean AS promotion
+    SELECT id, relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected, (output->>'promotion')::boolean AS promotion, output->'roles' AS roles, output->'impact' AS impact
     FROM analyses WHERE article_id = ${articleId} ORDER BY input_revision DESC, id DESC LIMIT 1`;
   const [override] = await tx<OverrideRow[]>`SELECT fields, visibility FROM editorial_overrides WHERE article_id = ${articleId}`;
   const [membership] = await tx<{ fact_id: number; story_id: number | null }[]>`
@@ -189,6 +199,10 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
 
   const eligible = !article.duplicate_of && isPoolEligible({ participationMode: source.participation_mode, relevance, title, summary, score, poolMinScore: source.config.poolMinScore });
   const promotion = isPromotion(f.promotion, analysis?.promotion);
+  // Roles belong to industry items only; they are a publication field of their own, never tags or search text.
+  const industryItem = !promotion && isCategoryKey(category) && CATEGORY_TRACK[category] === "industry";
+  const roles = industryItem && Array.isArray(analysis?.roles) ? [...new Set((analysis.roles as unknown[]).filter(isRoleKey))].slice(0, 3) : [];
+  const impact = roles.length && isImpactKey(analysis?.impact) ? analysis.impact : null;
   const selected = isSelectable(eligible, judgedSelected, source.tier, promotion);
   const reason = selected ? pickString(f.reason, analysis?.reason_zh ?? null) : null;
   const hasXPost = !!article.x_post;
@@ -235,7 +249,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
 
   const next = {
     visibility, eligible, selected, title: title ?? collapseWhitespace(article.title), original_title: originalTitle, summary, reason,
-    category, tags, score: round1(score), promotion, body_mode: bodyMode, story_id: membership?.story_id ?? null, fact_id: membership?.fact_id ?? null,
+    category, tags, roles, impact, score: round1(score), promotion, body_mode: bodyMode, story_id: membership?.story_id ?? null, fact_id: membership?.fact_id ?? null,
     indexable,
   };
   const changed =
@@ -244,23 +258,24 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
       stableJson({
         visibility: previous.visibility, eligible: previous.eligible, selected: previous.selected, title: previous.title,
         original_title: previous.original_title, summary: previous.summary, reason: previous.reason, category: previous.category,
-        tags: [...previous.tags].sort(), score: previous.score === null ? null : Number(previous.score), promotion: previous.promotion, body_mode: previous.body_mode,
+        tags: [...previous.tags].sort(), roles: previous.roles, impact: previous.impact, score: previous.score === null ? null : Number(previous.score), promotion: previous.promotion, body_mode: previous.body_mode,
         story_id: previous.story_id, fact_id: previous.fact_id, indexable: previous.indexable,
       });
   const revision = previous ? previous.revision + (changed ? 1 : 0) : 1;
 
   await tx`
     INSERT INTO publications (article_id, analysis_id, revision, visibility, eligible, selected, title, original_title, summary,
-      reason, category, tags, score, promotion, source_id, channel, first_party, url, published_at, discovered_at, timeline_at, backfill,
+      reason, category, tags, roles, impact, score, promotion, source_id, channel, first_party, url, published_at, discovered_at, timeline_at, backfill,
       selected_ready_at, visible_after, body_mode, syndicate, indexable, story_id, fact_id, search_text, sort_at, updated_at)
     VALUES (${articleId}, ${analysis?.id ?? null}, ${revision}, ${visibility}, ${eligible}, ${selected}, ${next.title},
-      ${originalTitle}, ${summary}, ${reason}, ${category}, ${tags}, ${next.score}, ${promotion}, ${source.id}, ${channel}, ${source.first_party},
+      ${originalTitle}, ${summary}, ${reason}, ${category}, ${tags}, ${roles}, ${impact}, ${next.score}, ${promotion}, ${source.id}, ${channel}, ${source.first_party},
       ${article.url}, ${article.published_at}, ${article.discovered_at}, ${article.timeline_at}, ${article.backfill},
       ${selectedReadyAt}, ${visibleAfter}, ${bodyMode}, ${syndicate}, ${indexable}, ${next.story_id}, ${next.fact_id}, ${searchText}, ${sortAt}, now())
     ON CONFLICT (article_id) DO UPDATE SET
       analysis_id = EXCLUDED.analysis_id, revision = EXCLUDED.revision, visibility = EXCLUDED.visibility,
       eligible = EXCLUDED.eligible, selected = EXCLUDED.selected, title = EXCLUDED.title, original_title = EXCLUDED.original_title,
       summary = EXCLUDED.summary, reason = EXCLUDED.reason, category = EXCLUDED.category, tags = EXCLUDED.tags,
+      roles = EXCLUDED.roles, impact = EXCLUDED.impact,
       score = EXCLUDED.score, promotion = EXCLUDED.promotion, source_id = EXCLUDED.source_id, channel = EXCLUDED.channel, first_party = EXCLUDED.first_party,
       url = EXCLUDED.url, published_at = EXCLUDED.published_at, discovered_at = EXCLUDED.discovered_at,
       timeline_at = EXCLUDED.timeline_at, backfill = EXCLUDED.backfill, selected_ready_at = EXCLUDED.selected_ready_at,
@@ -269,7 +284,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
       search_text = EXCLUDED.search_text, sort_at = EXCLUDED.sort_at, updated_at = now()
     WHERE (publications.analysis_id, publications.revision, publications.visibility, publications.eligible,
         publications.selected, publications.title, publications.original_title, publications.summary,
-        publications.reason, publications.category, publications.tags, publications.score, publications.promotion,
+        publications.reason, publications.category, publications.tags, publications.roles, publications.impact, publications.score, publications.promotion,
         publications.source_id, publications.channel, publications.first_party, publications.url,
         publications.published_at, publications.discovered_at, publications.timeline_at, publications.backfill,
         publications.selected_ready_at, publications.visible_after, publications.body_mode, publications.syndicate,
@@ -277,7 +292,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
         publications.sort_at)
       IS DISTINCT FROM (EXCLUDED.analysis_id, EXCLUDED.revision, EXCLUDED.visibility, EXCLUDED.eligible,
         EXCLUDED.selected, EXCLUDED.title, EXCLUDED.original_title, EXCLUDED.summary,
-        EXCLUDED.reason, EXCLUDED.category, EXCLUDED.tags, EXCLUDED.score, EXCLUDED.promotion,
+        EXCLUDED.reason, EXCLUDED.category, EXCLUDED.tags, EXCLUDED.roles, EXCLUDED.impact, EXCLUDED.score, EXCLUDED.promotion,
         EXCLUDED.source_id, EXCLUDED.channel, EXCLUDED.first_party, EXCLUDED.url,
         EXCLUDED.published_at, EXCLUDED.discovered_at, EXCLUDED.timeline_at, EXCLUDED.backfill,
         EXCLUDED.selected_ready_at, EXCLUDED.visible_after, EXCLUDED.body_mode, EXCLUDED.syndicate,
@@ -311,6 +326,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
     const payload = v1Payload({
       articleId, title: next.title, originalTitle, summary, sourceName: source.name, url: article.url,
       publishedAt: article.published_at, discoveredAt: article.discovered_at, category, score: next.score, selected: true, reason,
+      roles, impact,
     });
     const payloadHash = sha256(stableJson(payload));
     if (!state || !state.in_set || state.payload_hash !== payloadHash) {

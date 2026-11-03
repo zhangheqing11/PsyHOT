@@ -19,7 +19,7 @@ const { values } = parseArgs({
     ids: { type: "string" },
     days: { type: "string", default: "30" },
     concurrency: { type: "string", default: "3" },
-    tag: { type: "string", default: "roles-2026-10" },
+    tag: { type: "string", default: "roles-2026-11" },
     "dry-run": { type: "boolean", default: false },
     now: { type: "boolean", default: false },
   },

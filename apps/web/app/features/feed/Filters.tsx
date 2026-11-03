@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
 import { useNavigate } from "react-router";
 import { FEATURES } from "@aihot/industry/features";
-import { CATEGORY_LABELS, CATEGORY_TRACK, CHANNEL_LABELS, PUBLIC_API_CATEGORY_KEYS, TRACK_LABELS, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
+import { CATEGORY_LABELS, CATEGORY_TRACK, CHANNEL_LABELS, industryRolesOn, PUBLIC_API_CATEGORY_KEYS, ROLE_KEYS, ROLE_LABELS, TRACK_LABELS, type CategoryKey, type ChannelKey, type RegionKey, type RoleKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { IconClose, IconSearch } from "../../components/icons";
 import { PillTabs } from "../../components/ui/Tabs";
 import { setTrackPreference } from "../../lib/local-state";
@@ -34,7 +34,7 @@ export function TrackTabs({ base, track, layoutId, size = "md", className = "" }
   const go = (key: string) => {
     const next = key === "all" ? null : key as TrackKey;
     setTrackPreference(next);
-    navigate(hrefWith(base, params, { track: next, region: null, category: null }));
+    navigate(hrefWith(base, params, { track: next, region: null, role: null, category: null }));
   };
   return <PillTabs items={[{ key: "all", label: "综合" }, ...(["academic", "industry"] as const).map((key) => ({ key, label: TRACK_LABELS[key] }))]} active={active} onSelect={go} layoutId={layoutId} label="视角" size={size} className={className} />;
 }
@@ -48,8 +48,18 @@ export function RegionTabs({ base, track, region, layoutId, size = "sm", classNa
   return <PillTabs items={[{ key: "all", label: "全部地区" }, { key: "domestic", label: "国内" }, { key: "international", label: "国际" }]} active={active} onSelect={go} layoutId={layoutId} label="地区" size={size} className={className} />;
 }
 
-export function CategoryTabs({ base, category, channel = "all", track, layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
+export function CategoryTabs({ base, category, channel = "all", track, role, layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; role?: RoleKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
   const [params] = useSearchParams();
+  // With FEATURES.industryRoles on, the industry view is browsed by practitioner role instead of by category.
+  // An old ?category= link there still filters; the row then shows 全部.
+  if (FEATURES.tracks && industryRolesOn() && track === "industry") {
+    const items = [
+      { key: "all", label: "全部", to: hrefWith(base, params, { category: null, channel: null, role: null }) },
+      ...ROLE_KEYS.map((k) => ({ key: k, label: ROLE_LABELS[k], to: hrefWith(base, params, { role: k, category: null, channel: null }) })),
+    ];
+    const active = role ?? "all";
+    return <PillTabs items={items} active={active} layoutId={layoutId} label="角色" size={size} className={className} />;
+  }
   const categoryKeys = FEATURES.tracks
     ? (track ? PUBLIC_API_CATEGORY_KEYS.filter((key) => CATEGORY_TRACK[key] === track) : [])
     : [...PUBLIC_API_CATEGORY_KEYS];

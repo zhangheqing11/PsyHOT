@@ -2,7 +2,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { RSS_CACHE_CONTROL } from "@aihot/contracts/http-policy";
 import { dailyFeed, isFeedCategory, itemFeed, type ItemFeedKind } from "@aihot/backend/publication/feeds";
-import { isRegionKey, isTrackKey } from "@aihot/contracts/taxonomy";
+import { industryRolesOn, isRegionKey, isRoleKey, isTrackKey } from "@aihot/contracts/taxonomy";
 import { applyPublicHeaders, sendTextWithEtag } from "../http/respond.ts";
 
 async function sendFeed(req: FastifyRequest, reply: FastifyReply, xml: string) {
@@ -57,9 +57,12 @@ export function registerFeeds(app: FastifyInstance) {
       const slug = file.replace(/\.xml$/, "");
       const rawRegion = (req.query as { region?: string }).region;
       const region = rawRegion ? rawRegion.trim() : null;
-      if (!file.endsWith(".xml") || !isTrackKey(slug) || (region !== null && !isRegionKey(region))) return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
+      // Until FEATURES.industryRoles is on, role is an unknown parameter and ignored like any other.
+      const rawRole = industryRolesOn() ? (req.query as { role?: string }).role : undefined;
+      const role = rawRole ? rawRole.trim() : null;
+      if (!file.endsWith(".xml") || !isTrackKey(slug) || (region !== null && !isRegionKey(region)) || (role !== null && !isRoleKey(role))) return reply.code(404).type("text/plain; charset=utf-8").send("Not found");
       try {
-        return await sendFeed(req, reply, await itemFeed(full ? "selected-full" : "selected", null, slug, region));
+        return await sendFeed(req, reply, await itemFeed(full ? "selected-full" : "selected", null, slug, region, role));
       } catch (error) {
         req.log.error({ err: error }, "feed error");
         return feedError(reply);

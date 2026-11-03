@@ -7,7 +7,7 @@ import { beijingDate } from "@aihot/contracts/time";
 import { sql } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import {
-  ITEM_COLUMNS, ITEM_FROM, categoryCondition, channelCondition, regionCondition, selectedCondition, tagCondition, toFeedItemSummary, topicCondition, trackCondition,
+  ITEM_COLUMNS, ITEM_FROM, categoryCondition, channelCondition, regionCondition, roleCondition, selectedCondition, tagCondition, toFeedItemSummary, topicCondition, trackCondition,
   type ItemRow,
 } from "./items.ts";
 
@@ -24,11 +24,11 @@ interface GroupRow {
 }
 
 function filterSql(q: TimelineQuery) {
-  return sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  return sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${roleCondition(q.role)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
 }
 
 function binding(q: TimelineQuery): string {
-  return queryBinding({ c: q.channel, k: q.category, x: q.track ?? null, r: q.region ?? null, t: q.tag, p: q.topic ?? null });
+  return queryBinding({ c: q.channel, k: q.category, x: q.track ?? null, r: q.region ?? null, ...(q.role ? { o: q.role } : {}), t: q.tag, p: q.topic ?? null });
 }
 
 function responseFilters(q: TimelineQuery): TimelineFilters {
@@ -36,6 +36,7 @@ function responseFilters(q: TimelineQuery): TimelineFilters {
     channel: q.channel, category: q.category, tag: q.tag, topic: q.topic ?? null,
     ...(q.track ? { track: q.track } : {}),
     ...(q.region ? { region: q.region } : {}),
+    ...(q.role ? { role: q.role } : {}),
   };
 }
 

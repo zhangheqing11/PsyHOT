@@ -1,6 +1,6 @@
 // First-party site API (/api/site/*). Not a public API: it may evolve with the website,
 // but it is served from the same public read layer as v1, RSS and MCP.
-import type { CategoryKey, ChannelKey, RegionKey, TrackKey } from "./taxonomy.ts";
+import type { CategoryKey, ChannelKey, ImpactKey, RegionKey, RoleKey, TrackKey } from "./taxonomy.ts";
 
 export type SourceKind = "rss" | "web_list" | "json_list" | "x_search" | "mp_account" | "external";
 
@@ -56,6 +56,9 @@ export interface ItemSummary {
   timelineAt: string;
   category: CategoryKey | null;
   tags: string[];
+  /** Practitioner roles and the main kind of effect on them (industry items); only present with FEATURES.industryRoles. */
+  roles?: RoleKey[];
+  impact?: ImpactKey | null;
   score: number | null;
   selected: boolean;
   channel: "news" | "x";
@@ -64,7 +67,7 @@ export interface ItemSummary {
 }
 
 /** The fields rendered by a site feed card; full original text lives in the item detail. */
-export interface FeedItemSummary extends Pick<ItemSummary, "id" | "title" | "summary" | "reason" | "publishedAt" | "timelineAt" | "category" | "tags" | "score" | "selected" | "channel"> {
+export interface FeedItemSummary extends Pick<ItemSummary, "id" | "title" | "summary" | "reason" | "publishedAt" | "timelineAt" | "category" | "tags" | "roles" | "impact" | "score" | "selected" | "channel"> {
   source: Pick<SourceRef, "name">;
   /** The industry's own advertising (only listed in the full feed); absent otherwise. */
   promotion?: true;
@@ -113,6 +116,8 @@ export interface TimelineFilters {
   track?: TrackKey | null;
   /** Optional source region, primarily used with the industry view. */
   region?: RegionKey | null;
+  /** Optional practitioner role of industry items; only with FEATURES.industryRoles. */
+  role?: RoleKey | null;
 }
 
 export interface TimelineResponse {

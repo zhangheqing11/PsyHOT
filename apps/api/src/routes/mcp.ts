@@ -4,7 +4,7 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { createMcpHandler, McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { REGION_KEYS, TRACK_KEYS, PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { industryRolesOn, REGION_KEYS, ROLE_KEYS, ROLE_LABELS, TRACK_KEYS, PUBLIC_API_CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { SITE, withSubject } from "@aihot/industry/site";
 import { config } from "@aihot/backend/config";
 import { MCP_TOOL_NAMES as T } from "@aihot/contracts/mcp";
@@ -55,6 +55,7 @@ function safe<A>(tool: string, run: (args: A) => Promise<ReturnType<typeof ok> |
 const category = z.enum(PUBLIC_API_CATEGORY_KEYS).optional().describe(`Optional category: ${PUBLIC_API_CATEGORY_KEYS.join(", ")}.`);
 const track = z.enum(TRACK_KEYS).optional().describe("Optional view: academic or industry.");
 const region = z.enum(REGION_KEYS).optional().describe("Optional source region: domestic or international.");
+const role = z.enum(ROLE_KEYS).optional().describe(`Optional practitioner role the industry item affects: ${ROLE_KEYS.map((key) => `${key} (${ROLE_LABELS[key]})`).join(", ")}. Only industry items have roles.`);
 
 type ItemList = Awaited<ReturnType<typeof v1Items>>;
 
@@ -75,6 +76,9 @@ const SEARCH_INPUT = z.strictObject({
   region,
   limit: z.number().int().min(1).max(30).default(10).describe("Maximum number of results, from 1 to 30."),
 });
+// The role parameter exists only while FEATURES.industryRoles is on; until then these inputs reject it like any unknown key.
+const LATEST_ROLE_INPUT = LATEST_INPUT.extend({ role });
+const SEARCH_ROLE_INPUT = SEARCH_INPUT.extend({ role });
 const HOT_INPUT = z.strictObject({
   track,
   limit: z.number().int().min(1).max(10).default(10).describe("Maximum number of current topics, from 1 to 10."),
@@ -125,11 +129,11 @@ export function buildMcpServer(): McpServer {
     T.latest,
     {
       description: `Get the latest ${SITE.name} items for a 24-hour or 7-day briefing. Prefer selected mode unless the user explicitly asks for every public item. Do not use this for named-topic search or multi-source event context.`,
-      inputSchema: LATEST_INPUT,
+      inputSchema: (industryRolesOn() ? LATEST_ROLE_INPUT : LATEST_INPUT) as typeof LATEST_ROLE_INPUT,
       annotations: ANNOTATIONS,
     },
-    safe(T.latest, async (args: z.infer<typeof LATEST_INPUT>) => {
-      const query = { mode: args.mode, window: args.window, by: "timeline", category: args.category ?? null, track: args.track ?? null, region: args.region ?? null, q: null, limit: args.limit, cursor: null } as const;
+    safe(T.latest, async (args: z.infer<typeof LATEST_ROLE_INPUT>) => {
+      const query = { mode: args.mode, window: args.window, by: "timeline", category: args.category ?? null, track: args.track ?? null, region: args.region ?? null, ...(args.role ? { role: args.role } : {}), q: null, limit: args.limit, cursor: null } as const;
       const res = await recent(`items:${JSON.stringify(query)}`, () => v1Items(query));
       return ok(itemsText(`${SITE.name} 最新资讯｜${args.window}｜${args.mode === "selected" ? "精选" : "全部公开"}（${res.items.length} 条）`, res), { schemaVersion: 1, query: res.query, items: res.items });
     }),
@@ -139,13 +143,13 @@ export function buildMcpServer(): McpServer {
     T.search,
     {
       description: `Search ${SITE.name}'s latest 7 days by a 2–200 character topic, company, product, or person. It searches editorial picks first and automatically expands to all public items only when picks have no result.`,
-      inputSchema: SEARCH_INPUT,
+      inputSchema: (industryRolesOn() ? SEARCH_ROLE_INPUT : SEARCH_INPUT) as typeof SEARCH_ROLE_INPUT,
       annotations: ANNOTATIONS,
     },
-    safe(T.search, async (args: z.infer<typeof SEARCH_INPUT>) => {
+    safe(T.search, async (args: z.infer<typeof SEARCH_ROLE_INPUT>) => {
       const q = args.q.trim();
       if ([...q].length < 2) return fail("invalid_request", "搜索词需要 2 到 200 个字符。");
-      const query = (mode: "selected" | "all") => ({ mode, window: args.window, by: "timeline", category: args.category ?? null, track: args.track ?? null, region: args.region ?? null, q, limit: args.limit, cursor: null } as const);
+      const query = (mode: "selected" | "all") => ({ mode, window: args.window, by: "timeline", category: args.category ?? null, track: args.track ?? null, region: args.region ?? null, ...(args.role ? { role: args.role } : {}), q, limit: args.limit, cursor: null } as const);
       let res = await recent(`items:${JSON.stringify(query("selected"))}`, () => v1Items(query("selected")));
       let scope = "精选";
       if (res.items.length === 0) {

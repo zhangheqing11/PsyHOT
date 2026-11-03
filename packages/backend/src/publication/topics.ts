@@ -1,11 +1,11 @@
 import type { FeedItemSummary } from "@aihot/contracts/site";
-import type { RegionKey, TrackKey } from "@aihot/contracts/taxonomy";
+import type { RegionKey, RoleKey, TrackKey } from "@aihot/contracts/taxonomy";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { REPO_ROOT } from "../config.ts";
 import { sql } from "../db.ts";
 import { cached } from "../lib/cache.ts";
-import { ITEM_COLUMNS, ITEM_FROM, regionCondition, selectedCondition, toFeedItemSummary, trackCondition, type ItemRow } from "./items.ts";
+import { ITEM_COLUMNS, ITEM_FROM, regionCondition, roleCondition, selectedCondition, toFeedItemSummary, trackCondition, type ItemRow } from "./items.ts";
 
 export interface TopicRow {
   slug: string;
@@ -127,17 +127,17 @@ export interface TopicPage {
   pageCount: number;
 }
 
-export async function loadTopicPage(slug: string, page: number, filters: { track?: TrackKey | null; region?: RegionKey | null } = {}, now = new Date()): Promise<TopicPage | null> {
+export async function loadTopicPage(slug: string, page: number, filters: { track?: TrackKey | null; region?: RegionKey | null; role?: RoleKey | null } = {}, now = new Date()): Promise<TopicPage | null> {
   const row = await loadTopic(slug);
   if (!row || page < 1) return null;
   const topics = await listTopicSummaries();
   const topic = topics.find((t) => t.slug === slug);
   if (!topic) return null;
-  const filterSql = sql`${trackCondition(filters.track)} ${regionCondition(filters.region)}`;
+  const filterSql = sql`${trackCondition(filters.track)} ${regionCondition(filters.region)} ${roleCondition(filters.role)}`;
   const [{ total }] = await sql<{ total: number }[]>`
     SELECT count(*)::int AS total FROM publications p
     WHERE ${selectedCondition(now)} AND p.tags && ${topicMatchTags(row)}::text[] ${filterSql}`;
-  const totalCount = filters.track || filters.region ? Number(total) : topic.total;
+  const totalCount = filters.track || filters.region || filters.role ? Number(total) : topic.total;
   const pageCount = Math.max(1, Math.ceil(totalCount / TOPIC_PAGE_SIZE));
   if (page < 1 || page > pageCount) return null;
   // Page ids from the selected set first, then the joins for those rows only.

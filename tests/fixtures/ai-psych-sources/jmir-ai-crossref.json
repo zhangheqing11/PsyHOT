@@ -1,0 +1,63 @@
+{
+ "status": "ok",
+ "message": {
+  "items": [
+   {
+    "title": [
+     "Rethinking Health Care Regulatory Sandboxes Under the European Union AI Act"
+    ],
+    "DOI": "10.2196/98653",
+    "URL": "https://doi.org/10.2196/98653",
+    "created": {
+     "date-parts": [
+      [
+       2026,
+       10,
+       30
+      ]
+     ],
+     "date-time": "2026-10-30T18:21:41Z",
+     "timestamp": 1793384501000
+    },
+    "abstract": "<jats:title>Abstract</jats:title>\n                  <jats:p>\n                    AI models have enabled substantial advances in health care. Since the entry into force of the European Union (EU) AI Act in 2024, these systems have become subject to a common regulatory framework in the EU intended to harmonize AI governance across all member states. One of the act’s distinctive features is that it accommodates existing economic, technological, and regulatory differences among European countries by leaving certain implementation responsibilities to national authorities. This is evident in regulatory sandboxes, supervised environments for developing, testing, and validating AI systems before deployment. In this viewpoint, we provide a policy-oriented analysis of health care regulatory sandboxes under the EU AI Act and propose recommendations for their design. These recommendations address the need to document model compression techniques that may affect the classification of large high-risk systems above the 10\n                    <jats:sup>25</jats:sup>\n                    floating point operations per second threshold, incorporate explainability into AI systems from the design stage, identify and document biases in health care datasets, clarify the treatment of federated learning parameter updates under the General Data Protection Regulation, and strengthen the oversight of AI agents in clinical environments. The implementation timeline makes this discussion particularly timely given the approaching deadline of August 2, 2027, by which all member states must have established at least one national regulatory sandbox.\n                  </jats:p>"
+   },
+   {
+    "title": [
+     "Quality Assessment of Artificial Intelligence Chatbot Responses to Postearthquake Health Frequently Asked Questions Across Platforms, Languages, and Generation Modes: Comparative Study (Preprint)"
+    ],
+    "DOI": "10.2196/106543",
+    "URL": "https://doi.org/10.2196/106543",
+    "created": {
+     "date-parts": [
+      [
+       2026,
+       10,
+       20
+      ]
+     ],
+     "date-time": "2026-10-20T16:55:05Z",
+     "timestamp": 1792515305000
+    }
+   },
+   {
+    "title": [
+     "Nonlinear Feature Modeling Using Kolmogorov-Arnold Networks in Electroencephalography for Depression Classification: Deep Learning Study"
+    ],
+    "DOI": "10.2196/101076",
+    "URL": "https://doi.org/10.2196/101076",
+    "created": {
+     "date-parts": [
+      [
+       2026,
+       10,
+       19
+      ]
+     ],
+     "date-time": "2026-10-19T19:53:54Z",
+     "timestamp": 1792439634000
+    },
+    "abstract": "<jats:title>Abstract</jats:title>\n                  <jats:sec sec-type=\"background\">\n                    <jats:title>Background</jats:title>\n                    <jats:p>Depression is a common mental disorder that seriously affects mental health and quality of life. Traditional depression diagnosis mainly relies on clinical interviews and subjective assessments, which may lead to variability in diagnostic outcomes. Electroencephalogram (EEG)-based computer-aided diagnosis has emerged as a promising, objective approach for depression recognition. However, effectively modeling the complex nonlinear characteristics of EEG signals remains a major challenge for existing deep learning methods.</jats:p>\n                  </jats:sec>\n                  <jats:sec sec-type=\"objective\">\n                    <jats:title>Objective</jats:title>\n                    <jats:p>This study aimed to investigate the applicability of Kolmogorov-Arnold Networks (KANs) for EEG-based depression recognition and to evaluate the effectiveness of KAN-based nonlinear modeling frameworks on frequency-domain EEG features.</jats:p>\n                  </jats:sec>\n                  <jats:sec sec-type=\"methods\">\n                    <jats:title>Methods</jats:title>\n                    <jats:p>\n                      KAN was introduced into EEG-based depression recognition to enhance nonlinear feature representation of brain electrical signals. Two representative KAN-based convolutional architectures, ConvKAN and its efficiency-optimized variant ConvKAN Efficient, were systematically investigated for EEG classification tasks. These architectures incorporated KANLinear layers together with dynamic grid updating, enhanced weight initialization, and regularization strategies to improve nonlinear modeling capability while maintaining computational efficiency. Extensive experiments were conducted on the EDRA dataset, and the proposed framework was compared with conventional convolutional neural network–based methods and traditional machine learning approaches. Model performance was evaluated using accuracy, precision, recall, and\n                      <jats:italic>F</jats:italic>\n                      <jats:sub>1</jats:sub>\n                      -score metrics.\n                    </jats:p>\n                  </jats:sec>\n                  <jats:sec sec-type=\"results\">\n                    <jats:title>Results</jats:title>\n                    <jats:p>\n                      Experimental results demonstrated that the KAN-based frameworks achieved superior EEG classification performance compared with conventional convolutional neural network–based methods and traditional machine learning approaches. Among the evaluated models, ConvKAN Efficient achieved the best overall performance, with accuracy, precision, recall, and\n                      <jats:italic>F</jats:italic>\n                      <jats:sub>1</jats:sub>\n                      -score all exceeding 94% on the EDRA dataset. The results indicate that KAN-based architectures can effectively capture the complex nonlinear characteristics of EEG signals while preserving high computational efficiency.\n                    </jats:p>\n                  </jats:sec>\n                  <jats:sec sec-type=\"conclusions\">\n                    <jats:title>Conclusions</jats:title>\n                    <jats:p>This study systematically demonstrates the applicability of KAN-based nonlinear modeling frameworks to EEG-based depression recognition. The proposed framework provides a scalable and effective approach for EEG signal analysis and offers valuable technical support for both theoretical research and clinical applications in computer-aided depression recognition.</jats:p>\n                  </jats:sec>"
+   }
+  ]
+ }
+}

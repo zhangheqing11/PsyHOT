@@ -1,0 +1,83 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rss xmlns:arxiv="http://arxiv.org/schemas/atom" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/" version="2.0">
+  <channel>
+    <title>cs.AI updates on arXiv.org</title>
+    <link>http://rss.arxiv.org/rss/cs.AI</link>
+    <description>cs.AI updates on the arXiv.org e-print archive.</description>
+    <atom:link href="http://rss.arxiv.org/rss/cs.AI" rel="self" type="application/rss+xml"/>
+    <docs>http://www.rssboard.org/rss-specification</docs>
+    <language>en-us</language>
+    <lastBuildDate>Tue, 03 Nov 2026 08:49:50 +0000</lastBuildDate>
+    <managingEditor>rss-help@arxiv.org</managingEditor>
+    <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+    <skipDays>
+      <day>Saturday</day>
+      <day>Sunday</day>
+    </skipDays>
+    <item>
+      <title>Beyond Multimodal Emotion Conflict: Temporal Context-Aware Hidden Emotion Detection with Multimodal Large Language Models</title>
+      <link>https://arxiv.org/abs/2611.01943</link>
+      <description>arXiv:2611.01943v1 Announce Type: new 
+Abstract: Multimodal emotion recognition commonly combines textual, acoustic, and visual signals to infer affective states. Recent work has begun to study conflicts among modalities, but a conflict does not necessarily indicate that a person is concealing an emotion. It may also result from mixed emotions, individual expressive styles, or contextual factors. This proposal aims to distinguish ordinary emotional inconsistency from emotion concealment and to infer the underlying emotion when supported by evidence. We plan to construct a multimodal benchmark with explicit annotations of expressed emotion, internal emotion, and concealment conditions, and to develop an MLLM-based framework that integrates fine-grained facial Action Units (AUs), cross-modal features, and temporal context.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2611.01943v1</guid>
+      <category>cs.AI</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>new</arxiv:announce_type>
+      <dc:rights>http://arxiv.org/licenses/nonexclusive-distrib/1.0/</dc:rights>
+      <dc:creator>Yonghao Wang, Jiaxin Zhou</dc:creator>
+    </item>
+    <item>
+      <title>Robust EEG-based Emotion Recognition from Coarse Trial-level Labels under Intra-trial Affective Variability</title>
+      <link>https://arxiv.org/abs/2611.01731</link>
+      <description>arXiv:2611.01731v1 Announce Type: cross 
+Abstract: EEG-based emotion recognition has become an active research area in brain-computer interfaces. However, fine-grained affective annotation is costly, so most datasets provide only a global label for each long EEG trial. For practical emotion recognition, trials are commonly divided into short temporal windows, with the global label propagated to all windows for training. This practice treats trial-level emotion as temporally uniform, although affective responses may fluctuate within a trial. Consequently, windows that weakly reflect or deviate from the global emotional state may receive unreliable labels, posing a key challenge to robust EEG-based emotion recognition. To address this challenge, we propose VARY, a variability-aware robust learning framework for EEG-based emotion recognition from coarse trial-level labels. VARY incorporates a Two-stage Sample Selection (TSS) strategy to identify EEG windows with reliable emotional labels, and introduces MixAug, a data augmentation method tailored for EEG to improve model robustness under limited and unreliable supervision. We comprehensively evaluate VARY under the setting of label-noise learning on two public datasets, using three network architectures and multiple label-noise settings. Our method demonstrates superior performance, achieving a maximum accuracy gain of 11.54% on the DREAMER dataset and 5.39% on the SEED dataset compared with the best-performing baseline, highlighting the effectiveness of VARY in learning from unreliable trial-level labels under intra-trial affective variability.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2611.01731v1</guid>
+      <category>cs.LG</category>
+      <category>cs.AI</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>cross</arxiv:announce_type>
+      <dc:rights>http://creativecommons.org/licenses/by-nc-sa/4.0/</dc:rights>
+      <dc:creator>Xiaocong Zeng, Buxuan Wang, Xin Yang, Pei Huang, Dongyang Kuang</dc:creator>
+    </item>
+    <item>
+      <title>Can You Break RLVER? Probing Adversarial Robustness of RL-Trained Empathetic Agents</title>
+      <link>https://arxiv.org/abs/2605.07138</link>
+      <description>arXiv:2605.07138v2 Announce Type: replace 
+Abstract: Reinforcement learning from verifiable emotion rewards (RLVER) yields strong empathetic language models, but is evaluated with cooperative, honest simulated users. Real users gaslight, escalate, and demand unconditional validation. We introduce the Adversarial Empathy Benchmark (AEB), six adversarial trajectory types whose discriminative rewards penalize formulaic comfort, and the Emotional Consistency Score (ECS), which separates whether a model \emph{improves} the user's emotional state from whether that state stays legible in the transcript. Across eight scenario-matched conditions (480 dialogues; two RLVER and two Qwen2.5 base models, with and without thinking), RLVER-PPO-Think outperforms its untuned same-scale baseline (FS $0.979$ vs.\ $0.761$, $p&lt;10^{-12}$) with no dialogue collapses and 53\% higher hidden-intention detection; the gain is not explained by response length. Yet under an independent cross-family judge (Gemma-3-4b-it), ECS is indistinguishable between the two ($p=0.43$). We call this an outcome--legibility dissociation: RLVER improves emotional outcomes without making the user's state more legible. We do not claim ECS measures internal understanding.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2605.07138v2</guid>
+      <category>cs.AI</category>
+      <category>cs.LG</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>replace</arxiv:announce_type>
+      <dc:rights>http://creativecommons.org/licenses/by-nc-sa/4.0/</dc:rights>
+      <dc:creator>Deeraj S K, Sadhana Devarajan, Krishna Mehra, Sudhakar Mishra</dc:creator>
+    </item>
+    <item>
+      <title>Narrative-Centered Emotional Reflection: An Early Prototype for AI-Supported Emotional Self-Reflection</title>
+      <link>https://arxiv.org/abs/2504.20342</link>
+      <description>arXiv:2504.20342v3 Announce Type: replace-cross 
+Abstract: Reflexion is an AI-powered prototype designed to explore structured emotional self-reflection. By integrating emotion detection, layered reflective prompting, and metaphorical storytelling generation, Reflexion was intended to support users in autonomous emotional exploration beyond basic sentiment categorization. Grounded primarily in expressive writing, cognitive restructuring, and self-determination theory, the system was designed to organize reflection as a progressive pathway from surface-level emotional recognition toward value-aligned action planning. Its final action-planning layer is additionally informed by broader questions of agency and empowerment, which remain future directions rather than fully implemented mechanisms in the current prototype. Informal design feedback indicated that some reviewers found the layered interaction model understandable and potentially useful; no empirical efficacy claims are made. As an early prototype, Reflexion documents one direction in theory-informed affective computing. A public sample walkthrough of the four reflection layers is available at https://reflexion-2025-prototype.web.app. It uses fixed example outputs and no live AI analysis.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2504.20342v3</guid>
+      <category>cs.HC</category>
+      <category>cs.AI</category>
+      <category>cs.CY</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>replace-cross</arxiv:announce_type>
+      <dc:rights>http://arxiv.org/licenses/nonexclusive-distrib/1.0/</dc:rights>
+      <dc:creator>Shou-Tzu Han</dc:creator>
+    </item>
+    <item>
+      <title>Evolving Scientific Intelligence: From Fragmented Evidence to Distributed Experimental Loops</title>
+      <link>https://arxiv.org/abs/2611.00580</link>
+      <description>arXiv:2611.00580v1 Announce Type: new 
+Abstract: Scientific discovery advances when evidence from different investigations is brought into contact. Yet paper-centric communication leaves experimental results fragmented, delayed, or unreported, creating a "scientific memory wall" between growing computational capabilities and the evidence accessible to AI systems. We envision a different dynamic: in a network of intelligent laboratories, a failed or overlooked experiment in one domain could trigger a hypothesis in another, whose testing generates evidence that stimulates further investigations. Such chains of information collision and empirical validation could transform isolated discovery loops into a cumulative scientific process. We propose Evolving Scientific Intelligence (ESI), an architectural blueprint for enabling these evidence-driven chain reactions. ESI preserves experimental records in shared, computable scientific memory, where evidence from different domains can be recombined into testable hypotheses. It jointly selects candidates and evaluation methods according to scientific value, reliability, and cost, then coordinates physical tests across distributed experimental nodes. Their feedback revises hypotheses and evaluators, while slower meta-control reassesses research objectives and decision criteria to guard against self-reinforcing errors and misguided optimization. We call for an Information Manhattan Project to build the infrastructure for scientific intelligence that evolves through experimentally grounded chains of discovery.</description>
+      <guid isPermaLink="false">oai:arXiv.org:2611.00580v1</guid>
+      <category>cs.AI</category>
+      <category>cs.LG</category>
+      <pubDate>Tue, 03 Nov 2026 00:00:00 -0500</pubDate>
+      <arxiv:announce_type>new</arxiv:announce_type>
+      <dc:rights>http://creativecommons.org/licenses/by/4.0/</dc:rights>
+      <dc:creator>Yuheng Ding</dc:creator>
+    </item>
+  </channel>
+</rss>

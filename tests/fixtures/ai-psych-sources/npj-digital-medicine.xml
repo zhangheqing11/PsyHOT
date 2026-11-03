@@ -1,0 +1,52 @@
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:prism="http://prismstandard.org/namespaces/basic/2.0/" xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns="http://purl.org/rss/1.0/" xmlns:admin="http://webns.net/mvcb/">
+    <channel rdf:about="http://feeds.nature.com/npjdigitalmed/rss/current">
+        <title>npj Digital Medicine</title>
+        <description>&lt;p&gt;Open for Submissions&lt;/p&gt;
+
+&lt;p&gt;&lt;em&gt;npj Digital Medicine&lt;/em&gt;&amp;nbsp;is an online fully open-access journal dedicated to publishing high-quality peer-reviewed research in all aspects of digital medicine including the clinical application and implementation of digital and mobile technologies, virtual healthcare, and novel applications of artificial intelligence and informatics. The journal aims to guide innovation and the transformation of health and healthcare through the incorporation of novel digital and mobile technologies.&amp;nbsp;&lt;br&gt;
+&lt;br&gt;
+In addition to original research, the journal welcomes Brief Communications, Reviews, and thought-provoking Perspectives and Comment articles.&amp;nbsp;&lt;/p&gt;
+</description>
+        <link>http://feeds.nature.com/npjdigitalmed/rss/current</link>
+        <admin:generatorAgent rdf:resource="https://www.nature.com/"/>
+        <admin:errorReportsTo rdf:resource="mailto:feedback@nature.com"/>
+        <dc:publisher>Nature Publishing Group</dc:publisher>
+        <dc:language>en</dc:language>
+        <dc:rights>© 2026 Macmillan Publishers Limited, part of Springer Nature. All rights reserved.</dc:rights>
+        <prism:publicationName>npj Digital Medicine</prism:publicationName>
+        
+        
+        <prism:copyright>© 2026 Macmillan Publishers Limited, part of Springer Nature. All rights reserved.</prism:copyright>
+        <prism:rightsAgent>permissions@nature.com</prism:rightsAgent>
+        <image rdf:resource="https://www.nature.com/uploads/product/npjdigitalmed/rss.png"/>
+        </channel>
+    <item rdf:about="https://www.nature.com/articles/s41746-026-03438-z">
+            <title><![CDATA[Generation of synthetic clinical text: a systematic review]]></title>
+            <link>https://www.nature.com/articles/s41746-026-03438-z</link>
+            <content:encoded>
+                <![CDATA[<p>npj Digital Medicine, Published online: 31 October 2026; <a href="https://www.nature.com/articles/s41746-026-03438-z">doi:10.1038/s41746-026-03438-z</a></p>Generation of synthetic clinical text: a systematic review]]></content:encoded>
+            <dc:title><![CDATA[Generation of synthetic clinical text: a systematic review]]></dc:title>
+            <dc:creator>Basel Alshaikhdeeb</dc:creator><dc:creator>Anne Lorant</dc:creator><dc:creator>Ahmed Abdelmonem Hemedan</dc:creator><dc:creator>Soumyabrata Ghosh</dc:creator><dc:creator>Irina Balaur</dc:creator><dc:creator>Venkata Satagopam</dc:creator>
+            <dc:identifier>doi:10.1038/s41746-026-03438-z</dc:identifier>
+            <dc:source>npj Digital Medicine, Published online: 2026-10-31; | doi:10.1038/s41746-026-03438-z</dc:source>
+            <dc:date>2026-10-31</dc:date>
+            <prism:publicationName>npj Digital Medicine</prism:publicationName>
+            <prism:doi>10.1038/s41746-026-03438-z</prism:doi>
+            <prism:url>https://www.nature.com/articles/s41746-026-03438-z</prism:url>
+        </item>
+    <item rdf:about="https://www.nature.com/articles/s41746-026-03435-2">
+            <title><![CDATA[Implementation strategies for digital relapse prevention in schizophrenia identified during a randomized controlled trial]]></title>
+            <link>https://www.nature.com/articles/s41746-026-03435-2</link>
+            <content:encoded>
+                <![CDATA[<p>npj Digital Medicine, Published online: 30 October 2026; <a href="https://www.nature.com/articles/s41746-026-03435-2">doi:10.1038/s41746-026-03435-2</a></p>Implementation strategies for digital relapse prevention in schizophrenia identified during a randomized controlled trial]]></content:encoded>
+            <dc:title><![CDATA[Implementation strategies for digital relapse prevention in schizophrenia identified during a randomized controlled trial]]></dc:title>
+            <dc:creator>Selina Hiller</dc:creator><dc:creator>Katharina Prietzel</dc:creator><dc:creator>Mohamed Shehata</dc:creator><dc:creator>Soňa Nevická Sikorová</dc:creator><dc:creator>Eduard Bakstein</dc:creator><dc:creator>Kateřina Urbanová</dc:creator><dc:creator>Graziella Leone</dc:creator><dc:creator>Laura Emde</dc:creator><dc:creator>Denise Jais</dc:creator><dc:creator>Theodor Lorenzen</dc:creator><dc:creator>Samuel Trumm</dc:creator><dc:creator>Marco Zierhut</dc:creator><dc:creator>Wolfgang Strube</dc:creator><dc:creator>Stefan Leucht</dc:creator><dc:creator>Kerem Böge</dc:creator>
+            <dc:identifier>doi:10.1038/s41746-026-03435-2</dc:identifier>
+            <dc:source>npj Digital Medicine, Published online: 2026-10-30; | doi:10.1038/s41746-026-03435-2</dc:source>
+            <dc:date>2026-10-30</dc:date>
+            <prism:publicationName>npj Digital Medicine</prism:publicationName>
+            <prism:doi>10.1038/s41746-026-03435-2</prism:doi>
+            <prism:url>https://www.nature.com/articles/s41746-026-03435-2</prism:url>
+        </item>
+</rdf:RDF>

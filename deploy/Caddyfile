@@ -25,3 +25,8 @@
 www.{$SITE_DOMAIN} {
 	redir https://{$SITE_DOMAIN}{uri} permanent
 }
+
+# Other sites hosted on the same server (for example FitMyCounselor) add their own site blocks here.
+# The directory is mounted by a docker-compose.override.yml outside this repo; when nothing is
+# mounted the glob matches no files and Caddy only logs a warning.
+import /etc/caddy/sites/*.caddy

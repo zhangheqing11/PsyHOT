@@ -2,7 +2,7 @@ import { SITE, withSubject } from "@aihot/industry/site";
 import { Link, redirect, useLoaderData, useSearchParams } from "react-router";
 import type { Route } from "./+types/topic";
 import type { FeedItemSummary } from "@aihot/contracts/site";
-import { isRegionKey, isTrackKey } from "@aihot/contracts/taxonomy";
+import { industryRolesOn, isRegionKey, isRoleKey, isTrackKey } from "@aihot/contracts/taxonomy";
 import { loadOr404, queryString } from "../lib/api.server";
 import { breadcrumbLd, pageMeta, titled } from "../lib/seo";
 import { DayList, Pagination } from "../features/feed/DayList";
@@ -28,9 +28,12 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const trackParam = url.searchParams.get("track");
   const regionParam = url.searchParams.get("region");
-  const track = trackParam && isTrackKey(trackParam) ? trackParam : null;
   const region = regionParam && isRegionKey(regionParam) ? regionParam : null;
-  const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}${queryString({ page, track, region })}`, { signal: request.signal });
+  // Roles exist only while FEATURES.industryRoles is on, and only for industry items: a role implies the industry view.
+  const roleParam = industryRolesOn() ? url.searchParams.get("role") : null;
+  const role = roleParam && isRoleKey(roleParam) ? roleParam : null;
+  const track = trackParam && isTrackKey(trackParam) ? trackParam : role ? "industry" : null;
+  const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}${queryString({ page, track, region, role })}`, { signal: request.signal });
   return { data };
 }
 

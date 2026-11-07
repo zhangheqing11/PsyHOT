@@ -2,7 +2,7 @@ import { SITE, withSubject } from "@aihot/industry/site";
 import { data as withHeaders, redirect, useLoaderData } from "react-router";
 import type { Route } from "./+types/home";
 import type { TimelineResponse } from "@aihot/contracts/site";
-import { isCategoryKey, isChannelKey, isRegionKey, isTrackKey } from "@aihot/contracts/taxonomy";
+import { industryRolesOn, isCategoryKey, isChannelKey, isRegionKey, isRoleKey, isTrackKey } from "@aihot/contracts/taxonomy";
 import { loadOr404, queryString, releaseBoundCache } from "../lib/api.server";
 import { listPath, organizationLd, pageMeta } from "../lib/seo";
 import { Wordmark } from "../components/Logo";
@@ -22,17 +22,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   const category = categoryParam && isCategoryKey(categoryParam) ? categoryParam : null;
   const trackParam = url.searchParams.get("track");
   const regionParam = url.searchParams.get("region");
-  const track = trackParam && isTrackKey(trackParam) ? trackParam : null;
   const region = regionParam && isRegionKey(regionParam) ? regionParam : null;
+  // Roles exist only while FEATURES.industryRoles is on, and only for industry items: a role implies the industry view.
+  const roleParam = industryRolesOn() ? url.searchParams.get("role") : null;
+  const role = roleParam && isRoleKey(roleParam) ? roleParam : null;
+  const track = trackParam && isTrackKey(trackParam) ? trackParam : role ? "industry" : null;
   const tag = url.searchParams.get("tag")?.trim() || null;
   const upstream = new Headers();
-  const data = await loadOr404<TimelineResponse>(`/api/site/timeline${queryString({ channel: channel === "all" ? null : channel, category, track, region, tag })}`, { responseHeaders: upstream, signal: request.signal });
-  return withHeaders({ data, filters: { channel, category, track, region, tag, topic: null } }, { headers: releaseBoundCache(data.refreshAt, 60, Date.now(), upstream) });
+  const data = await loadOr404<TimelineResponse>(`/api/site/timeline${queryString({ channel: channel === "all" ? null : channel, category, track, region, role, tag })}`, { responseHeaders: upstream, signal: request.signal });
+  return withHeaders({ data, filters: { channel, category, track, region, role, tag, topic: null } }, { headers: releaseBoundCache(data.refreshAt, 60, Date.now(), upstream) });
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
   const f = loaderData?.filters;
-  const path = listPath("/", { channel: f && f.channel !== "all" ? f.channel : null, category: f?.category, track: f?.track, region: f?.region, tag: f?.tag });
+  const path = listPath("/", { channel: f && f.channel !== "all" ? f.channel : null, category: f?.category, track: f?.track, region: f?.region, role: f?.role, tag: f?.tag });
   return pageMeta({ path, jsonLd: path === "/" ? organizationLd() : undefined });
 }
 
@@ -66,9 +69,9 @@ export default function Home() {
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <TrackTabs base="/" track={filters.track} layoutId="home-track-desk" />
             <RegionTabs base="/" track={filters.track} region={filters.region} layoutId="home-region-desk" />
-            <CategoryTabs base="/" category={filters.category} channel={filters.channel} track={filters.track} layoutId="home-cat-desk" className="min-w-0" />
+            <CategoryTabs base="/" category={filters.category} channel={filters.channel} track={filters.track} role={filters.role} layoutId="home-cat-desk" className="min-w-0" />
           </div>
-          <SearchField variant="track" keep={{ category: filters.category, track: filters.track ?? null, region: filters.region ?? null }} />
+          <SearchField variant="track" keep={{ category: filters.category, track: filters.track ?? null, region: filters.region ?? null, role: filters.role ?? null }} />
         </div>
       </div>
 
@@ -79,7 +82,7 @@ export default function Home() {
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
           <TrackTabs base="/" track={filters.track} layoutId="home-track-mobile" size="sm" />
           <RegionTabs base="/" track={filters.track} region={filters.region} layoutId="home-region-mobile" size="sm" />
-          <CategoryTabs base="/" category={filters.category} channel={filters.channel} track={filters.track} layoutId="home-cat-mobile" size="sm" className="min-w-0" />
+          <CategoryTabs base="/" category={filters.category} channel={filters.channel} track={filters.track} role={filters.role} layoutId="home-cat-mobile" size="sm" className="min-w-0" />
         </div>
         <SearchIconLink />
       </div>

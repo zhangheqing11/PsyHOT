@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Link } from "react-router";
 import { IntentLink } from "../../components/ui/IntentLink";
 import type { GroupInfo, FeedItemSummary, TimelineFilters } from "@aihot/contracts/site";
-import { CATEGORY_LABELS } from "@aihot/contracts/taxonomy";
+import { CATEGORY_LABELS, CATEGORY_TRACK, IMPACT_LABELS, industryRolesOn } from "@aihot/contracts/taxonomy";
 import { SelectedBadge } from "../../components/ui/Badge";
 import { ScoreLabel } from "../../components/ui/Score";
 import { MediaThumbs, SourceLine, StarButton } from "./parts";
@@ -27,6 +27,10 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
   const showSources = !!group && (group.additionalSourceCount > 0 || (group.developmentCount <= 1 && group.reportCount > 1));
   const showDevelopments = !!group?.story && group.developmentCount > 1;
   const tags = showTags ? item.tags.slice(0, 3) : [];
+  // With FEATURES.industryRoles on, an industry item's badge is its impact type (not its industry category);
+  // without one it has no badge. Academic items keep their category.
+  const byImpact = industryRolesOn() && !!item.category && CATEGORY_TRACK[item.category] === "industry";
+  const showBadge = showTags && !!item.category && (!byImpact || !!item.impact);
 
   return (
     <article className="relative min-w-0 lg:card lg:card-hover lg:px-[18px] lg:pb-[14px] lg:pt-[15px]" data-item-id={item.id}>
@@ -71,13 +75,15 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
       {isX && item.x!.media.length > 0 && <MediaThumbs media={item.x!.media} className="mt-2.5" />}
       {isX && item.x!.quoted?.text && <QuotedLine quoted={item.x!.quoted} />}
 
-      {(tags.length > 0 || (showTags && item.category)) && (
+      {(tags.length > 0 || showBadge) && (
         <div className="relative z-10 mt-2 hidden flex-wrap gap-x-2.5 gap-y-1 text-[12px] text-ink-4 lg:flex">
-          {showTags && item.category && (
+          {showBadge && item.category && (byImpact && item.impact ? (
+            <span>{IMPACT_LABELS[item.impact]}</span>
+          ) : (
             <Link to={`/all?category=${item.category}`} className="hover:text-accent">
               {CATEGORY_LABELS[item.category]}
             </Link>
-          )}
+          ))}
           {tags.map((t) => (
             <Link key={t} to={`/all?tag=${encodeURIComponent(t)}`} className="hover:text-accent">
               #{t}

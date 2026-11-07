@@ -1,6 +1,6 @@
 // Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
 // items through these functions; visibility, release gate and body licences are applied here.
-import { categoryMembers, toPublicApiCategory, TRACK_CATEGORIES, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
+import { categoryMembers, industryRolesOn, isImpactKey, isRoleKey, toPublicApiCategory, TRACK_CATEGORIES, type CategoryKey, type ChannelKey, type ImpactKey, type RegionKey, type RoleKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
 import { sql, type Db } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -15,6 +15,8 @@ export interface ItemRow {
   reason: string | null;
   category: string | null;
   tags: string[];
+  roles: string[];
+  impact: string | null;
   score: number | null;
   selected: boolean;
   eligible: boolean;
@@ -53,7 +55,7 @@ export interface ItemRow {
 
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
 export const ITEM_COLUMNS = sql`
-  p.article_id AS id, p.revision, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.score,
+  p.article_id AS id, p.revision, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.roles, p.impact, p.score,
   p.selected, p.eligible, p.promotion, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
   p.body_mode, p.syndicate, p.indexable, p.visible_after, p.backfill, p.fact_id, p.story_id,
   s.id AS source_id, s.name AS source_name, s.kind AS source_kind, s.participation_mode AS source_mode, s.icon_url AS source_icon,
@@ -62,10 +64,10 @@ export const ITEM_COLUMNS = sql`
   CASE WHEN p.channel = 'x' THEN tr.body_text END AS zh_text, qt.text_zh AS quoted_zh`;
 
 /** Public API listings never render article bodies, X media or story metadata. */
-export type ApiItemRow = Pick<ItemRow, "id" | "title" | "original_title" | "summary" | "source_name" | "url" | "published_at" | "discovered_at" | "category" | "score" | "selected" | "reason">;
+export type ApiItemRow = Pick<ItemRow, "id" | "title" | "original_title" | "summary" | "source_name" | "url" | "published_at" | "discovered_at" | "category" | "roles" | "impact" | "score" | "selected" | "reason">;
 export const API_ITEM_COLUMNS = sql`
   p.article_id AS id, p.title, p.original_title, p.summary, s.name AS source_name, p.url,
-  p.published_at, p.discovered_at, p.category, p.score, p.selected, p.reason`;
+  p.published_at, p.discovered_at, p.category, p.roles, p.impact, p.score, p.selected, p.reason`;
 export const API_ITEM_FROM = sql`FROM publications p JOIN sources s ON s.id = p.source_id`;
 
 /** A translation of an older revision is left out: the original changed after it (the worker translates it again). */
@@ -120,6 +122,18 @@ export function regionCondition(region: RegionKey | null | undefined) {
   // Keep this condition usable in every publication query, including timeline CTEs that do not join
   // sources until hydration. The source table remains the single owner of the region attribute.
   return sql`AND p.source_id IN (SELECT id FROM sources WHERE region = ${region})`;
+}
+
+/** Practitioner role filter: the publication's own roles (only industry items have any). */
+export function roleCondition(role: RoleKey | null | undefined) {
+  if (!role) return sql``;
+  return sql`AND ${role} = ANY(p.roles)`;
+}
+
+/** The role and impact fields of an item as readers see them; absent unless FEATURES.industryRoles is on. */
+export function roleFields(row: Pick<ItemRow, "roles" | "impact">): { roles?: RoleKey[]; impact?: ImpactKey | null } {
+  if (!industryRolesOn()) return {};
+  return { roles: row.roles.filter(isRoleKey), impact: isImpactKey(row.impact) ? row.impact : null };
 }
 
 export function tagCondition(tag: string | null | undefined) {
@@ -196,6 +210,7 @@ export function toItemSummary(row: ItemRow): ItemSummary {
     timelineAt: row.timeline_at.toISOString(),
     category: toPublicApiCategory(row.category),
     tags: displayTags(row.tags),
+    ...roleFields(row),
     score: row.score === null ? null : Math.round(Number(row.score)),
     selected: row.selected,
     channel: row.channel,
@@ -210,7 +225,8 @@ export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
   return {
     id: item.id, title: item.title, summary: item.summary, reason: item.reason,
     source: { name: item.source.name }, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
-    category: item.category, tags: item.tags, score: item.score, selected: item.selected, channel: item.channel,
+    category: item.category, tags: item.tags, ...(item.roles ? { roles: item.roles, impact: item.impact } : {}),
+    score: item.score, selected: item.selected, channel: item.channel,
     ...(row.promotion ? { promotion: true as const } : {}),
     x: item.x ? {
       authorName: item.x.authorName, handle: item.x.handle, avatarUrl: item.x.avatarUrl,

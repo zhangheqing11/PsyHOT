@@ -2,7 +2,7 @@
 // Reads through the same public read layer as v1; no cookies are read or set.
 import { FEATURES } from "@aihot/industry/features";
 import type { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { isCategoryKey, isChannelKey, isRegionKey, isTrackKey, type CategoryKey, type ChannelKey, type RegionKey, type TrackKey } from "@aihot/contracts/taxonomy";
+import { isCategoryKey, industryRolesOn, isChannelKey, isRegionKey, isRoleKey, isTrackKey, type CategoryKey, type ChannelKey, type RegionKey, type RoleKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import { InvalidCursorError } from "@aihot/backend/lib/cursor";
 import { exportMarkdown, loadItemDetail, siteItemDetail } from "@aihot/backend/publication/detail";
 import { loadPool, SearchBusyError } from "@aihot/backend/publication/pool";
@@ -61,6 +61,7 @@ export interface FilterParams {
   category: CategoryKey | null;
   track?: TrackKey;
   region?: RegionKey;
+  role?: RoleKey;
   tag: string | null;
   topic: string | null;
   topicTags: string[] | null;
@@ -75,6 +76,9 @@ export async function parseFilters(q: Record<string, string>): Promise<FilterPar
   if (track !== null && !isTrackKey(track)) throw new BadRequest("invalid track");
   const region = q.region?.trim() || null;
   if (region !== null && !isRegionKey(region)) throw new BadRequest("invalid region");
+  // Until FEATURES.industryRoles is on, role is an unknown parameter and ignored like any other.
+  const role = industryRolesOn() ? q.role?.trim() || null : null;
+  if (role !== null && !isRoleKey(role)) throw new BadRequest("invalid role");
   const tag = q.tag?.trim() ? q.tag.trim().slice(0, 60) : null;
   const topic = q.topic?.trim() || null;
   let topicTags: string[] | null = null;
@@ -86,6 +90,7 @@ export async function parseFilters(q: Record<string, string>): Promise<FilterPar
     channel, category: category as CategoryKey | null, tag, topic, topicTags,
     ...(track ? { track } : {}),
     ...(region ? { region } : {}),
+    ...(role ? { role } : {}),
   };
 }
 
@@ -100,7 +105,7 @@ export function registerSite(app: FastifyInstance) {
     const q = looseQuery(req);
     const filters = await parseFilters(q);
     const limit = Math.min(Math.max(Number(q.limit) || 20, 1), 40);
-    const unfiltered = filters.channel === "all" && !filters.category && !filters.region && !filters.tag && !filters.topic && !q.cursor;
+    const unfiltered = filters.channel === "all" && !filters.category && !filters.region && !filters.role && !filters.tag && !filters.topic && !q.cursor;
     const [data, hot] = await Promise.all([
       loadTimeline({ ...filters, cursor: q.cursor || null, limit }),
       unfiltered ? loadHotStrip(filters.track ?? null) : null,
@@ -193,7 +198,7 @@ export function registerSite(app: FastifyInstance) {
     const q = looseQuery(req);
     const page = Number(q.page ?? 1);
     const filters = await parseFilters(q);
-    const data = Number.isInteger(page) ? await loadTopicPage(slug, page, { track: filters.track, region: filters.region }) : null;
+    const data = Number.isInteger(page) ? await loadTopicPage(slug, page, { track: filters.track, region: filters.region, role: filters.role }) : null;
     if (!data) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "topic page not found", cacheControl: "public, max-age=60" });
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "topic", cacheControl: "public, max-age=60, s-maxage=60" });
   }));

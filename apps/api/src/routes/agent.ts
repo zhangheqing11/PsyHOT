@@ -11,7 +11,7 @@ import { resolveStory, v1HotTopics, v1Story } from "@aihot/backend/publication/s
 import { listReports, loadReport, v1Daily } from "@aihot/backend/publication/reports";
 import { SKILL_PATH, skillFile } from "@aihot/backend/publication/skill";
 import { QueryError, sendProblem, sendTextWithEtag, strictQuery } from "../http/respond.ts";
-import { enumParam, intParam, publicHandler } from "./v1.ts";
+import { enumParam, intParam, publicHandler, roleParam, roleParams } from "./v1.ts";
 
 const PERIOD_KEY = { weekly: /^\d{4}-W\d{2}$/, monthly: /^\d{4}-\d{2}$/ } as const;
 
@@ -27,6 +27,7 @@ function listParams(q: Record<string, string>) {
     category: q.category === undefined ? null : enumParam<PublicApiCategoryKey>(q.category, "category", PUBLIC_API_CATEGORY_KEYS, PUBLIC_API_CATEGORY_KEYS[0]),
     track: (q.track as TrackKey | undefined) ?? null,
     region: (q.region as RegionKey | undefined) ?? null,
+    role: roleParam(q.role),
     limit: intParam(q.limit, "limit", 1, 30, 10),
   };
 }
@@ -39,19 +40,19 @@ export function registerAgent(app: FastifyInstance) {
   }));
 
   app.get("/api/v1/agent/latest", publicHandler(async (req, reply) => {
-    const q = strictQuery(req, ["window", "mode", "category", "track", "region", "limit"]);
+    const q = strictQuery(req, ["window", "mode", "category", "track", "region", ...roleParams(), "limit"]);
     const p = { ...listParams(q), mode: enumParam(q.mode, "mode", ["selected", "all"] as const, "selected") };
     const res = await v1Items({ ...p, by: "timeline", q: null, cursor: null });
     return markdown(req, reply, latestAnswer(res, p), "agent-latest", V1_CACHE_CONTROL.items);
   }));
 
   app.get("/api/v1/agent/search", publicHandler(async (req, reply) => {
-    const q = strictQuery(req, ["q", "window", "category", "track", "region", "limit"]);
+    const q = strictQuery(req, ["q", "window", "category", "track", "region", ...roleParams(), "limit"]);
     const text = (q.q ?? "").trim();
     if ([...text].length < 2 || [...text].length > 200) throw new QueryError("q must contain 2 to 200 characters.");
     const p = { ...listParams(q), window: enumParam(q.window, "window", ["24h", "7d"] as const, "7d") };
-    const found = await searchItems(text, p.window, p.category, p.limit, p.track, p.region);
-    return markdown(req, reply, searchAnswer(found, { q: text, window: p.window, category: p.category, track: p.track, region: p.region }), "agent-search", V1_CACHE_CONTROL.items);
+    const found = await searchItems(text, p.window, p.category, p.limit, p.track, p.region, p.role);
+    return markdown(req, reply, searchAnswer(found, { q: text, window: p.window, category: p.category, track: p.track, region: p.region, role: p.role }), "agent-search", V1_CACHE_CONTROL.items);
   }));
 
   app.get("/api/v1/agent/hot", publicHandler(async (req, reply) => {

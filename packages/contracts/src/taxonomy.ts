@@ -1,7 +1,7 @@
 // Public vocabularies shared by the website, the API and the worker. The categories themselves belong to
 // the industry pack (industry/taxonomy.ts); their keys are external identities (URLs, API, RSS).
 import { FEATURES } from "@aihot/industry/features";
-import { CATEGORIES, TRACKS } from "@aihot/industry/taxonomy";
+import { CATEGORIES, IMPACT_KEYS, IMPACT_TYPES, PRACTITIONER_ROLES, ROLE_KEYS, TRACKS, type ImpactKey, type RoleKey } from "@aihot/industry/taxonomy";
 
 export type CategoryKey = (typeof CATEGORIES)[number]["key"];
 export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key) as unknown as readonly [CategoryKey, ...CategoryKey[]];
@@ -25,6 +25,14 @@ export const CATEGORY_TRACK = Object.fromEntries(CATEGORIES.map((c) => [c.key, c
 export const REGION_KEYS = ["domestic", "international"] as const;
 export type RegionKey = (typeof REGION_KEYS)[number];
 
+/**
+ * Practitioner roles of industry items (industry/taxonomy.ts), an optional industry filter behind
+ * FEATURES.industryRoles; the impact type is the single main kind of effect an item has on them.
+ */
+export { IMPACT_KEYS, ROLE_KEYS, type ImpactKey, type RoleKey };
+export const ROLE_LABELS = Object.fromEntries(PRACTITIONER_ROLES.map((r) => [r.key, r.label])) as Record<RoleKey, string>;
+export const IMPACT_LABELS = Object.fromEntries(IMPACT_TYPES.map((i) => [i.key, i.label])) as Record<ImpactKey, string>;
+
 /** Categories belonging to each reader-facing track. */
 export const TRACK_CATEGORIES = Object.fromEntries(
   TRACK_KEYS.map((track) => [track, CATEGORY_KEYS.filter((category) => CATEGORY_TRACK[category] === track)]),
@@ -36,6 +44,19 @@ export function isTrackKey(value: unknown): value is TrackKey {
 
 export function isRegionKey(value: unknown): value is RegionKey {
   return typeof value === "string" && (REGION_KEYS as readonly string[]).includes(value);
+}
+
+/** FEATURES.industryRoles, read when asked (not at import) so every exit follows the switch. */
+export function industryRolesOn(): boolean {
+  return FEATURES.industryRoles as boolean;
+}
+
+export function isRoleKey(value: unknown): value is RoleKey {
+  return typeof value === "string" && (ROLE_KEYS as readonly string[]).includes(value);
+}
+
+export function isImpactKey(value: unknown): value is ImpactKey {
+  return typeof value === "string" && (IMPACT_KEYS as readonly string[]).includes(value);
 }
 
 /** Each category's own name (admin pages, the model's guide). */

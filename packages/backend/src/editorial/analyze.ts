@@ -9,6 +9,7 @@
 //   4. structure (no reader-facing text): category, tags, subject companies and the fact frame the
 //      topics and the event grouping need; it runs beside the scoring.
 // Material with only a title or a feed summary has its article page fetched before it is judged.
+import { createHash } from "node:crypto";
 import { z } from "zod";
 import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
 import { CATEGORIES, PRACTITIONER_ROLES, IMPACT_TYPES, ROLE_KEYS, IMPACT_KEYS } from "@aihot/industry/taxonomy";
@@ -34,13 +35,17 @@ import { promptText, promptVersion } from "./prompts.ts";
 
 export { buildMaterial, loadAnalyzeInput, type AnalyzeInputArticle };
 
+// The role and impact guides are filled into the structure prompt from the pack's vocabulary (not from the
+// file), so they are part of its version: rewording a role's guide makes older results rerunnable.
+const STRUCTURE_VOCABULARY_VERSION = createHash("sha256").update(JSON.stringify([PRACTITIONER_ROLES, IMPACT_TYPES])).digest("hex").slice(0, 10);
+
 export const PROMPT_VERSIONS = {
   prefilter: promptVersion("prefilter"),
   score: promptVersion("selection-score"),
   dims: promptVersion("selection-dims"),
   understand: promptVersion("understand"),
   summarize: promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context"),
-  structure: promptVersion("structure"),
+  structure: `${promptVersion("structure")}+roles@${STRUCTURE_VOCABULARY_VERSION}`,
 } as const;
 /** Every step's prompt, as stored on each judgement. */
 export const SELECTION_PROMPT_VERSION = [PROMPT_VERSIONS.prefilter, PROMPT_VERSIONS.score].join("+");

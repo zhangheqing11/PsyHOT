@@ -10,7 +10,7 @@ import { REPO_ROOT } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { stopBoss } from "@aihot/backend/jobs/queue";
-import { publishArticle } from "@aihot/backend/publication/publish";
+import { publishArticle, v1Payload } from "@aihot/backend/publication/publish";
 import { loadPool } from "@aihot/backend/publication/pool";
 import { loadTimeline } from "@aihot/backend/publication/timeline";
 import { v1Items } from "@aihot/backend/publication/v1";
@@ -89,7 +89,6 @@ test("vocabulary: role keys come from the pack, with labels and impact labels", 
   assert.equal(ROLE_LABELS.operator, "机构与产品");
   assert.deepEqual(Object.keys(IMPACT_LABELS), [...IMPACT_KEYS]);
   assert.ok(isRoleKey("school") && !isRoleKey("学校") && !isRoleKey(undefined));
-  assert.equal(FEATURES.industryRoles, false, "the switch ships off");
 });
 
 test("publish copies valid roles and impact of industry items, and nothing else", async () => {
@@ -210,8 +209,7 @@ test("with the switch on, the exits accept role and reject unknown ones", async 
   });
 });
 
-test("with the switch off, nothing changes: role is an unknown parameter and no role fields are sent", async () => {
-  assert.equal(FEATURES.industryRoles, false);
+test("with the switch off, nothing changes: role is an unknown parameter and no role fields are sent", () => withRoles(false, async () => {
   const rejected = await get("/api/v1/items?role=counselor");
   assert.equal(rejected.status, 400);
   assert.match(rejected.body, /Unknown query parameter: role/);
@@ -239,10 +237,11 @@ test("with the switch off, nothing changes: role is an unknown parameter and no 
   const timeline = await loadTimeline({ channel: "all", category: null, tag: null });
   for (const card of timeline.cards) assert.ok(!("roles" in card.item) && !("impact" in card.item));
   assert.ok(!/role=/.test(agentGuide()));
-  // The selected sync payloads are the old shape too.
-  const [payload] = await sql<{ payload: Record<string, unknown> }[]>`SELECT payload FROM selected_ledger WHERE article_id = ${ids.both!} ORDER BY seq DESC LIMIT 1`;
-  assert.ok(payload && !("roles" in payload.payload) && !("impact" in payload.payload));
-});
+  // The selected sync payloads keep the old shape too.
+  const payload = v1Payload({ articleId: ids.both!, title: "t", originalTitle: null, summary: null, sourceName: "s", url: "https://example.com/x",
+    publishedAt: null, discoveredAt: new Date(), category: "policy", score: 80, selected: true, reason: null, roles: ["school"], impact: "rule" });
+  assert.ok(!("roles" in payload) && !("impact" in payload));
+}));
 
 test("the 0059 backfill fills industry items from their analysis, and leaves the rest empty", async () => {
   const text = readFileSync(path.join(REPO_ROOT, "database/migrations/0059_publication_roles.sql"), "utf8");

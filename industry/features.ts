@@ -21,5 +21,5 @@ export const FEATURES = {
    * 站内接口、公开 API 和 MCP 的条目多出 roles、impact 两个字段，各出口都接受 role 参数。关着时网站和所有对外出口
    * 与没有这个功能时完全一样（role 参数当作未知参数）。角色和影响类型来自结构理解，打开前要先有足够的标注。
    */
-  industryRoles: false,
+  industryRoles: true,
 } as const;

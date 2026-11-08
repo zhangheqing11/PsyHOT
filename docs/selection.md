@@ -42,6 +42,8 @@ export const SELECTION = {
 
 `0060_industry_role_scoring.sql` 只增加默认空的 `selected_roles`、默认 false 的 `hot_pick` 和热点入选记录表，不回填。启用后的历史处理使用 `scripts/rerun-role-scores.ts`，默认 `--days 28 --concurrency 3 --tag role-scores-2026-11`，可传 `--limit`；先用 `--dry-run` 查看范围。线上评分和脚本都记录 `output.roleScoring.promptVersion`，脚本只重跑版本缺失或不同的条目；版本相同的条目无论是否有 `rerunTag`、tag 是否相同都跳过。脚本只跑角色评分，合并最新分析并重新发布，最后执行一次热点通道；报告已入选但没有精选写法的数量，不自动补写。开关关闭时包括 dry-run 在内都拒绝运行。
 
+重跑角色评分后，新入选但没有推荐理由的条目可用 `scripts/fill-role-reasons.ts` 补写，先加 `--dry-run` 查看候选，也可传 `--limit` 和 `--concurrency`（默认 3）。脚本复用重跑时的角色回执，沿正常分析流程用精选写法补写并重新发布，不重算角色评分或热点通道。
+
 ## 校准
 
 ### 1. 准备样本集

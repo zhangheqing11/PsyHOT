@@ -30,6 +30,18 @@ export const SELECTION = {
 
 旧规则的分级门槛来自框架原配置。学界五维门槛由站长在 2026-10-29 上线交接中批准；模型、数据记录、回滚和来源见 [学界五维评分](academic-dims-scoring.md)。没有过粗筛线、推广、评分被拒绝和关闭开关时均保留原规则。
 
+## 业界角色评分与热点通道
+
+`FEATURES.industryRoleScoring` 默认 `false`；关闭时沿用现有精选、筛选和展示。打开后，业界非推广条目在结构理解和两次旧评分之后，用 `selection-roles.md` 一次评估五个角色，不以旧分做粗筛。学界、推广、预筛 BLOCK 和只有标题的材料不跑这一步。
+
+角色分 = `rel + act + nov + 3 × 结论分`，范围 3–18；`must`、`maybe`、`skip` 的结论分分别为 2、1、0。角色入选须结论不是 `skip` 且达到门槛：咨询与治疗（counselor）11、精神科医护（psychiatry）12、青少年心理（school）10、社工与热线（community）10、机构与产品（operator）11。任一角色入选，且通过原有相关性和发布门，即进入业界精选；`selected_roles` 只记录实际入选的角色。数字来自 **2026-11-08 导师标注与近四周离线测试**，目标是每个角色每周约 1–2 条。提示词和这些门槛均已固定。
+
+`analyses.score` / `publications.score` 仍保留两次旧评分均分，用于热度质量、报道查找与排序。浏览标签改为 `rel >= 2` 的角色，按角色分降序，同分按 `ROLE_KEYS` 顺序，最多三个；有角色入选或旧均分高于 `understandFloor` 时使用精选写法。没有新步骤结果的条目沿用结构理解的浏览标签。开关打开时，业界卡片与详情隐藏 AI 评分，学界照旧；按角色看精选用 `selected_roles`，全部动态用 `roles`。新 `hotPick`、`selectedRoles` 字段只给站内接口，公开 v1 / MCP 不加字段。
+
+热点通道在每次定时计算热榜之后运行，不改热榜排序或报道查找条件，也不调用模型：首次报道在最近 **7 天**、且没有任何已入选发布（角色精选、学界精选都算）的事件，在 `HOT.windowHours`（当前为 7 天）内达到 **8 个独立参与方**，且至少有一个 editorial 参与方时，若有业界、非推广、公开、eligible、尚未入选的发布，其角色评分最大 `rel >= 2`、通用 `nov >= 2`，则选最大 rel 最高、同分最早的一条重新发布。参与方按 `story_signals.participant_key` 去重，排除 `articles.duplicate_of` 非空的报道。每个事件最多一次，热度回落后保留；热点入选不增加 `selected_roles`，沿用已有写法，卡片显示“热点”。
+
+`0060_industry_role_scoring.sql` 只增加默认空的 `selected_roles`、默认 false 的 `hot_pick` 和热点入选记录表，不回填。启用后的历史处理使用 `scripts/rerun-role-scores.ts`，默认 `--days 28 --concurrency 3 --tag role-scores-2026-11`，可传 `--limit`；先用 `--dry-run` 查看范围。线上评分和脚本都记录 `output.roleScoring.promptVersion`，脚本只重跑版本缺失或不同的条目；版本相同的条目无论是否有 `rerunTag`、tag 是否相同都跳过。脚本只跑角色评分，合并最新分析并重新发布，最后执行一次热点通道；报告已入选但没有精选写法的数量，不自动补写。开关关闭时包括 dry-run 在内都拒绝运行。
+
 ## 校准
 
 ### 1. 准备样本集

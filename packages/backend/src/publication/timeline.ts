@@ -23,8 +23,8 @@ interface GroupRow {
   anchor_at: Date;
 }
 
-function filterSql(q: TimelineQuery) {
-  return sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${roleCondition(q.role)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+function filterSql(q: TimelineQuery, selected = true) {
+  return sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${roleCondition(q.role, selected)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
 }
 
 function binding(q: TimelineQuery): string {
@@ -63,7 +63,7 @@ async function groupPool(q: TimelineQuery, now: Date, storyIds: number[], factId
     SELECT DISTINCT f.story_id, f.id AS fact_id, p.article_id, p.source_id, p.timeline_at AS at
     FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
     WHERE (f.story_id IN ${sql(storyIds.length ? storyIds : [0])} OR f.id IN ${sql(factIds.length ? factIds : [0])})
-      AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${now}) ${filterSql(q)}`;
+      AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${now}) ${filterSql(q, false)}`;
 }
 
 /**

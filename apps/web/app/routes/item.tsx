@@ -3,6 +3,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { Link, useLoaderData, useNavigate } from "react-router";
 import type { Route } from "./+types/item";
 import type { SiteItemDetail } from "@aihot/contracts/site";
+import { CATEGORY_TRACK, industryRoleScoringOn } from "@aihot/contracts/taxonomy";
 import { loadOr404 } from "../lib/api.server";
 import { breadcrumbLd, pageMeta, siteUrl, titled } from "../lib/seo";
 import { fullDateTime, relativeTime } from "../lib/format";
@@ -123,6 +124,7 @@ export default function ItemPage() {
   const bodyHtml = lang === "zh" ? (item.body?.zh ?? item.body?.original) : (item.body?.original ?? item.body?.zh);
   const bodyLabel = !item.body ? null : lang === "zh" && item.body.zhKind === "translation" ? "正文 · AI 翻译" : lang === "original" && hasTranslation ? "正文 · 原文" : "正文";
   const isX = item.channel === "x" && !!item.x;
+  const showScore = !(industryRoleScoringOn() && !!item.category && CATEGORY_TRACK[item.category] === "industry");
   const publishedIso = item.publishedAt ?? item.discoveredAt;
   const summaryOnly = item.readingMode === "summary-only";
   const showOutline = item.outline.length >= 3;
@@ -183,10 +185,10 @@ export default function ItemPage() {
       {moreMenu}
     </div>
   );
-  const verdict = (item.selected || item.score !== null) && (
+  const verdict = (item.selected || (showScore && item.score !== null)) && (
     <div className="flex items-center gap-2">
       {item.selected && <SelectedBadge />}
-      <ScoreLabel score={item.score} />
+      {showScore && <ScoreLabel score={item.score} />}
     </div>
   );
 
@@ -230,7 +232,7 @@ export default function ItemPage() {
           <p className="text-[13.5px] leading-[1.8] text-ink-2">{item.reason}</p>
         </RailSection>
       ) : (
-        verdict && <RailSection title="AI 评分">{verdict}</RailSection>
+        verdict && <RailSection title={showScore ? "AI 评分" : "精选"}>{verdict}</RailSection>
       )}
       {item.tags.length > 0 && (
         <RailSection title="标签">
@@ -295,7 +297,7 @@ export default function ItemPage() {
                 <SelectedBadge />
               </span>
             )}
-            {item.score !== null && (
+            {showScore && item.score !== null && (
               <span className="ml-1 lg:hidden">
                 <ScoreLabel score={item.score} />
               </span>

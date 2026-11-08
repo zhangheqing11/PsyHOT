@@ -59,6 +59,9 @@ export interface ItemSummary {
   /** Practitioner roles and the main kind of effect on them (industry items); only present with FEATURES.industryRoles. */
   roles?: RoleKey[];
   impact?: ImpactKey | null;
+  /** Site-only role selection fields; present only with FEATURES.industryRoleScoring. */
+  hotPick?: boolean;
+  selectedRoles?: RoleKey[];
   score: number | null;
   selected: boolean;
   channel: "news" | "x";
@@ -67,7 +70,7 @@ export interface ItemSummary {
 }
 
 /** The fields rendered by a site feed card; full original text lives in the item detail. */
-export interface FeedItemSummary extends Pick<ItemSummary, "id" | "title" | "summary" | "reason" | "publishedAt" | "timelineAt" | "category" | "tags" | "roles" | "impact" | "score" | "selected" | "channel"> {
+export interface FeedItemSummary extends Pick<ItemSummary, "id" | "title" | "summary" | "reason" | "publishedAt" | "timelineAt" | "category" | "tags" | "roles" | "impact" | "hotPick" | "selectedRoles" | "score" | "selected" | "channel"> {
   source: Pick<SourceRef, "name">;
   /** The industry's own advertising (only listed in the full feed); absent otherwise. */
   promotion?: true;

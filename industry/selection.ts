@@ -26,6 +26,16 @@ export const SELECTION = {
     thresholds: { T1: 60, T1_5: 65, T2: 67 },
   } as { enabled: boolean; gate: number; thresholds: Record<string, number> },
   /**
+   * 业界角色门槛来自 2026-11-08 导师标注与近四周离线测试，每个角色每周约 1–2 条。
+   * 由 features.ts 的 industryRoleScoring 统一控制角色精选、热点通道与网站评分展示。
+   */
+  industryRoles: {
+    thresholds: { counselor: 11, psychiatry: 12, school: 10, community: 10, operator: 11 },
+    browseMinRel: 2,
+    maxBrowseRoles: 3,
+    hot: { minParticipants: 8, minRel: 2, minNov: 2, recentDays: 7 },
+  },
+  /**
    * 没入选、但平均分高于这个数的资料，也用精选的写法（内容理解：标题、摘要、推荐理由、标签）来写，
    * 其余用更便宜的“标题摘要翻译”。
    */

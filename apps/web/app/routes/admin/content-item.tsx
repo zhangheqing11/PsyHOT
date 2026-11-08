@@ -1,7 +1,7 @@
 import { SITE } from "@aihot/industry/site";
 import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { CATEGORY_KEYS, CATEGORY_NAMES } from "@aihot/contracts/taxonomy";
+import { CATEGORY_KEYS, CATEGORY_NAMES, ROLE_KEYS, ROLE_LABELS } from "@aihot/contracts/taxonomy";
 import type { Route } from "./+types/content-item";
 import { adminGet } from "../../lib/admin.server";
 import { useAdminAction } from "../../features/admin/action";
@@ -174,6 +174,15 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                         <span className="text-ink-4">{an.model} · {an.prompt_version} · 输入 v{an.input_revision} · {an.origin} · {bj(an.created_at)}</span>
                       </div>
                       <PractitionerRoles roles={an.output?.roles} impact={an.output?.impact} />
+                      {an.output?.roleScoring?.roleScores && (
+                        <div className="mt-2 flex flex-wrap gap-1.5 text-[12px]">
+                          {ROLE_KEYS.map((role) => (
+                            <Badge key={role} tone={an.output.roleScoring.selectedRoles?.includes(role) ? "accent" : "muted"}>
+                              {ROLE_LABELS[role]} {an.output.roleScoring.roleScores[role]}{an.output.roleScoring.selectedRoles?.includes(role) ? " · 入选" : ""}
+                            </Badge>
+                          ))}
+                        </div>
+                      )}
                       {an.title_zh && <div className="mt-2 font-medium text-ink">{an.title_zh}</div>}
                       {an.reason_zh && <div className="mt-1 text-[12.5px] leading-relaxed text-ink-3">{an.reason_zh}</div>}
                       {(an.receipts as Row[]).length > 0 && (

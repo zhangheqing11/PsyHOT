@@ -102,17 +102,17 @@ export async function loadDevelopments(q: DevelopmentsQuery, now = new Date()): 
   const [story] = await sql<{ id: number; public_id: string; title: string }[]>`
     SELECT id, public_id::text, title FROM stories WHERE public_id = ${q.storyPublicId} AND merged_into IS NULL`;
   if (!story) return { kind: "not_found" };
-  const filters = sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${roleCondition(q.role)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
+  const filters = (selected = false) => sql`${channelCondition(q.channel)} ${categoryCondition(q.category)} ${trackCondition(q.category ? null : q.track)} ${regionCondition(q.region)} ${roleCondition(q.role, selected)} ${tagCondition(q.tag)} ${topicCondition(q.topicTags)}`;
   type Member = Pick<ItemRow, "id" | "fact_id" | "first_party" | "body_mode" | "score" | "timeline_at" | "sort_at">;
   const selected = await sql<Member[]>`
     SELECT p.article_id AS id, p.fact_id, p.first_party, p.body_mode, p.score, p.timeline_at, p.sort_at
-    FROM publications p WHERE p.story_id = ${story.id} AND ${selectedCondition(now)} ${filters}`;
+    FROM publications p WHERE p.story_id = ${story.id} AND ${selectedCondition(now)} ${filters(true)}`;
   if (selected.length === 0) return { kind: "not_found" };
   const counts = new Map(
     (await sql<{ fact_id: number; n: number }[]>`
       SELECT fa.fact_id, count(DISTINCT p.article_id)::int AS n
       FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
-      WHERE f.story_id = ${story.id} AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${now}) ${filters}
+      WHERE f.story_id = ${story.id} AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${now}) ${filters()}
       GROUP BY fa.fact_id`).map((c) => [c.fact_id, c.n]),
   );
   const byFact = new Map<number, Member[]>();
@@ -147,7 +147,7 @@ export async function loadDevelopments(q: DevelopmentsQuery, now = new Date()): 
   const page = list.slice(offset, offset + q.take);
   const rows = new Map(page.length ? (await sql<ItemRow[]>`
     SELECT ${ITEM_COLUMNS} ${ITEM_FROM} WHERE p.article_id IN ${sql(page.map((d) => d.representativeId))}
-      AND p.story_id = ${story.id} AND ${selectedCondition(now)} ${filters}`).map((row) => [row.id, row]) : []);
+      AND p.story_id = ${story.id} AND ${selectedCondition(now)} ${filters(true)}`).map((row) => [row.id, row]) : []);
   if (rows.size !== page.length) return { kind: "changed" };
   const developments = page.flatMap(({ representativeId, ...development }) => {
     const row = rows.get(representativeId);

@@ -116,7 +116,7 @@ export async function itemFeed(kind: ItemFeedKind, category: PublicApiCategoryKe
   const scope = kind === "all"
     ? sql`${exportedPoolCondition(now)} ${trackCondition(track)} ${regionCondition(region)} ${roleCondition(role)} AND coalesce(p.published_at, p.discovered_at) > ${now}::timestamptz - interval '7 days'
         AND coalesce(p.published_at, p.discovered_at) <= ${now}`
-    : sql`${selectedCondition(now)} ${categoryCondition(category)} ${trackCondition(category ? null : track)} ${regionCondition(region)} ${roleCondition(role)}
+    : sql`${selectedCondition(now)} ${categoryCondition(category)} ${trackCondition(category ? null : track)} ${regionCondition(region)} ${roleCondition(role, true)}
         ${category ? sql`AND coalesce(p.published_at, p.discovered_at) >= ${new Date(now.getTime() - 7 * 86400_000)}` : sql``}`;
   const rows = await sql<FeedRow[]>`
     WITH page AS MATERIALIZED (

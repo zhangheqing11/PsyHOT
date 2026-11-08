@@ -133,7 +133,7 @@ export async function loadTopicPage(slug: string, page: number, filters: { track
   const topics = await listTopicSummaries();
   const topic = topics.find((t) => t.slug === slug);
   if (!topic) return null;
-  const filterSql = sql`${trackCondition(filters.track)} ${regionCondition(filters.region)} ${roleCondition(filters.role)}`;
+  const filterSql = sql`${trackCondition(filters.track)} ${regionCondition(filters.region)} ${roleCondition(filters.role, true)}`;
   const [{ total }] = await sql<{ total: number }[]>`
     SELECT count(*)::int AS total FROM publications p
     WHERE ${selectedCondition(now)} AND p.tags && ${topicMatchTags(row)}::text[] ${filterSql}`;

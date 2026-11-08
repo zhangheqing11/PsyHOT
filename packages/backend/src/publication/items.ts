@@ -1,6 +1,6 @@
 // Public read layer, item level. Every exit (site API, v1, RSS, MCP, sitemap) reads
 // items through these functions; visibility, release gate and body licences are applied here.
-import { categoryMembers, industryRolesOn, isImpactKey, isRoleKey, toPublicApiCategory, TRACK_CATEGORIES, type CategoryKey, type ChannelKey, type ImpactKey, type RegionKey, type RoleKey, type TrackKey } from "@aihot/contracts/taxonomy";
+import { categoryMembers, industryRolesOn, industryRoleScoringOn, isImpactKey, isRoleKey, toPublicApiCategory, TRACK_CATEGORIES, type CategoryKey, type ChannelKey, type ImpactKey, type RegionKey, type RoleKey, type TrackKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
 import { sql, type Db } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
@@ -17,6 +17,8 @@ export interface ItemRow {
   tags: string[];
   roles: string[];
   impact: string | null;
+  selected_roles: string[];
+  hot_pick: boolean;
   score: number | null;
   selected: boolean;
   eligible: boolean;
@@ -55,7 +57,7 @@ export interface ItemRow {
 
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
 export const ITEM_COLUMNS = sql`
-  p.article_id AS id, p.revision, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.roles, p.impact, p.score,
+  p.article_id AS id, p.revision, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.roles, p.impact, p.selected_roles, p.hot_pick, p.score,
   p.selected, p.eligible, p.promotion, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
   p.body_mode, p.syndicate, p.indexable, p.visible_after, p.backfill, p.fact_id, p.story_id,
   s.id AS source_id, s.name AS source_name, s.kind AS source_kind, s.participation_mode AS source_mode, s.icon_url AS source_icon,
@@ -124,10 +126,10 @@ export function regionCondition(region: RegionKey | null | undefined) {
   return sql`AND p.source_id IN (SELECT id FROM sources WHERE region = ${region})`;
 }
 
-/** Practitioner role filter: the publication's own roles (only industry items have any). */
-export function roleCondition(role: RoleKey | null | undefined) {
+/** Selected lists use the role's own selection; the full pool uses browse roles, including hot picks. */
+export function roleCondition(role: RoleKey | null | undefined, selected = false) {
   if (!role) return sql``;
-  return sql`AND ${role} = ANY(p.roles)`;
+  return selected && industryRoleScoringOn() ? sql`AND ${role} = ANY(p.selected_roles)` : sql`AND ${role} = ANY(p.roles)`;
 }
 
 /** The role and impact fields of an item as readers see them; absent unless FEATURES.industryRoles is on. */
@@ -211,6 +213,7 @@ export function toItemSummary(row: ItemRow): ItemSummary {
     category: toPublicApiCategory(row.category),
     tags: displayTags(row.tags),
     ...roleFields(row),
+    ...(industryRoleScoringOn() ? { hotPick: row.hot_pick, selectedRoles: row.selected_roles.filter(isRoleKey) } : {}),
     score: row.score === null ? null : Math.round(Number(row.score)),
     selected: row.selected,
     channel: row.channel,
@@ -226,6 +229,7 @@ export function toFeedItemSummary(row: ItemRow): FeedItemSummary {
     id: item.id, title: item.title, summary: item.summary, reason: item.reason,
     source: { name: item.source.name }, publishedAt: item.publishedAt, timelineAt: item.timelineAt,
     category: item.category, tags: item.tags, ...(item.roles ? { roles: item.roles, impact: item.impact } : {}),
+    ...(industryRoleScoringOn() ? { hotPick: item.hotPick, selectedRoles: item.selectedRoles } : {}),
     score: item.score, selected: item.selected, channel: item.channel,
     ...(row.promotion ? { promotion: true as const } : {}),
     x: item.x ? {

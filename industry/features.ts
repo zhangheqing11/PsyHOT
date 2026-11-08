@@ -22,4 +22,9 @@ export const FEATURES = {
    * 与没有这个功能时完全一样（role 参数当作未知参数）。角色和影响类型来自结构理解，打开前要先有足够的标注。
    */
   industryRoles: true,
+  /**
+   * 业界精选按五个角色各自的分数和门槛决定，并启用热点通道；业界卡片不显示 AI 评分。
+   * 默认关闭，关着时网站和所有对外出口与现在一样。
+   */
+  industryRoleScoring: true,
 } as const;

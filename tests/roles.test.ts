@@ -2,6 +2,7 @@
 // publication projection carries roles and impact from the structure step's output; every exit accepts `role`
 // once the switch is on, and with it off the exits are what they were (role is an unknown parameter).
 import { tag } from "./setup.ts";
+import { withRoleScoring } from "./feature-flags.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
@@ -127,7 +128,7 @@ test("a change of roles or impact updates the publication and bumps its revision
   assert.deepEqual(await publication(id).then((p) => [p.roles, p.impact]), [[], null]);
 });
 
-test("with the switch on, role keeps industry items that carry it; several roles show under each", async () => {
+test("with the switch on, role keeps industry items that carry it; several roles show under each", () => withRoleScoring(false, async () => {
   await withRoles(true, async () => {
     const school = await loadPool({ channel: "all", category: null, tag: null, role: "school" });
     assert.deepEqual(idsOf(school.items), named("both"), "an academic item or promotion with a role in its analysis is not listed");
@@ -170,9 +171,9 @@ test("with the switch on, role keeps industry items that carry it; several roles
     assert.ok(feed.includes(ids.both!) && feed.includes(ids.counselor!) && !feed.includes(ids.none!));
     assert.ok(feed.includes(`role=counselor`) && feed.includes(ROLE_LABELS.counselor));
   });
-});
+}));
 
-test("with the switch on, the exits accept role and reject unknown ones", async () => {
+test("with the switch on, the exits accept role and reject unknown ones", () => withRoleScoring(false, async () => {
   await withRoles(true, async () => {
     const pool = JSON.parse((await get("/api/site/pool?role=counselor")).body);
     assert.deepEqual(idsOf(pool.items), named("both", "counselor"));
@@ -207,7 +208,7 @@ test("with the switch on, the exits accept role and reject unknown ones", async 
     assert.equal((await get("/feed/full/track/industry.xml?role=bogus")).status, 404);
     assert.equal((await get("/feed/track/industry.xml?role=counselor&region=international")).status, 200);
   });
-});
+}));
 
 test("with the switch off, nothing changes: role is an unknown parameter and no role fields are sent", () => withRoles(false, async () => {
   const rejected = await get("/api/v1/items?role=counselor");

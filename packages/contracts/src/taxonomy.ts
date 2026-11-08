@@ -51,6 +51,11 @@ export function industryRolesOn(): boolean {
   return FEATURES.industryRoles as boolean;
 }
 
+/** Read at call time so analysis, publication and site rendering share the same switch. */
+export function industryRoleScoringOn(): boolean {
+  return FEATURES.industryRoleScoring as boolean;
+}
+
 export function isRoleKey(value: unknown): value is RoleKey {
   return typeof value === "string" && (ROLE_KEYS as readonly string[]).includes(value);
 }

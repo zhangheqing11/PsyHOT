@@ -11,7 +11,7 @@
 // Material with only a title or a feed summary has its article page fetched before it is judged.
 import { createHash } from "node:crypto";
 import { z } from "zod";
-import { CATEGORY_KEYS } from "@aihot/contracts/taxonomy";
+import { CATEGORY_KEYS, industryRoleScoringOn, isRoleKey, type RoleKey } from "@aihot/contracts/taxonomy";
 import { CATEGORIES, PRACTITIONER_ROLES, IMPACT_TYPES, ROLE_KEYS, IMPACT_KEYS } from "@aihot/industry/taxonomy";
 import { SELECTION } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
@@ -43,6 +43,7 @@ export const PROMPT_VERSIONS = {
   prefilter: promptVersion("prefilter"),
   score: promptVersion("selection-score"),
   dims: promptVersion("selection-dims"),
+  roles: promptVersion("selection-roles"),
   understand: promptVersion("understand"),
   summarize: promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context"),
   structure: `${promptVersion("structure")}+roles@${STRUCTURE_VOCABULARY_VERSION}`,
@@ -96,6 +97,33 @@ const DimsSchema = z.object({
 });
 const DIMS_SYSTEM = promptText("selection-dims");
 const dimsDisplayScore = (sum: number) => Math.round((sum - 5) / 15 * 100);
+
+const RoleScoreSchema = z.object({
+  why: z.string().transform((v) => v.slice(0, 200)),
+  rel: z.number().int().min(1).max(4), act: z.number().int().min(1).max(4),
+  verdict: z.enum(["must", "maybe", "skip"]),
+});
+export const RolesSchema = z.object({
+  event: z.string(), nov: DimAxisSchema, cred: DimAxisSchema,
+  roles: z.object({ counselor: RoleScoreSchema, psychiatry: RoleScoreSchema, school: RoleScoreSchema, community: RoleScoreSchema, operator: RoleScoreSchema }),
+  primary: z.array(z.unknown()).transform((v) => [...new Set(v.filter(isRoleKey))].slice(0, 2)),
+});
+export type RoleScoringValues = z.infer<typeof RolesSchema>;
+const ROLES_SYSTEM = promptText("selection-roles");
+
+/** Frozen offline rule: role selection and browse labels do not change the legacy quality score. */
+export function calculateRoleScores(values: RoleScoringValues) {
+  const conclusion = { must: 2, maybe: 1, skip: 0 };
+  const roleScores = Object.fromEntries(ROLE_KEYS.map((key) => {
+    const r = values.roles[key];
+    return [key, r.rel + r.act + values.nov.score + 3 * conclusion[r.verdict]];
+  })) as Record<RoleKey, number>;
+  const selectedRoles = ROLE_KEYS.filter((key) => values.roles[key].verdict !== "skip" && roleScores[key] >= SELECTION.industryRoles.thresholds[key]);
+  const browseRoles = ROLE_KEYS.filter((key) => values.roles[key].rel >= SELECTION.industryRoles.browseMinRel)
+    .sort((a, b) => roleScores[b] - roleScores[a] || ROLE_KEYS.indexOf(a) - ROLE_KEYS.indexOf(b))
+    .slice(0, SELECTION.industryRoles.maxBrowseRoles);
+  return { roleScores, selectedRoles, browseRoles };
+}
 
 const SCORE_TIME = new Intl.DateTimeFormat("sv-SE", {
   timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false,
@@ -196,6 +224,11 @@ export interface AnalysisRun {
     values: Record<typeof DIMS_AXES[number], number> & {
       why: Record<typeof DIMS_AXES[number], string>; contentType: string; event: string;
     };
+  };
+  /** Industry second stage, separate from the structure step's browse roles. */
+  roleScoring?: {
+    model: string; receiptId: number; reused: boolean; values: RoleScoringValues;
+    roleScores: Record<RoleKey, number>; selectedRoles: RoleKey[]; browseRoles: RoleKey[];
   };
   /** The reader-facing copy: `understand` (selected, near-selected), `summarize`, `verbatim` (a Chinese short post), `none`. */
   writing: {
@@ -359,6 +392,30 @@ async function runDims(a: AnalyzeInputArticle, threshold: number, opts: StepOpts
   };
 }
 
+/** One reasoning call for all five roles; retry uses the same logical receipt, never legacy fallback. */
+export async function runRoleScores(a: AnalyzeInputArticle, opts: StepOpts = {}): Promise<NonNullable<AnalysisRun["roleScoring"]>> {
+  const model = await modelFor("scoreRoles");
+  const input = buildScoreInput(a).replace(
+    "请按系统规则评估以下单篇材料所代表的事件。只输出 attentionScore。",
+    "请按系统规则评估以下单篇材料所代表的事件。只输出规定格式的 JSON。",
+  );
+  const call = () => {
+    checkAnalysisRunning();
+    return chatJson({
+      model, purpose: "score_roles", subject: subjectOf(a), promptVersion: PROMPT_VERSIONS.roles,
+      system: ROLES_SYSTEM, user: input, schema: RolesSchema, maxTokens: 4000, temperature: 0.2,
+      attemptTag: tagged(opts.attemptTag, "roles"),
+    });
+  };
+  let res: Awaited<ReturnType<typeof call>>;
+  try {
+    res = await call();
+  } catch {
+    res = await call();
+  }
+  return { model: res.model, receiptId: res.receiptId, reused: res.reused, values: res.data, ...calculateRoleScores(res.data) };
+}
+
 async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<NonNullable<AnalysisRun["structure"]>> {
   const model = await modelFor("structure");
   checkAnalysisRunning();
@@ -381,7 +438,8 @@ async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<Non
   const roles = trackOfCategory(category) === "industry" && !promotion
     ? [...new Set(res.data.roles.map((r) => r.trim().toLowerCase()).filter((r) => (ROLE_KEYS as readonly string[]).includes(r)))].slice(0, 3)
     : [];
-  const impact = roles.length && res.data.impact !== null && (IMPACT_KEYS as readonly string[]).includes(res.data.impact) ? res.data.impact : null;
+  const roleImpact = roles.length || (industryRoleScoringOn() && trackOfCategory(category) === "industry" && !promotion);
+  const impact = roleImpact && res.data.impact !== null && (IMPACT_KEYS as readonly string[]).includes(res.data.impact) ? res.data.impact : null;
   return {
     model: res.model, category, tags: normalizeTags(res.data.tags), subjects, fact: promotion ? null : res.data.fact, promotion, roles, impact,
     receiptId: res.receiptId, reused: res.reused,
@@ -496,9 +554,13 @@ export async function runAnalysis(a: AnalyzeInputArticle, opts: StepOpts & { sta
       ? await runDims(a, dimsThreshold, opts) : undefined;
     // Keep the legacy mean's half-point boundary; dimensions use their final, rounded display score.
     const finalScore = dims ? dimsDisplayScore(dims.sum) : sum === null ? null : sum / SCORE_CALLS;
-    const near = !s.value.promotion && finalScore !== null && (finalScore >= (dims?.threshold ?? scores!.threshold) || finalScore > UNDERSTAND_FLOOR);
+    const roleScoring = industryRoleScoringOn() && track === "industry" && !s.value.promotion && sum !== null
+      ? await runRoleScores(a, opts) : undefined;
+    const near = !s.value.promotion && (roleScoring
+      ? roleScoring.selectedRoles.length > 0 || (finalScore !== null && finalScore > UNDERSTAND_FLOOR)
+      : finalScore !== null && (finalScore >= (dims?.threshold ?? scores!.threshold) || finalScore > UNDERSTAND_FLOOR));
     const writing = (near ? await runUnderstand(a, opts) : null) ?? (await runSummarize(a, opts));
-    return { prefilter, scores, writing, structure: s.value, ...(dims ? { dims } : {}) };
+    return { prefilter, scores, writing, structure: s.value, ...(dims ? { dims } : {}), ...(roleScoring ? { roleScoring } : {}) };
   } finally {
     // A score/writing error or deploy must not let the job finish while a paid structure request
     // still owns a response. It settles and stores its receipt before shutdown can close the DB.
@@ -521,8 +583,9 @@ export function normalizeAnalysis(run: AnalysisRun) {
   const score = run.dims ? dimsDisplayScore(run.dims.sum) : sum === null ? null : Math.floor(sum / SCORE_CALLS);
   const threshold = run.dims?.threshold ?? run.scores?.threshold ?? null;
   const promotion = run.structure?.promotion ?? false;
-  const selected = relevance === "pass" && !promotion && score !== null && threshold !== null
-    && (run.dims ? score >= threshold : sum !== null && sum >= threshold * SCORE_CALLS);
+  const selected = relevance === "pass" && !promotion && (run.roleScoring ? run.roleScoring.selectedRoles.length > 0
+    : score !== null && threshold !== null && (run.dims ? score >= threshold : sum !== null && sum >= threshold * SCORE_CALLS));
+  const roles = run.roleScoring?.browseRoles ?? run.structure?.roles ?? [];
   const subjects = run.structure?.subjects ?? [];
   const tags = [...(run.writing?.tags ?? run.structure?.tags ?? [])];
   for (const s of subjects) {
@@ -537,7 +600,8 @@ export function normalizeAnalysis(run: AnalysisRun) {
     scoreModel: run.scores?.model ?? null,
     scoreRefused: run.scores?.refused ?? false,
     threshold,
-    scoringPath: run.dims ? "dims" as const : "legacy" as const,
+    scoringPath: run.roleScoring ? "roles" as const : run.dims ? "dims" as const : "legacy" as const,
+    ...(run.roleScoring ? { roleScoring: { values: run.roleScoring.values, roleScores: run.roleScoring.roleScores, selectedRoles: run.roleScoring.selectedRoles } } : {}),
     dims: run.dims?.values ?? null,
     dimsSum: run.dims?.sum ?? null,
     dimsModel: run.dims?.model ?? null,
@@ -545,8 +609,8 @@ export function normalizeAnalysis(run: AnalysisRun) {
     category: run.structure?.category ?? null,
     tags,
     subjects,
-    roles: run.structure?.roles ?? [],
-    impact: run.structure?.impact ?? null,
+    roles,
+    impact: roles.length ? run.structure?.impact ?? null : null,
     titleZh,
     summaryZh,
     reasonZh: promotion ? null : run.writing?.reasonZh ?? null,
@@ -578,6 +642,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
   const out = normalizeAnalysis(run);
   const receiptIds = [
     run.prefilter.receiptId, ...(run.scores?.receiptIds ?? []), ...(run.dims ? [run.dims.receiptId] : []),
+    ...(run.roleScoring ? [run.roleScoring.receiptId] : []),
     ...(run.writing?.receiptIds ?? []), ...(run.structure ? [run.structure.receiptId] : []),
   ];
   const w = run.writing;
@@ -585,6 +650,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     prefilter: { label: run.prefilter.label, reason: run.prefilter.reason },
     scores: out.scores, scoreModel: out.scoreModel, threshold: out.threshold, ...(out.scoreRefused ? { scoreRefused: true } : {}),
     scoringPath: out.scoringPath,
+    ...(out.roleScoring ? { roleScoring: { ...out.roleScoring, model: run.roleScoring!.model, promptVersion: PROMPT_VERSIONS.roles } } : {}),
     ...(out.dims ? { dims: out.dims, dimsSum: out.dimsSum, dimsModel: out.dimsModel, gate: out.gate } : {}),
     ...(w ? { writer: w.kind, writerModel: w.model, itemType: w.itemType ?? null, authorRole: w.authorRole ?? null } : {}),
     ...(w?.identityGuard?.outcome === "fallback" ? { identityGuard: w.identityGuard } : {}),
@@ -608,6 +674,6 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     }
     return { analysisId: row!.id, stale };
   });
-  const reused = run.prefilter.reused && (run.scores?.reused ?? true) && (run.dims?.reused ?? true) && (w?.reused ?? true) && (run.structure?.reused ?? true);
+  const reused = run.prefilter.reused && (run.scores?.reused ?? true) && (run.dims?.reused ?? true) && (run.roleScoring?.reused ?? true) && (w?.reused ?? true) && (run.structure?.reused ?? true);
   return { analysisId: committed.analysisId, stale: committed.stale, output: out, receiptIds, reused };
 }

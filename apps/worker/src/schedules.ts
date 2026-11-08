@@ -11,6 +11,7 @@ import { adaptIntervals, scheduleDueSources } from "@aihot/backend/sources/colle
 import { scheduleMpReconcile } from "@aihot/backend/sources/mp";
 import { refreshSourceIcons } from "@aihot/backend/sources/icons";
 import { computeHotRanking, snapshotHeat } from "@aihot/backend/events/hot";
+import { pickIndustryHot } from "@aihot/backend/events/industry-hot";
 import { refreshStoryStatuses } from "@aihot/backend/events/digest";
 import { linkRelatedStories } from "@aihot/backend/events/group";
 import { lookupStoryCoverage } from "@aihot/backend/events/web-lookup";
@@ -49,7 +50,11 @@ export const SCHEDULES: Scheduled[] = [
   // loads never call a model. The configurable day window bounds model work; full-text translations
   // continue through content.translate unchanged.
   { name: "content.abstract-translations", cron: "*/5 * * * *", run: () => translateAbstracts() },
-  { name: "hot.rank", cron: "*/5 * * * *", run: () => computeHotRanking() },
+  { name: "hot.rank", cron: "*/5 * * * *", run: async () => {
+    const ranking = await computeHotRanking();
+    await pickIndustryHot();
+    return ranking;
+  } },
   { name: "hot.snapshot", cron: "2 * * * *", run: () => snapshotHeat() },
   { name: "stories.status", cron: "7 * * * *", run: refreshStoryStatuses },
   { name: "stories.links", cron: "12 * * * *", run: linkRelatedStories },

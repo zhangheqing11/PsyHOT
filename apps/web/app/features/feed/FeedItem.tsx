@@ -4,7 +4,7 @@ import { memo } from "react";
 import { Link } from "react-router";
 import { IntentLink } from "../../components/ui/IntentLink";
 import type { GroupInfo, FeedItemSummary, TimelineFilters } from "@aihot/contracts/site";
-import { CATEGORY_LABELS, CATEGORY_TRACK, IMPACT_LABELS, industryRolesOn } from "@aihot/contracts/taxonomy";
+import { CATEGORY_LABELS, CATEGORY_TRACK, IMPACT_LABELS, industryRolesOn, industryRoleScoringOn } from "@aihot/contracts/taxonomy";
 import { SelectedBadge } from "../../components/ui/Badge";
 import { ScoreLabel } from "../../components/ui/Score";
 import { MediaThumbs, SourceLine, StarButton } from "./parts";
@@ -30,6 +30,8 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
   // With FEATURES.industryRoles on, an industry item's badge is its impact type (not its industry category);
   // without one it has no badge. Academic items keep their category.
   const byImpact = industryRolesOn() && !!item.category && CATEGORY_TRACK[item.category] === "industry";
+  const hideScore = industryRoleScoringOn() && !!item.category && CATEGORY_TRACK[item.category] === "industry";
+  const hotPick = industryRoleScoringOn() && item.hotPick;
   const showBadge = showTags && !!item.category && (!byImpact || !!item.impact);
 
   return (
@@ -42,13 +44,16 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
           </span>
         )}
         {item.promotion && <span className="shrink-0 rounded border border-line px-1 text-[11px] leading-[16px] text-ink-4">推广</span>}
+        {hotPick && <span className="shrink-0 rounded border border-line px-1 text-[11px] leading-[16px] text-ink-4">热点</span>}
         <span className="ml-auto flex shrink-0 items-center gap-1.5 pl-2">
-          <span className="hidden lg:inline-flex">
-            <ScoreLabel score={item.score} />
-          </span>
-          <span className="lg:hidden">
-            <ScoreLabel score={item.score} compact />
-          </span>
+          {!hideScore && <>
+            <span className="hidden lg:inline-flex">
+              <ScoreLabel score={item.score} />
+            </span>
+            <span className="lg:hidden">
+              <ScoreLabel score={item.score} compact />
+            </span>
+          </>}
           <span className="-my-1 hidden lg:inline-flex">
             <StarButton item={item} />
           </span>

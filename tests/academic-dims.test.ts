@@ -1,6 +1,7 @@
 // The academic second stage: real analysis orchestration and receipts, with only the model HTTP
 // boundary stubbed. Legacy scores stay available while the final score controls selection and copy.
 import { Reply, stub, tag } from "./setup.ts";
+import { withRoleScoring } from "./feature-flags.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
@@ -142,12 +143,12 @@ test("gate 30 uses the exact first-stage mean; 28 skips the second stage", async
   assert.equal(edge.out.scoringPath, "dims");
 });
 
-test("industry items retain the old score, threshold, selection and writing", async () => {
+test("industry items retain the old score, threshold, selection and writing", () => withRoleScoring(false, async () => {
   const { out, state } = await runCase({ track: "industry", category: "policy", tier: "T2", legacy: [80, 70] });
   assert.deepEqual([out.scoringPath, out.score, out.threshold, out.selected], ["legacy", 75, 76, false]);
   assert.equal(dimsCalls(state).length, 0);
   assert.ok(state.calls.some((c) => c.step === "understand"));
-});
+}));
 
 test("the category resolves a mixed source's academic track; a null category uses its source", async () => {
   const mixed = await runCase({ track: "mixed", category: "research" });
@@ -156,7 +157,7 @@ test("the category resolves a mixed source's academic track; a null category use
   assert.equal(fallback.out.scoringPath, "dims");
 });
 
-test("disabled restores legacy selection and the half-point writing boundary", async () => {
+test("disabled restores legacy selection and the half-point writing boundary", () => withRoleScoring(false, async () => {
   const was = SELECTION.academicDims.enabled;
   SELECTION.academicDims.enabled = false;
   try {
@@ -171,7 +172,7 @@ test("disabled restores legacy selection and the half-point writing boundary", a
   } finally {
     SELECTION.academicDims.enabled = was;
   }
-});
+}));
 
 test("promotions and a refused first-stage score never call dimensions", async () => {
   const promo = await runCase({ promotion: true, legacy: [90, 90] });

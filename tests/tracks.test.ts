@@ -2,6 +2,7 @@
 // industry categories showed as one 行业 until the switch was turned on; a source's track keeps its items'
 // categories on its side; the industry's own promotions are listed in the full feed only.
 import { stub } from "./setup.ts";
+import { withRoleScoring } from "./feature-flags.ts";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { after, before, test } from "node:test";
@@ -123,7 +124,7 @@ test("thresholds per tier, overridden per track once calibrated", () => {
   }
 });
 
-test("the structure step reads the source's track, and the category it picks is held to it", async () => {
+test("the structure step reads the source's track, and the category it picks is held to it", () => withRoleScoring(false, async () => {
   const journal = await article(ACADEMIC, "JOURNALPOLICY");
   const regulator = await article(INDUSTRY, "REGULATORSTUDY");
   const news = await article(MIXED, "MIXEDPOLICY");
@@ -160,7 +161,7 @@ test("the structure step reads the source's track, and the category it picks is 
   assert.ok(!internationalAcademic.items.some((i) => i.id === regulator));
   const categoryWins = await loadPool({ channel: "all", category: "industry", track: "academic", tag: null, now });
   assert.ok(categoryWins.items.some((i) => i.id === regulator), "category takes precedence over a conflicting track");
-});
+}));
 
 test("a promotion: scored but never selected, written the cheap way, in the full feed only", async () => {
   const id = await article(MIXED, "PROMO");
@@ -259,7 +260,7 @@ test("structure vocabulary includes all practitioner roles and impact types", ()
   assert.ok(!STRUCTURE_SYSTEM.includes("{{"));
 });
 
-test("industry roles are normalized, stored only in output, and exposed to admin", async () => {
+test("industry roles are normalized, stored only in output, and exposed to admin", () => withRoleScoring(false, async () => {
   const id = await article(INDUSTRY, "ROLESNORMAL");
   const result = await analyzeArticle(id);
   const roles = ["school", "psychiatry", "operator"];
@@ -288,9 +289,9 @@ test("industry roles are normalized, stored only in output, and exposed to admin
   const after = steps.length;
   await analyzeArticle(id, { structureAttemptTag: "roles-test" });
   assert.equal(steps.length, after, "interrupted reruns can reuse the tagged structure receipt too");
-});
+}));
 
-test("invalid impact becomes null and empty industry roles remain explicitly marked", async () => {
+test("invalid impact becomes null and empty industry roles remain explicitly marked", () => withRoleScoring(false, async () => {
   for (const marker of ["ROLESBADIMPACT", "ROLESEMPTY"]) {
     const result = await analyzeArticle(await article(INDUSTRY, marker));
     assert.equal(result?.output?.impact, null);
@@ -298,7 +299,7 @@ test("invalid impact becomes null and empty industry roles remain explicitly mar
     assert.deepEqual(an!.output.roles, marker === "ROLESEMPTY" ? [] : ["school"]);
     if (marker === "ROLESBADIMPACT") assert.equal(an!.output.impact, null);
   }
-});
+}));
 
 test("role completion prefers near then score, excludes unsuitable items and counts overlaps", () => {
   const c = (id: string, roles: string[], score: number, extra: Partial<LabelCandidate> = {}): LabelCandidate =>

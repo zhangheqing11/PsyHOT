@@ -261,7 +261,13 @@ export function waitsForPage(a: AnalyzeInputArticle): boolean {
   return a.bodyStatus === "pending" && !a.bodyText && !a.xPost && pageFetchable(a.url, a.source.kind);
 }
 
-type StepOpts = { attemptTag?: string; structureAttemptTag?: string; scoreModel?: string };
+type StepOpts = {
+  attemptTag?: string;
+  structureAttemptTag?: string;
+  /** 角色步骤单独用这个标签，用来复用某次重跑的角色回执。 */
+  roleAttemptTag?: string;
+  scoreModel?: string;
+};
 type ReceiptObserver = (receiptId: number) => void;
 export class AnalysisInterruptedError extends Error {}
 
@@ -404,7 +410,7 @@ export async function runRoleScores(a: AnalyzeInputArticle, opts: StepOpts = {})
     return chatJson({
       model, purpose: "score_roles", subject: subjectOf(a), promptVersion: PROMPT_VERSIONS.roles,
       system: ROLES_SYSTEM, user: input, schema: RolesSchema, maxTokens: 4000, temperature: 0.2,
-      attemptTag: tagged(opts.attemptTag, "roles"),
+      attemptTag: tagged(opts.roleAttemptTag ?? opts.attemptTag, "roles"),
     });
   };
   let res: Awaited<ReturnType<typeof call>>;

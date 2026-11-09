@@ -18,6 +18,8 @@ export const HOT_RULE_VERSION = `heat-v6-${WINDOW_HOURS}h-halflife${HALF_LIFE_HO
 const count = (key: string) => sql`(CASE WHEN jsonb_typeof(a.raw->${key}) = 'number' THEN greatest((a.raw->>${key})::numeric, 0) ELSE 0 END)`;
 /** A participant's weight from its report's engagement: 1 without any, at most HOT.engagement.maxWeight. */
 const ENGAGEMENT_WEIGHT = sql`least(${HOT.engagement.maxWeight}::numeric, 1 + log(1 + ${count("like_count")} + 2 * ${count("collect_count")} + 3 * ${count("comment_count")} + 3 * ${count("share_count")}) / ${HOT.engagement.scale})`;
+/** Join editorial_overrides as eo: signals survive withdrawal so restoring visibility restores heat. */
+export const SIGNAL_NOT_WITHDRAWN = sql`eo.visibility IS DISTINCT FROM 'withdrawn'`;
 /** Quality of a story nobody scored (title-only material, unscored sources). */
 const UNSCORED = 50;
 
@@ -69,29 +71,36 @@ async function heatRows(at: Date, behind: string[] = []): Promise<HeatRow[]> {
   const prev = new Date(at.getTime() - 6 * 3600 * 1000);
   const decayNow = sql`power(0.5, extract(epoch FROM (${at}::timestamptz - last_at)) / 3600.0 / ${HALF_LIFE_HOURS})`;
   const decayPrev = sql`power(0.5, extract(epoch FROM (${prev}::timestamptz - last_prev)) / 3600.0 / ${HALF_LIFE_HOURS})`;
+  const inCurrentWindow = sql`ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS})`;
   const inPrevWindow = sql`last_prev IS NOT NULL AND last_prev > ${prev}::timestamptz - make_interval(hours => ${WINDOW_HOURS})`;
   return sql<HeatRow[]>`
     WITH obs AS (
-      SELECT ss.story_id, ss.participant_key, max(ss.observed_at) AS last_at, min(ss.observed_at) AS first_at,
-             bool_or(ss.kind = 'editorial') AS editorial,
+      SELECT ss.story_id, ss.participant_key,
+             max(ss.observed_at) FILTER (WHERE ${inCurrentWindow}) AS last_at,
+             min(ss.observed_at) FILTER (WHERE ${inCurrentWindow}) AS first_at,
+             bool_or(ss.kind = 'editorial') FILTER (WHERE ${inCurrentWindow}) AS editorial,
              max(ss.observed_at) FILTER (WHERE ss.observed_at <= ${prev}) AS last_prev,
-             bool_or(ss.source_id = ANY(${behind}::text[])) AS behind,
-             max(${ENGAGEMENT_WEIGHT}) AS w
+             bool_or(ss.source_id = ANY(${behind}::text[])) FILTER (WHERE ${inCurrentWindow}) AS behind,
+             bool_or(ss.source_id = ANY(${behind}::text[])) FILTER (WHERE ss.observed_at <= ${prev}) AS behind_prev,
+             max(${ENGAGEMENT_WEIGHT}) FILTER (WHERE ${inCurrentWindow}) AS w,
+             max(${ENGAGEMENT_WEIGHT}) FILTER (WHERE ss.observed_at <= ${prev}) AS w_prev
       FROM story_signals ss LEFT JOIN articles a ON a.id = ss.article_id
-      WHERE a.duplicate_of IS NULL AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
+      LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+      WHERE a.duplicate_of IS NULL AND ${SIGNAL_NOT_WITHDRAWN}
+        AND ss.observed_at > ${prev}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
       GROUP BY ss.story_id, ss.participant_key
     ), agg AS (
       SELECT story_id,
-        count(*) AS participants,
+        count(*) FILTER (WHERE last_at IS NOT NULL) AS participants,
         sum(w * ${decayNow}) AS heat,
-        coalesce(sum(w * ${decayPrev}) FILTER (WHERE ${inPrevWindow}), 0) AS heat_prev,
+        coalesce(sum(w_prev * ${decayPrev}) FILTER (WHERE ${inPrevWindow}), 0) AS heat_prev,
         coalesce(sum(w * ${decayNow}) FILTER (WHERE NOT behind), 0) AS heat_obs,
-        coalesce(sum(w * ${decayPrev}) FILTER (WHERE ${inPrevWindow} AND NOT behind), 0) AS heat_prev_obs,
+        coalesce(sum(w_prev * ${decayPrev}) FILTER (WHERE ${inPrevWindow} AND NOT behind_prev), 0) AS heat_prev_obs,
         count(*) FILTER (WHERE behind) AS behind_participants,
         count(*) FILTER (WHERE first_at > ${prev}) AS recent6h,
         count(*) FILTER (WHERE editorial) AS editorial_participants,
         count(*) FILTER (WHERE NOT editorial) AS signal_participants
-      FROM obs GROUP BY story_id
+      FROM obs GROUP BY story_id HAVING count(*) FILTER (WHERE last_at IS NOT NULL) > 0
     ), quality AS (
       SELECT f.story_id, coalesce(max(p.score), ${UNSCORED}) / 100.0 AS q, bool_or(p.selected) AS selected
       FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
@@ -149,8 +158,8 @@ export function rankByHeat(candidates: RankedHotCandidate[], limit = LIST_SIZE):
 }
 
 /**
- * The combined list: the top three of each track's list are in it, the other places go to the hottest
- * of the rest (within the per-source cap), and the list reads hottest first.
+ * The combined list: reserve three places per track, skipping capped stories and filling from later
+ * candidates. Shared stories count for both floors; the rest go by heat, within the same source cap.
  */
 export function combinedSelection(academic: RankedHotCandidate[], industry: RankedHotCandidate[], all: RankedHotCandidate[]): RankedHotCandidate[] {
   const picked: RankedHotCandidate[] = [];
@@ -160,8 +169,15 @@ export function combinedSelection(academic: RankedHotCandidate[], industry: Rank
     seen.add(c.entry.storyId);
     picked.push(c);
   };
-  for (const c of academic.slice(0, TRACK_FLOOR)) add(c);
-  for (const c of industry.slice(0, TRACK_FLOOR)) add(c);
+  for (const track of [academic, industry]) {
+    let filled = 0;
+    for (const c of track) {
+      if (filled >= TRACK_FLOOR) break;
+      if (!seen.has(c.entry.storyId) && capped(picked, c)) continue;
+      add(c);
+      filled += 1;
+    }
+  }
   for (const c of [...all].sort(byHeat)) if (!seen.has(c.entry.storyId) && !capped(picked, c)) add(c);
   return picked.sort(byHeat);
 }
@@ -183,7 +199,9 @@ export async function computeHotRanking(at = new Date()): Promise<{ id: number; 
     const participants = await sql<{ name: string; kind: "editorial" | "signal"; tier: string; at: Date }[]>`
       SELECT DISTINCT ON (ss.participant_key) s.name, ss.kind, s.tier, ss.observed_at AS at
       FROM story_signals ss JOIN sources s ON s.id = ss.source_id
-      WHERE ss.story_id = ${r.story_id} AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
+      LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+      WHERE ss.story_id = ${r.story_id} AND ${SIGNAL_NOT_WITHDRAWN}
+        AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
       ORDER BY ss.participant_key, (ss.kind = 'editorial') DESC, ss.observed_at DESC`;
     // The reporting sources of the window, latest first (signal participants are counted separately).
     const reporting = participants.filter((p) => p.kind === "editorial").sort((x, y) => y.at.getTime() - x.at.getTime());
@@ -283,7 +301,10 @@ export async function snapshotHeat(at = new Date()): Promise<{ stories: number; 
 
 /** Recomputes hourly snapshots for a story over its history (after imports or regrouping). */
 export async function backfillStoryHeat(storyId: number, hours = 7 * 24): Promise<number> {
-  const [s] = await sql<{ first: Date | null; last: Date | null }[]>`SELECT min(observed_at) AS first, max(observed_at) AS last FROM story_signals WHERE story_id = ${storyId}`;
+  const [s] = await sql<{ first: Date | null; last: Date | null }[]>`
+    SELECT min(ss.observed_at) AS first, max(ss.observed_at) AS last FROM story_signals ss
+    LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+    WHERE ss.story_id = ${storyId} AND ${SIGNAL_NOT_WITHDRAWN}`;
   if (!s?.first) return 0;
   const end = Math.floor(Math.min(Date.now(), (s.last?.getTime() ?? Date.now()) + WINDOW_HOURS * 3600000) / 3600000) * 3600000;
   const start = Math.max(Math.floor(s.first.getTime() / 3600000) * 3600000, end - hours * 3600000);

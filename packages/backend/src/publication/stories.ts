@@ -6,7 +6,7 @@ import { HOT } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 import { latestHotRanking, rankingExtras } from "../events/hot-read.ts";
-import { behindSources, sourceClocks } from "../events/hot.ts";
+import { behindSources, SIGNAL_NOT_WITHDRAWN, sourceClocks } from "../events/hot.ts";
 import { storyStatusFor } from "../events/digest.ts";
 import { itemUrl, storyApiUrl, storyUrl } from "./links.ts";
 import { SITE } from "@aihot/industry/site";
@@ -119,11 +119,15 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
   if (!content) return null;
   const { s, reports, developments } = content;
   const [why] = await sql<{ pw: number; p6: number; r24: number }[]>`
+    WITH signals AS (
+      SELECT ss.* FROM story_signals ss LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+      WHERE ss.story_id = ${storyId} AND ss.observed_at <= ${now} AND ${SIGNAL_NOT_WITHDRAWN}
+    )
     SELECT count(DISTINCT participant_key) FILTER (WHERE observed_at > ${now}::timestamptz - make_interval(hours => ${HOT.windowHours})) AS pw,
            count(DISTINCT participant_key) FILTER (WHERE observed_at > ${now}::timestamptz - interval '6 hours'
-             AND participant_key NOT IN (SELECT participant_key FROM story_signals x WHERE x.story_id = ${storyId} AND x.observed_at <= ${now}::timestamptz - interval '6 hours')) AS p6,
+             AND participant_key NOT IN (SELECT participant_key FROM signals WHERE observed_at <= ${now}::timestamptz - interval '6 hours')) AS p6,
            count(*) FILTER (WHERE kind = 'editorial' AND observed_at > ${now}::timestamptz - interval '24 hours') AS r24
-    FROM story_signals WHERE story_id = ${storyId} AND observed_at <= ${now}`;
+    FROM signals`;
   const ranking = await latestHotRanking();
   const entry = ranking?.entries.find((e) => e.storyId === storyId) ?? null;
   // Only hours observed in full are drawn (the chart leaves a gap otherwise).
@@ -132,8 +136,10 @@ export async function loadStoryDetail(storyId: number, now = new Date()): Promis
   // Complete when none of the sources behind the window's participants is behind on collection.
   const behind = behindSources(await sourceClocks(), now.getTime(), true);
   const [partial] = behind.length
-    ? await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM story_signals WHERE story_id = ${storyId} AND source_id = ANY(${behind}::text[])
-                                  AND observed_at > ${now}::timestamptz - make_interval(hours => ${HOT.windowHours}) AND observed_at <= ${now}`
+    ? await sql<{ n: number }[]>`
+        SELECT count(*)::int AS n FROM story_signals ss LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+        WHERE ss.story_id = ${storyId} AND ss.source_id = ANY(${behind}::text[]) AND ${SIGNAL_NOT_WITHDRAWN}
+          AND ss.observed_at > ${now}::timestamptz - make_interval(hours => ${HOT.windowHours}) AND ss.observed_at <= ${now}`
     : [{ n: 0 }];
   const related = await relatedStories(storyId);
   const latestAt = s.latest_at ?? reports[0]!.at;

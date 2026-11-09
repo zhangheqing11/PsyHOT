@@ -77,6 +77,15 @@ async function overrideRow(id: string) {
   return o ?? { fields: {}, visibility: null, version: 0 };
 }
 
+/** Signal-only articles can belong to a story without a publication membership. */
+async function queueStoryCorrection(id: string): Promise<boolean> {
+  const stories = await sql<{ story_id: number }[]>`
+    SELECT story_id FROM publications WHERE article_id = ${id} AND story_id IS NOT NULL
+    UNION SELECT story_id FROM story_signals WHERE article_id = ${id}`;
+  for (const st of stories) await enqueue(QUEUES.digest, { storyId: st.story_id, afterCorrection: true }, { singletonKey: `story:${st.story_id}:correction` });
+  return stories.length > 0;
+}
+
 /**
  * Public / summary-only / withdrawn. Applies to the site, API, RSS, MCP, the sync ledger and the
  * search index through the one publication projection; ETags change with the content.
@@ -93,9 +102,11 @@ export async function setVisibility(id: string, input: { visibility: "public" | 
     RETURNING version`;
   if (!written.count) throw new Conflict(STALE);
   const published = await publishArticle(id);
-  if (published?.reduced || (before.visibility ?? "public") !== input.visibility) {
+  const visibilityChanged = (before.visibility ?? "public") !== input.visibility;
+  const storyChanged = visibilityChanged && await queueStoryCorrection(id);
+  if (published?.reduced || visibilityChanged) {
     // On the hot board the change shows at once, not at the next five-minute ranking.
-    if (await inHotRanking(id)) await computeHotRanking();
+    if (storyChanged || await inHotRanking(id)) await computeHotRanking();
   }
   await audit(actor, "content.visibility", `content:${id}`, input.reason, { visibility: before.visibility }, { visibility: input.visibility });
   return published;
@@ -145,10 +156,7 @@ export async function overrideFields(id: string, input: { fields: unknown; clear
   if (!written.count) throw new Conflict(STALE);
   const published = await publishArticle(id);
   // A corrected title or summary reaches the event summary: rewrite the digest of its story.
-  if (published?.changed) {
-    const [st] = await sql<{ story_id: number | null }[]>`SELECT story_id FROM publications WHERE article_id = ${id}`;
-    if (st?.story_id) await enqueue(QUEUES.digest, { storyId: st.story_id, afterCorrection: true }, { singletonKey: `story:${st.story_id}:correction` });
-  }
+  if (published?.changed) await queueStoryCorrection(id);
   await audit(actor, "content.override", `content:${id}`, input.reason, before.fields, next);
   return published;
 }

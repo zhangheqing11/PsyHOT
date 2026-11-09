@@ -139,6 +139,19 @@ test("hot channel selects and republishes once, remains selected after decay, an
   assert.ok(p.visible_after <= AT, "a grouped report releases through the normal publication gate");
 });
 
+test("hot channel excludes withdrawn signal contributions and counts them again after restoration", async () => {
+  const s = await story();
+  const [signal] = await sql<{ article_id: string }[]>`SELECT article_id FROM story_signals
+    WHERE story_id = ${s.storyId} AND kind = 'signal' LIMIT 1`;
+  await sql`INSERT INTO editorial_overrides (article_id, visibility, updated_by, reason)
+    VALUES (${signal!.article_id}, 'withdrawn', 'test', 'withdraw signal')`;
+  assert.equal(await pickIndustryHot(AT), 0, "a withdrawn eighth participant cannot trigger a hot pick");
+  assert.equal((await publication(s.id)).hot_pick, false);
+  await sql`UPDATE editorial_overrides SET visibility = 'public' WHERE article_id = ${signal!.article_id}`;
+  assert.equal(await pickIndustryHot(AT), 1, "restored signals count even without a publication row");
+  assert.equal((await publication(s.id)).hot_pick, true);
+});
+
 for (const [label, opts] of Object.entries({
   "seven participants": { participants: 7 }, "rel one": { rel: 1 }, "nov one": { nov: 1 },
   "old event": { daysAgo: 8 }, "no editorial participant": { editorial: false }, "duplicate eighth participant": { duplicate: true },

@@ -3,6 +3,7 @@ import { industryRoleScoringOn, ROLE_KEYS, TRACK_CATEGORIES } from "@aihot/contr
 import { HOT, SELECTION } from "@aihot/industry/selection";
 import { sql } from "../db.ts";
 import { publishArticleTx } from "../publication/publish.ts";
+import { SIGNAL_NOT_WITHDRAWN } from "./hot.ts";
 
 export async function pickIndustryHot(at = new Date()): Promise<number> {
   if (!industryRoleScoringOn()) return 0;
@@ -15,7 +16,8 @@ export async function pickIndustryHot(at = new Date()): Promise<number> {
       WITH participants AS (
         SELECT ss.story_id, count(DISTINCT ss.participant_key)::int AS n
         FROM story_signals ss LEFT JOIN articles a ON a.id = ss.article_id
-        WHERE a.duplicate_of IS NULL
+        LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+        WHERE a.duplicate_of IS NULL AND ${SIGNAL_NOT_WITHDRAWN}
           AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${HOT.windowHours}) AND ss.observed_at <= ${at}
         GROUP BY ss.story_id
         HAVING count(DISTINCT ss.participant_key) >= ${rule.minParticipants} AND bool_or(ss.kind = 'editorial')

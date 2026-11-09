@@ -14,9 +14,10 @@ import { settleNonEditorial } from "../jobs/content.ts";
 import { upsertMaterial } from "../content/materials.ts";
 import { modelFor } from "../editorial/models.ts";
 import { promptText, promptVersion } from "../editorial/prompts.ts";
+import { describeError } from "../lib/error-text.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { chatJson } from "../providers/llm.ts";
-import { completeReceipt } from "../providers/receipts.ts";
+import { BudgetExceededError, completeReceipt } from "../providers/receipts.ts";
 import { deepseekSearch, deepseekToolsKey, type WebSearchResult } from "../providers/deepseek-tools.ts";
 import { recordSignal } from "./group.ts";
 import { hotCandidates } from "./hot.ts";
@@ -242,7 +243,7 @@ export async function loadStories(ids: number[]): Promise<LookupStory[]> {
   });
 }
 
-/** Lookups already made for a story: one per twelve-hour bucket that has a search receipt. */
+/** Lookups completed for a story: one per twelve-hour bucket recorded after judgment succeeds. */
 async function lookupsMade(storyId: number): Promise<{ count: number; thisBucket: boolean; bucket: string }> {
   const bucket = String(Math.floor(Date.now() / (BUCKET_HOURS * 3600_000)));
   const [row] = await sql<{ buckets: string[] | null }[]>`
@@ -278,6 +279,7 @@ export interface WebLookupResult {
   searches: number;
   judged: number;
   kept: number;
+  failed?: number;
   skipped?: string;
 }
 
@@ -292,10 +294,16 @@ export async function lookupStoryCoverage(now = new Date()): Promise<WebLookupRe
     if (out.looked >= STORIES_PER_RUN) break;
     if (made.thisBucket || made.count >= MAX_LOOKUPS) continue;
     out.looked += 1;
-    const got = await lookupStory(story, made.bucket, now);
-    out.searches += got.searches;
-    out.judged += got.judged.length;
-    out.kept += got.kept.length;
+    try {
+      const got = await lookupStory(story, made.bucket, now);
+      out.searches += got.searches;
+      out.judged += got.judged.length;
+      out.kept += got.kept.length;
+    } catch (error) {
+      if (error instanceof BudgetExceededError) break;
+      out.failed = (out.failed ?? 0) + 1;
+      console.warn(`web lookup story ${story.id}: ${describeError(error, 300).replace(/\s+/g, " ")}`);
+    }
   }
   return out;
 }
@@ -310,8 +318,6 @@ export async function lookupStory(story: LookupStory, bucket: string, now = new 
     receipts.push(res.receiptId);
     found.push({ query, results: res.results });
   }
-  // The bucket is stored on the receipt so the next run knows this story was looked up.
-  await sql`UPDATE receipts SET request = request || ${sql.json({ bucket })} WHERE id = ANY(${receipts}::bigint[])`;
   const judged = screen(story, found, now);
   const kept: Candidate[] = [];
   if (judged.length) {
@@ -323,6 +329,9 @@ export async function lookupStory(story: LookupStory, bucket: string, now = new 
     for (const c of distinctTexts(judged.filter((_, i) => yes.has(`W${i + 1}`))).slice(0, MAX_KEPT)) if (await keep(story, c, now)) kept.push(c);
     await completeReceipt(sql, res.receiptId);
   }
+  // Record a completed lookup only after judgment succeeds (or no candidates need judgment).
+  // If judgment fails, the next run in this bucket reuses the search receipts without paying again.
+  await sql`UPDATE receipts SET request = request || ${sql.json({ bucket })} WHERE id = ANY(${receipts}::bigint[])`;
   for (const id of receipts) await completeReceipt(sql, id);
   return { searches: queries.length, judged, kept };
 }

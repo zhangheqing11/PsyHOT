@@ -16,35 +16,55 @@ const now = new Date(Date.now() + 30 * 86400_000);
 const firstAt = new Date(now.getTime() - 13 * 3600_000);
 const bucket = String(Math.floor(Date.now() / (12 * 3600_000)));
 const searches: string[] = [];
+const answers = new Map<string, Array<Record<string, unknown>>>();
+const judgments: string[] = [];
+const invalidJudgments = new Set<string>();
 const storyIds: number[] = [];
 const articleIds: string[] = [];
 let saved: Array<{ service: string; per_minute: number; per_hour: number; per_day: number }> = [];
 const provider = await stub((_hit, req) => {
   assert.equal(req.url, "/v1/tools/search");
-  searches.push((JSON.parse(req.body) as { query: string }).query);
-  return { results: [] };
+  const { query } = JSON.parse(req.body) as { query: string };
+  searches.push(query);
+  return { results: answers.get(query) ?? [] };
+});
+const judge = await stub((_hit, req) => {
+  assert.equal(req.url, "/chat/completions");
+  const { messages } = JSON.parse(req.body) as { messages: Array<{ role: string; content: string }> };
+  const title = messages.find((m) => m.role === "user")!.content.split("\n")[0]!.replace(/^事件：/, "");
+  judgments.push(title);
+  const content = invalidJudgments.has(title) ? "not JSON" : JSON.stringify({ decisions: [{ id: "W1", coverage: true }] });
+  return { choices: [{ message: { content } }] };
 });
 process.env.DEEPSEEK_TOOLS_BASE_URL = provider.url;
+process.env.DEEPSEEK_BASE_URL = judge.url;
 process.env.DEEPSEEK_API_KEY = "test-key";
 config.allowPrivateNetworkFetch = true;
 
 before(async () => {
   await sql`INSERT INTO sources (id, name, kind) VALUES (${SOURCE}, ${SOURCE}, 'rss')`;
-  saved = await sql`SELECT service, per_minute, per_hour, per_day FROM budgets WHERE service LIKE 'deepseek-tools%'`;
-  await sql`UPDATE budgets SET per_minute = 10000, per_hour = 10000, per_day = 10000 WHERE service LIKE 'deepseek-tools%'`;
+  saved = await sql`SELECT service, per_minute, per_hour, per_day FROM budgets WHERE service = 'deepseek' OR service LIKE 'deepseek-tools%'`;
+  await sql`UPDATE budgets SET per_minute = 10000, per_hour = 10000, per_day = 10000 WHERE service = 'deepseek' OR service LIKE 'deepseek-tools%'`;
 });
 afterEach(async () => {
-  if (storyIds.length) await sql`DELETE FROM receipts WHERE subject IN ${sql(storyIds.map((id) => `story:${id}`))}`;
+  if (storyIds.length) {
+    await sql`DELETE FROM receipts WHERE subject IN ${sql(storyIds.map((id) => `story:${id}`))}`;
+    await sql`DELETE FROM articles WHERE source_id = ${lookup.WEB_LOOKUP_SOURCE} AND (raw->'lookup'->>'storyId')::bigint IN ${sql(storyIds)}`;
+  }
   if (articleIds.length) await sql`DELETE FROM articles WHERE id IN ${sql(articleIds)}`;
   if (storyIds.length) await sql`DELETE FROM stories WHERE id IN ${sql(storyIds)}`;
   storyIds.length = 0;
   articleIds.length = 0;
   searches.length = 0;
+  answers.clear();
+  judgments.length = 0;
+  invalidJudgments.clear();
 });
 after(async () => {
   for (const b of saved) await sql`UPDATE budgets SET per_minute = ${b.per_minute}, per_hour = ${b.per_hour}, per_day = ${b.per_day} WHERE service = ${b.service}`;
   await sql`DELETE FROM sources WHERE id = ${SOURCE}`;
   await provider.close();
+  await judge.close();
   await stopBoss();
   await closeDb();
 });
@@ -132,6 +152,72 @@ test("quiet second lookups do not take the hot list's thirty places from an elig
   assert.ok(hot.indexOf(fresh.id) >= 30, "the eligible hot-only story ranks after thirty quiet ones");
   await lookup.lookupStoryCoverage(now);
   assert.deepEqual([...searches], [fresh.title]);
+});
+
+test("a bad judgment skips only that story and retries its paid search from the same receipt", async (t) => {
+  const first = await story("before-failure", 99);
+  const second = await story("bad-judgment", 98);
+  const third = await story("after-failure", 97);
+  for (const st of [first, second, third]) {
+    answers.set(st.title, [{ title: st.title, url: `https://coverage.example.org/${st.id}`, date: now.toISOString(), snippet: st.title }]);
+  }
+  invalidJudgments.add(second.title);
+  const warnings = t.mock.method(console, "warn", () => {});
+
+  const out = await lookup.lookupStoryCoverage(now);
+  assert.equal(out.looked, 3, "the failed story still uses one of the round's places");
+  assert.equal(out.failed, 1);
+  assert.equal(out.judged, 2);
+  assert.equal(out.kept, 2);
+  assert.deepEqual(searches, [first.title, second.title, third.title]);
+  assert.deepEqual(judgments, [first.title, second.title, third.title]);
+  const kept = await sql<{ story_id: number }[]>`SELECT story_id FROM story_signals
+    WHERE source_id = ${lookup.WEB_LOOKUP_SOURCE} AND story_id IN ${sql(storyIds)} ORDER BY story_id`;
+  assert.deepEqual(kept.map((r) => r.story_id), [first.id, third.id]);
+  const receipts = await sql<{ id: number; subject: string; status: string; request: { bucket?: string } }[]>`
+    SELECT id, subject, status, request FROM receipts
+    WHERE service = 'deepseek-tools' AND subject IN ${sql(storyIds.map((id) => `story:${id}`))} ORDER BY id`;
+  assert.equal(receipts.length, 3);
+  const failed = receipts.find((r) => r.subject === `story:${second.id}`)!;
+  assert.equal(failed.status, "received");
+  assert.equal(failed.request.bucket, undefined, "an unusable judgment must not consume a lookup");
+  for (const r of receipts.filter((r) => r !== failed)) {
+    assert.equal(r.request.bucket, bucket);
+    assert.equal(r.status, "completed");
+  }
+  assert.equal(warnings.mock.callCount(), 1);
+  const warning = warnings.mock.calls[0]!.arguments.join(" ");
+  assert.ok(warning.includes(String(second.id)));
+  assert.match(warning, /unusable output/);
+  assert.doesNotMatch(warning, /[\r\n]/);
+
+  invalidJudgments.clear();
+  const retry = await lookup.lookupStoryCoverage(now);
+  assert.equal(retry.looked, 1, "only the failed story is retried in the same bucket");
+  assert.equal(retry.failed ?? 0, 0);
+  assert.equal(retry.kept, 1);
+  assert.equal(searches.length, 3, "retrying the judgment must reuse the paid search");
+  assert.deepEqual(judgments, [first.title, second.title, third.title, second.title]);
+  const [completed] = await sql<{ status: string; request: { bucket?: string }; attempts: number }[]>`
+    SELECT status, request, attempts FROM receipts WHERE id = ${failed.id}`;
+  assert.equal(completed!.status, "completed");
+  assert.equal(completed!.request.bucket, bucket);
+  assert.equal(completed!.attempts, 1);
+});
+
+test("a web lookup budget pause ends the round without marking an event failed", async () => {
+  await story("budget-first", 99);
+  await story("budget-later", 98);
+  await sql`UPDATE budgets SET per_day = 0 WHERE service = 'deepseek-tools:search'`;
+  try {
+    const out = await lookup.lookupStoryCoverage(now);
+    assert.equal(out.looked, 1);
+    assert.equal(out.failed ?? 0, 0);
+    assert.deepEqual(searches, []);
+    assert.deepEqual(judgments, []);
+  } finally {
+    await sql`UPDATE budgets SET per_day = 10000 WHERE service = 'deepseek-tools:search'`;
+  }
 });
 
 test("Chinese lookup queries drop a column and subtitle, leaving the event title intact", () => {

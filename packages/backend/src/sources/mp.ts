@@ -25,6 +25,9 @@ const BODY_RETRIES = 3;
 const BODY_RETRY_WINDOW_MS = 3 * 86400_000;
 /** Account-level unavailable retries start at an hour and double to at most twelve hours. */
 const UNAVAILABLE_RETRY_MS = 60 * 60_000;
+/** Other account errors start at thirty minutes and double to at most six hours. */
+const ERROR_RETRY_MS = 30 * 60_000;
+const MAX_ERROR_RETRY_MS = 6 * 3600_000;
 /** Spread accounts released together by the rolling budget window over successive 15-minute reconciles. */
 const MAX_ENQUEUE_PER_RECONCILE = 3;
 /** A listing of another account than the configured one: the operator has to fix the account id. */
@@ -141,6 +144,7 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
       cursor.lastCheckedAt = listedAt;
       delete cursor.retryAt;
       delete cursor.unavailableCount;
+      delete cursor.errorCount;
     }
     // Fresh listings and saved posts share all filtering, body retry and ingestion rules below.
     let fetched = 0;
@@ -218,6 +222,8 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
     delete cursor.pending;
     delete cursor.pendingSince;
     delete cursor.retryAt;
+    delete cursor.unavailableCount;
+    delete cursor.errorCount;
     await sql`
       UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok', cursor = ${sql.json(cursor as never)},
         next_fetch_at = now() + make_interval(mins => interval_minutes), updated_at = now()
@@ -252,6 +258,10 @@ export async function checkMpAccount(sourceId: string, reason: "schedule" | "man
         retryAt: new Date(Date.now() + wait + mpRetryOffset(sourceId)).toISOString() })} WHERE id = ${sourceId}`;
       return { sourceId, status: "failed" as const, error: message };
     }
+    const errorCount = (typeof cursor.errorCount === "number" ? cursor.errorCount : 0) + 1;
+    const wait = Math.min(ERROR_RETRY_MS * 2 ** (errorCount - 1), MAX_ERROR_RETRY_MS);
+    await sql`UPDATE sources SET cursor = coalesce(cursor, '{}'::jsonb) || ${sql.json({ errorCount,
+      retryAt: new Date(Date.now() + wait + mpRetryOffset(sourceId)).toISOString() })} WHERE id = ${sourceId}`;
     return { sourceId, status: "failed" as const, error: message };
   }
 }

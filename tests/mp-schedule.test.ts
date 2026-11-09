@@ -1,5 +1,5 @@
 // Scheduled checks revalidate the cursor before any paid call and leave budget waiting to reconcile.
-import { stub, tag } from "./setup.ts";
+import { Reply, stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { config } from "@aihot/backend/config";
@@ -10,7 +10,8 @@ import { BudgetExceededError, paidRequest } from "@aihot/backend/providers/recei
 import { everyInfraCall, everyInfraMpArticle, everyInfraMpHistory, everyInfraXhsNote } from "@aihot/backend/providers/everyinfra";
 import { checkMpAccount, mpDue, scheduleMpReconcile } from "@aihot/backend/sources/mp";
 
-const provider = await stub(() => ({ results: [] }));
+let refusal: number | null = null;
+const provider = await stub(() => refusal ? new Reply(refusal, { error: "invalid account" }) : { results: [] });
 process.env.EVERYINFRA_BASE_URL = provider.url;
 process.env.EVERYINFRA_API_KEY = "test-key";
 config.allowPrivateNetworkFetch = true;
@@ -95,6 +96,75 @@ test("a future retryAt stops both execution and reconcile, even on an account ne
   assert.equal(provider.hits(), hits);
   assert.equal((await checkMpAccount(id, "manual")).status, "ok", "manual ignores the retry mark as well");
   assert.equal(provider.hits(), hits + 1);
+});
+
+test("listing timeouts and unknown receipts back off for 30, 60, 120, 240 then at most 360 minutes and success resets both counts", async (t) => {
+  const now = Date.now();
+  t.mock.method(Date, "now", () => now);
+  const id = await source({ unavailableCount: 3 });
+  const hits = provider.hits();
+  const timeout = AbortSignal.timeout.bind(AbortSignal);
+  let timedOut = true;
+  t.mock.method(AbortSignal, "timeout", (ms: number) => timedOut && ms === 120_000
+    ? AbortSignal.abort(new DOMException("listing timed out", "TimeoutError")) : timeout(ms));
+
+  for (const [i, minutes] of [30, 60, 120, 240, 360, 360].entries()) {
+    const result = await checkMpAccount(id, "schedule");
+    assert.ok(result.status === "failed");
+    assert.match(result.error, i === 0 ? /listing timed out/ : /unknown outcome/);
+    const [row] = await sql<{ cursor: { retryAt: string; errorCount: number; unavailableCount: number; lastCheckedAt?: string } }[]>`
+      SELECT cursor FROM sources WHERE id = ${id}`;
+    assert.equal(row!.cursor.errorCount, i + 1);
+    assert.equal(row!.cursor.unavailableCount, 3, "ordinary errors have their own counter");
+    assert.equal(row!.cursor.lastCheckedAt, undefined);
+    const wait = Date.parse(row!.cursor.retryAt) - now;
+    assert.ok(wait >= minutes * 60_000 && wait <= (minutes + 15) * 60_000, `wait ${wait}ms for ${minutes} minutes`);
+    assert.equal(mpDue(row!.cursor, 1440, now + 15 * 60_000), false);
+    assert.equal((await checkMpAccount(id, "schedule")).status, "not-due");
+    await scheduleMpReconcile();
+    assert.equal((await sql`SELECT id FROM pgboss.job WHERE name = ${QUEUES.mpCheck} AND singleton_key = ${`mp:${id}`}`).length, 0);
+    await sql`UPDATE sources SET cursor = jsonb_set(cursor, '{retryAt}', ${sql.json(new Date(now - 1).toISOString())}) WHERE id = ${id}`;
+  }
+  const [unknown] = await sql<{ status: string; attempts: number }[]>`SELECT status, attempts FROM receipts WHERE subject = ${id} AND purpose = 'mp_history'`;
+  assert.equal(unknown!.status, "unknown");
+  assert.equal(unknown!.attempts, 1, "unknown receipts must not send another request");
+  assert.equal(provider.hits(), hits);
+
+  // Simulate receipt recovery before allowing one fresh, successful response.
+  timedOut = false;
+  await sql`UPDATE receipts SET status = 'failed' WHERE subject = ${id} AND purpose = 'mp_history'`;
+  assert.equal((await checkMpAccount(id, "schedule")).status, "ok");
+  assert.equal(provider.hits(), hits + 1);
+  const [done] = await sql<{ cursor: Record<string, unknown> }[]>`SELECT cursor FROM sources WHERE id = ${id}`;
+  assert.equal(done!.cursor.retryAt, undefined);
+  assert.equal(done!.cursor.errorCount, undefined);
+  assert.equal(done!.cursor.unavailableCount, undefined);
+  assert.equal(typeof done!.cursor.lastCheckedAt, "string");
+});
+
+test("a nonretryable listing refusal also backs off without using the unavailable counter", async () => {
+  const id = await source();
+  const started = Date.now();
+  refusal = 422;
+  try {
+    const result = await checkMpAccount(id, "schedule");
+    assert.ok(result.status === "failed");
+    assert.match(result.error, /HTTP 422/);
+    const [row] = await sql<{ cursor: { retryAt: string; errorCount: number; unavailableCount?: number }; fail_count: number }[]>`
+      SELECT cursor, fail_count FROM sources WHERE id = ${id}`;
+    assert.ok(row!.cursor);
+    assert.equal(row!.cursor.errorCount, 1);
+    assert.equal(row!.cursor.unavailableCount, undefined);
+    assert.equal(row!.fail_count, 1);
+    const wait = Date.parse(row!.cursor.retryAt) - started;
+    assert.ok(wait >= 30 * 60_000 && wait <= 45 * 60_000 + 3000, `wait ${wait}ms`);
+    assert.equal(mpDue(row!.cursor, 1440), false);
+    const hits = provider.hits();
+    assert.equal((await checkMpAccount(id, "schedule")).status, "not-due");
+    assert.equal(provider.hits(), hits);
+  } finally {
+    refusal = null;
+  }
 });
 
 test("budget waiting completes a scheduled job, persists a stable stagger, and still throws for manual", async () => {

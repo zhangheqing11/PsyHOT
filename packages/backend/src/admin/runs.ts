@@ -4,7 +4,7 @@ import { sql } from "../db.ts";
 import { audit } from "./auth.ts";
 import { Conflict } from "./sources.ts";
 import { failureGroupSql, queueProcessing, requeueFailed } from "../jobs/content.ts";
-import { CAPABILITIES } from "../editorial/models.ts";
+import { ARTICLE_CAPABILITIES, CAPABILITIES } from "../editorial/models.ts";
 
 const STALE_HEARTBEAT_MS = 3 * 60_000;
 
@@ -80,7 +80,7 @@ export async function runsOverview() {
 }
 
 const ARTICLE_STEPS = new Set([
-  ...(["prefilter", "score", "scoreDims", "understand", "summarize", "structure"] as const).flatMap((step) => CAPABILITIES[step].purposes),
+  ...ARTICLE_CAPABILITIES.flatMap((step) => CAPABILITIES[step].purposes),
   "body_fallback", "x_article",
 ]);
 

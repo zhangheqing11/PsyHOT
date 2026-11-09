@@ -32,6 +32,11 @@ export const CAPABILITIES = {
 
 export type CapabilityKey = keyof typeof CAPABILITIES;
 
+// Add new analyzeArticle steps here, or releasing their receipts will not requeue failed articles.
+export const ARTICLE_CAPABILITIES = [
+  "prefilter", "score", "scoreDims", "scoreRoles", "understand", "summarize", "structure",
+] as const satisfies readonly CapabilityKey[];
+
 let cache: { at: number; overrides: Record<string, string> } | null = null;
 
 async function overrides(): Promise<Record<string, string>> {

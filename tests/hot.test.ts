@@ -269,6 +269,104 @@ test("signal-only membership triggers visibility corrections without requiring a
   assert.equal(Number((await candidate()).participants), 2);
 });
 
+// Recorded from the per-story queries before they were batched.
+const EXPECTED_SNAPSHOT = [
+  {"story": "s1", "track": "academic", "rank": 1, "participantCount": 4, "sourceCount": 3, "signalCount": 1, "reportCount": 4, "representative": "s1/first-party", "representativeSource": "Snap a", "sourceNames": ["Snap c", "Snap b", "Snap a"], "participants": ["Snap a:editorial:T1", "Snap c:editorial:T1_5", "Snap b:editorial:T2", "Snap sig:signal:T1"], "heat": 30.9, "trend": "up", "trendPct": 95.6, "badges": ["new", "rising"]},
+  {"story": "s3", "track": "academic", "rank": 2, "participantCount": 1, "sourceCount": 1, "signalCount": 0, "reportCount": 1, "representative": "s3/single", "representativeSource": "Snap a", "sourceNames": ["Snap a"], "participants": ["Snap a:editorial:T1"], "heat": 8.3, "trend": "new", "trendPct": null, "badges": ["new"]},
+  {"story": "s2", "track": "industry", "rank": 1, "participantCount": 2, "sourceCount": 2, "signalCount": 0, "reportCount": 2, "representative": "s2/industry-1", "representativeSource": "Snap c", "sourceNames": ["Snap e", "Snap c"], "participants": ["Snap c:editorial:T1_5", "Snap e:editorial:T2"], "heat": 12.4, "trend": "flat", "trendPct": -6.1, "badges": []},
+  {"story": "s1", "track": "combined", "rank": 1, "participantCount": 4, "sourceCount": 3, "signalCount": 1, "reportCount": 4, "representative": "s1/first-party", "representativeSource": "Snap a", "sourceNames": ["Snap c", "Snap b", "Snap a"], "participants": ["Snap a:editorial:T1", "Snap c:editorial:T1_5", "Snap b:editorial:T2", "Snap sig:signal:T1"], "heat": 30.9, "trend": "up", "trendPct": 95.6, "badges": ["new", "rising"]},
+  {"story": "s2", "track": "combined", "rank": 2, "participantCount": 2, "sourceCount": 2, "signalCount": 0, "reportCount": 2, "representative": "s2/industry-1", "representativeSource": "Snap c", "sourceNames": ["Snap e", "Snap c"], "participants": ["Snap c:editorial:T1_5", "Snap e:editorial:T2"], "heat": 12.4, "trend": "flat", "trendPct": -6.1, "badges": []},
+  {"story": "s3", "track": "combined", "rank": 3, "participantCount": 1, "sourceCount": 1, "signalCount": 0, "reportCount": 1, "representative": "s3/single", "representativeSource": "Snap a", "sourceNames": ["Snap a"], "participants": ["Snap a:editorial:T1"], "heat": 8.3, "trend": "new", "trendPct": null, "badges": ["new"]},
+];
+
+test("the ranking's reports, participants and badges per story stay as specified, over a fixed moment", async () => {
+  // A moment 20 days back: nothing created by other tests is observed yet, and the ranking row is kept.
+  const at = new Date(Math.floor(Date.now() / 3600000) * 3600000 - 20 * 86400000);
+  const hours = (h: number) => new Date(at.getTime() - h * 3600000);
+  const src = (name: string, o: { tier: string; mode: string; firstParty?: boolean }) => {
+    const id = `test-hot-snap-${T}-${name}`;
+    return sql`INSERT INTO sources (id, name, kind, tier, participation_mode, first_party, last_ok_at, next_fetch_at)
+               VALUES (${id}, ${`Snap ${name} ${T}`}, 'rss', ${o.tier}, ${o.mode}, ${o.firstParty ?? false}, now(), '2100-01-01')`.then(() => id);
+  };
+  const [a, b, c, d, e, sig] = await Promise.all([
+    src("a", { tier: "T1", mode: "editorial", firstParty: true }), src("b", { tier: "T2", mode: "editorial" }), src("c", { tier: "T1_5", mode: "editorial" }),
+    src("d", { tier: "T1", mode: "editorial" }), src("e", { tier: "T2", mode: "editorial" }), src("sig", { tier: "T1", mode: "hot_signal" })]);
+  const snapStory = async (label: string, firstReportHoursAgo: number) => {
+    const [st] = await sql<{ id: number }[]>`
+      INSERT INTO stories (public_id, title, first_report_at, latest_at) VALUES (${randomUUID()}, ${`HOT-${T}`}, ${hours(firstReportHoursAgo)}, ${hours(1)}) RETURNING id`;
+    const [fact] = await sql<{ id: number }[]>`INSERT INTO facts (public_id, story_id, title) VALUES (${`fact-${randomUUID()}`}, ${st!.id}, ${`HOT-${T}`}) RETURNING id`;
+    const articles = new Map<string, string>();
+    /** One report: the publication belongs to the story; its signal is the participant's evidence at `seenHoursAgo`. */
+    const report = async (name: string, o: { source: string; category: string; score: number; selected: boolean; seenHoursAgo: number; participant?: string; kind?: "editorial" | "signal"; releasedLate?: boolean; withdrawn?: boolean; noPublication?: boolean }) => {
+      n += 1;
+      const { articleId } = await upsertMaterial({
+        sourceId: o.source, url: `https://example.com/hot-snap-${T}-${n}`, title: `Snap ${n}`, bodyText: BODY, bodyStatus: "ok", via: "fetch", publishedAt: hours(o.seenHoursAgo),
+      } as never);
+      articles.set(articleId, name);
+      await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
+                VALUES (${articleId}, 1, 'rule', 'pass', ${o.category}, ${`快照${n}-${T}`}, ${`摘要${n}`}, '理由', ${o.score}, ${o.selected})`;
+      if (o.withdrawn) await sql`INSERT INTO editorial_overrides (article_id, visibility, reason) VALUES (${articleId}, 'withdrawn', 'test')`;
+      await publishArticle(articleId, { releasedAt: new Date(at.getTime() + (o.releasedLate ? 3600000 : -3600000)) });
+      await sql`INSERT INTO fact_articles (fact_id, article_id, role) VALUES (${fact!.id}, ${articleId}, 'report')`;
+      await sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
+                VALUES (${st!.id}, ${articleId}, ${o.participant ?? `snap-${T}-${n}`}, ${o.source}, ${o.kind ?? "editorial"}, ${hours(o.seenHoursAgo)})`;
+    };
+    return { id: Number(st!.id), articles, report, label };
+  };
+
+  // Academic story: a first-party report, a selected one, a selected one not yet visible, a withdrawn one,
+  // a signal after a repeat by the same participant, a signal participant, and evidence before the window.
+  const s1 = await snapStory("s1", 5);
+  await s1.report("first-party", { source: a, category: "research", score: 60, selected: false, seenHoursAgo: 4 });
+  await s1.report("selected", { source: b, category: "clinical", score: 80, selected: true, seenHoursAgo: 3, participant: `p-b-${T}` });
+  await s1.report("selected-repeat", { source: b, category: "clinical", score: 70, selected: false, seenHoursAgo: 8, participant: `p-b-${T}` });
+  await s1.report("not-yet-visible", { source: c, category: "research", score: 95, selected: true, seenHoursAgo: 2, releasedLate: true });
+  await s1.report("withdrawn", { source: d, category: "research", score: 99, selected: false, seenHoursAgo: 1, withdrawn: true });
+  await s1.report("signal", { source: sig, category: "research", score: 10, selected: false, seenHoursAgo: 6, kind: "signal" });
+  await s1.report("expired", { source: e, category: "research", score: 50, selected: false, seenHoursAgo: HOT.windowHours + 30 });
+  // Industry story with two reporters of different tiers, one a day older than the other.
+  const s2 = await snapStory("s2", 30);
+  await s2.report("industry-1", { source: c, category: "policy", score: 75, selected: false, seenHoursAgo: 30 });
+  await s2.report("industry-2", { source: e, category: "industry", score: 65, selected: false, seenHoursAgo: 10 });
+  // A single selected report enters alone; a single unselected one does not.
+  const s3 = await snapStory("s3", 2);
+  await s3.report("single", { source: a, category: "method", score: 85, selected: true, seenHoursAgo: 2 });
+  const s4 = await snapStory("s4", 2);
+  await s4.report("alone", { source: b, category: "research", score: 85, selected: false, seenHoursAgo: 2 });
+
+  const ranking = await computeHotRanking(at);
+  const [saved] = await sql<{ entries: HotEntry[] }[]>`SELECT entries FROM hot_rankings WHERE id = ${ranking.id}`;
+  const stories = [s1, s2, s3, s4];
+  const names = new Map<string, string>();
+  for (const s of stories) for (const [id, name] of s.articles) names.set(id, `${s.label}/${name}`);
+  const labelOf = new Map(stories.map((s) => [s.id, s.label]));
+  const mine = saved!.entries.filter((x) => labelOf.has(Number(x.storyId)));
+  const snapshot = mine.map((x) => ({
+    story: labelOf.get(Number(x.storyId)), track: x.track, rank: x.rank,
+    participantCount: x.participantCount, sourceCount: x.sourceCount, signalCount: x.signalCount, reportCount: x.reportCount,
+    representative: names.get(x.representativeItemId!), representativeSource: x.representativeSource?.replace(` ${T}`, ""),
+    sourceNames: x.sourceNames.map((s) => s.replace(` ${T}`, "")),
+    participants: x.participants.map((p) => `${p.name.replace(` ${T}`, "")}:${p.kind}:${p.tier}`),
+    heat: x.heat, trend: x.trend, trendPct: x.trendPct, badges: x.badges,
+  }));
+  assert.deepEqual(snapshot, EXPECTED_SNAPSHOT);
+});
+
+test("the number of queries a ranking issues does not grow with the number of candidate stories", async () => {
+  const queries = async () => {
+    let issued = 0;
+    sql.options.debug = () => { issued += 1; };
+    try { await computeHotRanking(); } finally { sql.options.debug = false; }
+    return issued;
+  };
+  for (let i = 0; i < 2; i++) await story({ participants: 2, score: 80, selected: true, hoursAgo: 1 });
+  const few = await queries();
+  const candidates = (await hotCandidates(new Date())).length;
+  for (let i = 0; i < 4; i++) await story({ participants: 2, score: 80, selected: true, hoursAgo: 1 });
+  assert.ok((await hotCandidates(new Date())).length >= candidates + 4);
+  assert.equal(await queries(), few, "per-story queries would add two for every new candidate");
+});
+
 // The lists (decision 8 of the tracks handoff): every list by heat, a source alone filling at most two
 // places, and the combined list keeping three places for each track.
 const ranked = (id: number, heat: number, o: { participants?: number; source?: string; tracks?: Array<"academic" | "industry"> } = {}) => ({

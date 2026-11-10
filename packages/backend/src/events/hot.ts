@@ -185,24 +185,43 @@ export function combinedSelection(academic: RankedHotCandidate[], industry: Rank
 export async function computeHotRanking(at = new Date()): Promise<{ id: number; entries: number }> {
   const rows = await hotCandidates(at, behindSources(await sourceClocks(), at.getTime(), true));
 
+  // Reports and window participants of every candidate, two queries in all; grouped by story below.
+  const ids = rows.map((r) => r.story_id);
+  type Report = { story_id: number; id: string; url: string; title: string; source_name: string; first_party: boolean; selected: boolean; score: number | null; category: string | null; at: Date };
+  type Participant = { story_id: number; name: string; kind: "editorial" | "signal"; tier: string; at: Date };
+  const reportRows = await sql<Report[]>`
+    SELECT DISTINCT ON (f.story_id, p.article_id) f.story_id, p.article_id AS id, p.url, p.title, s.name AS source_name, p.first_party, p.selected, p.score, p.category,
+           coalesce(p.published_at, p.discovered_at) AS at
+    FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
+    JOIN sources s ON s.id = p.source_id
+    WHERE f.story_id = ANY(${ids}::bigint[]) AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${at})
+    ORDER BY f.story_id, p.article_id`;
+  const participantRows = await sql<Participant[]>`
+    SELECT DISTINCT ON (ss.story_id, ss.participant_key) ss.story_id, s.name, ss.kind, s.tier, ss.observed_at AS at
+    FROM story_signals ss JOIN sources s ON s.id = ss.source_id
+    LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
+    WHERE ss.story_id = ANY(${ids}::bigint[]) AND ${SIGNAL_NOT_WITHDRAWN}
+      AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
+    ORDER BY ss.story_id, ss.participant_key, (ss.kind = 'editorial') DESC, ss.observed_at DESC`;
+  const group = <T extends { story_id: number }>(list: T[]) => {
+    const byStory = new Map<number, T[]>();
+    for (const x of list) {
+      const key = Number(x.story_id);
+      const list = byStory.get(key);
+      if (list) list.push(x);
+      else byStory.set(key, [x]);
+    }
+    return byStory;
+  };
+  const reportsByStory = group(reportRows);
+  const participantsByStory = group(participantRows);
+
   const candidates: RankedHotCandidate[] = [];
   for (const r of rows) {
-    const reports = await sql<{ id: string; url: string; title: string; source_name: string; first_party: boolean; selected: boolean; score: number | null; category: string | null; at: Date }[]>`
-      SELECT DISTINCT ON (p.article_id) p.article_id AS id, p.url, p.title, s.name AS source_name, p.first_party, p.selected, p.score, p.category,
-             coalesce(p.published_at, p.discovered_at) AS at
-      FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
-      JOIN sources s ON s.id = p.source_id
-      WHERE f.story_id = ${r.story_id} AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${at})
-      ORDER BY p.article_id`;
+    const reports = reportsByStory.get(Number(r.story_id)) ?? [];
     if (reports.length === 0) continue;
     const rep = [...reports].sort((x, y) => Number(y.first_party) - Number(x.first_party) || Number(y.selected) - Number(x.selected) || (Number(y.score ?? 0) - Number(x.score ?? 0)))[0]!;
-    const participants = await sql<{ name: string; kind: "editorial" | "signal"; tier: string; at: Date }[]>`
-      SELECT DISTINCT ON (ss.participant_key) s.name, ss.kind, s.tier, ss.observed_at AS at
-      FROM story_signals ss JOIN sources s ON s.id = ss.source_id
-      LEFT JOIN editorial_overrides eo ON eo.article_id = ss.article_id
-      WHERE ss.story_id = ${r.story_id} AND ${SIGNAL_NOT_WITHDRAWN}
-        AND ss.observed_at > ${at}::timestamptz - make_interval(hours => ${WINDOW_HOURS}) AND ss.observed_at <= ${at}
-      ORDER BY ss.participant_key, (ss.kind = 'editorial') DESC, ss.observed_at DESC`;
+    const participants = participantsByStory.get(Number(r.story_id)) ?? [];
     // The reporting sources of the window, latest first (signal participants are counted separately).
     const reporting = participants.filter((p) => p.kind === "editorial").sort((x, y) => y.at.getTime() - x.at.getTime());
     const heat = heatIndex(Number(r.heat));

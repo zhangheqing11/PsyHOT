@@ -376,6 +376,7 @@ async function runDims(a: AnalyzeInputArticle, threshold: number, opts: StepOpts
     return chatJson({
       model, purpose: "score_dims", subject: subjectOf(a), promptVersion: PROMPT_VERSIONS.dims,
       system: DIMS_SYSTEM, user: input, schema: DimsSchema, maxTokens: 4000, temperature: 0.2,
+      timeoutMs: 180_000,
       // Same logical receipt on retry: failed output can be retried, an unknown paid outcome cannot.
       attemptTag: tagged(opts.attemptTag, "dims"),
     });
@@ -410,6 +411,7 @@ export async function runRoleScores(a: AnalyzeInputArticle, opts: StepOpts = {})
     return chatJson({
       model, purpose: "score_roles", subject: subjectOf(a), promptVersion: PROMPT_VERSIONS.roles,
       system: ROLES_SYSTEM, user: input, schema: RolesSchema, maxTokens: 4000, temperature: 0.2,
+      timeoutMs: 180_000,
       attemptTag: tagged(opts.roleAttemptTag ?? opts.attemptTag, "roles"),
     });
   };

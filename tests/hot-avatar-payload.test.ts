@@ -67,3 +67,25 @@ test('faces are 精选组 sources by tier (T1, T1.5, T2), at most 6; 氛围组 o
   // The six visible faces get responsive images (T1 without avatar shows an initial); the seventh 精选组 face does not.
   assert.deepEqual(full.filter(p=>p.iconSrcSet).map(p=>p.name),[5,3,1,6,8].map(name));
 });
+
+test('participant avatars ignore withdrawn reports from the same source', async () => {
+  const source = `${t}-withdrawn-avatar`;
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at)
+    VALUES (${source}, ${source}, 'rss', 'T1', 'editorial', '2100-01-01')`;
+  const [story] = await sql<{ id: number }[]>`INSERT INTO stories (public_id, title) VALUES (${randomUUID()}, ${t}) RETURNING id`;
+  storyIds.push(story!.id);
+  for (const withdrawn of [false, true]) {
+    const id = `${source}-${withdrawn}`;
+    await sql`INSERT INTO articles (id, source_id, identity_key, url, title, discovered_at, timeline_at, x_post)
+      VALUES (${id}, ${source}, ${id}, ${`https://example.org/${id}`}, ${id}, now() - make_interval(hours => ${withdrawn ? 0 : 1}), now(),
+        ${sql.json({ avatarUrl: `https://example.org/${id}.png` })})`;
+    await sql`INSERT INTO story_signals (story_id, article_id, participant_key, source_id, kind, observed_at)
+      VALUES (${story!.id}, ${id}, ${source}, ${source}, 'editorial', now())`;
+    if (withdrawn) await sql`INSERT INTO editorial_overrides (article_id, visibility, updated_by, reason)
+      VALUES (${id}, 'withdrawn', 'test', 'test')`;
+  }
+  const entry = { storyId: story!.id, participants: [{ name: source, kind: 'editorial', tier: 'T1' }] } as HotEntry;
+  const extras = await rankingExtras({ id: -Number(story!.id), computedAt: new Date().toISOString(), ruleVersion: 'test', entries: [entry], coverage: null });
+  assert.equal(extras.participants(entry)[0]!.iconUrl, proxiedImage(`https://example.org/${source}-false.png`, 'avatar'),
+    'the avatar comes from the remaining report, even when the withdrawn report is newer');
+});

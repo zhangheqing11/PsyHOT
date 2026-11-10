@@ -7,9 +7,10 @@ import { queueProcessing } from "../jobs/content.ts";
 import { BudgetExceededError } from "../providers/receipts.ts";
 import { fetchRss } from "./rss.ts";
 import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.ts";
-import { unsupportedConfig } from "./config-keys.ts";
+import { paidIntervalFloor, unsupportedConfig } from "./config-keys.ts";
 import { fetchJsonListWithDiagnostics } from "./json-list.ts";
 import { describeError } from "../lib/error-text.ts";
+import { sha256 } from "../lib/ids.ts";
 import { everyInfraXhsNote } from "../providers/everyinfra.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
@@ -24,6 +25,8 @@ export interface CollectResult {
 }
 
 const MAX_ITEMS_PER_RUN = 60;
+const OVERFLOW_MIN_ITEMS = 5;
+const MAX_LISTING_KEYS = 200;
 
 /** Stable reason codes used in offline rule tests and fetch-run diagnostics. */
 export function noiseFilterReason(c: Candidate, source: SourceRow): string | null {
@@ -147,6 +150,14 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
       detail = { pages: x.pages, truncated: x.truncated, backlog: x.backlog.length, backlogPages: x.backlogPages, dropped: x.dropped };
     }
     found = candidates.length;
+    const keyOf = (c: Candidate) => identityKeyFor({ ...c, sourceId, via: "fetch" });
+    // Compare this source's complete parsed page before filters or storage caps, including entries
+    // that are never stored. Other sources' discoveries must not count as overlap for this source.
+    const listingKeys = ["rss", "web_list", "json_list"].includes(source.kind)
+      ? [...new Set(candidates.map((c) => sha256(keyOf(rewriteUrl(c, source))).slice(0, 12)))] : null;
+    const previousListingKeys = Array.isArray(source.cursor?.listingKeys) ? new Set<string>(source.cursor.listingKeys) : null;
+    const overflow = !firstImport && found >= OVERFLOW_MIN_ITEMS && listingKeys !== null && previousListingKeys !== null
+      && !listingKeys.some((key) => previousListingKeys.has(key));
     const exclusions: Record<string, number> = {};
     const exclude = (reason: string) => { exclusions[reason] = (exclusions[reason] ?? 0) + 1; };
     candidates = candidates.flatMap((c) => {
@@ -173,7 +184,6 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     // EveryInfra's XHS search/user_posts responses contain an excerpt. When requested, upgrade only
     // unseen notes to full text through the paid `note` action; existing identities do not incur a
     // second detail charge on every scheduled listing check.
-    const keyOf = (c: Candidate) => identityKeyFor({ ...c, sourceId, via: "fetch" });
     const known = await storedTitles(candidates.map(keyOf));
     if (source.kind === "json_list" && source.config.adapter === "everyinfra_xhs" && source.config.everyinfraDetail === true) {
       for (const c of candidates) {
@@ -252,10 +262,21 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
 
     if (firstImport) nextCursor.initializedAt = new Date().toISOString();
     nextCursor.lastOkAt = new Date().toISOString();
+    // Persist only after storage succeeds. A 304 or empty page keeps the last nonempty baseline.
+    if (listingKeys?.length) nextCursor.listingKeys = listingKeys.slice(0, MAX_LISTING_KEYS);
+    if (overflow) {
+      nextCursor.overflowAt = nextCursor.lastOkAt;
+      nextCursor.overflowCount = Number(nextCursor.overflowCount ?? 0) + 1;
+      detail = { ...(detail ?? {}), overflow: true };
+    }
+    // A one-off early check leaves both the configured floor and the ordinary cadence intact.
+    // Jina's hourly listing floor also applies even though assertPaidInterval covers EveryInfra.
+    const retryMinutes = overflow ? Math.max(15, paidIntervalFloor(source.kind, source.config) ?? 0,
+      String(source.config.url ?? "").startsWith("https://r.jina.ai/") ? 60 : 0) : null;
     await sql`
       UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL,
         health = 'ok', cursor = ${sql.json(nextCursor as never)}, updated_at = now(),
-        next_fetch_at = now() + make_interval(mins => interval_minutes)
+        next_fetch_at = now() + make_interval(mins => coalesce(${retryMinutes}::integer, interval_minutes))
       WHERE id = ${sourceId}`;
     await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${found}, new_count = ${created},
                 detail = ${detail ? sql.json(detail as never) : null} WHERE id = ${run!.id}`;
@@ -405,28 +426,38 @@ export async function scheduleDueSources(limit = Number(process.env.FETCH_SCHEDU
   return { enqueued: rows.length, shards };
 }
 
+const ADAPTIVE_INTERVAL_KINDS: SourceRow["kind"][] = ["rss", "web_list", "json_list", "x_search"];
+
+/** Scheduling policy shared with interval restoration; paused sources follow the same policy. */
+export function sourceIntervalMode(source: Pick<SourceRow, "kind" | "config" | "cursor">): "adaptive" | "shard" | "manual" {
+  if (!ADAPTIVE_INTERVAL_KINDS.includes(source.kind) || String(source.config.adapter ?? "").startsWith("everyinfra_")) return "manual";
+  return shardHandle(source) ? "shard" : "adaptive";
+}
+
 /**
- * Daily: adapt each source's interval to its recent output (active 15 min … quiet 120 min).
- * hot_signal sources are allowed to be slower.
+ * Daily: adapt to recent output, never faster than the configured/operator minimum.
+ * hot_signal sources may be slower; X shards keep their cadence and EveryInfra is unchanged.
  */
 export async function adaptIntervals(): Promise<{ updated: number }> {
-  const rows = await sql<Array<Pick<SourceRow, "id" | "participation_mode" | "kind" | "config" | "cursor"> & { paid_listing: boolean; per_day: number }>>`
-    SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, (coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' OR coalesce(s.config->>'adapter', '') LIKE 'everyinfra_%') AS paid_listing,
+  const rows = await sql<Array<Pick<SourceRow, "id" | "participation_mode" | "kind" | "config" | "cursor"> & { min_interval_minutes: number | null; paid_listing: boolean; per_day: number }>>`
+    SELECT s.id, s.participation_mode, s.kind, s.config, s.cursor, s.min_interval_minutes, (coalesce(s.config->>'url', '') LIKE 'https://r.jina.ai/%' OR coalesce(s.config->>'adapter', '') LIKE 'everyinfra_%') AS paid_listing,
       (SELECT count(*) FROM articles a WHERE a.source_id = s.id AND a.discovered_at > now() - interval '7 days' AND NOT a.backfill) / 7.0 AS per_day
-    FROM sources s WHERE s.enabled AND s.kind IN ('rss', 'web_list', 'json_list', 'x_search')`;
+    FROM sources s WHERE s.enabled AND s.kind IN ${sql(ADAPTIVE_INTERVAL_KINDS)}`;
   let updated = 0;
   for (const r of rows) {
     const perDay = Number(r.per_day);
-    // Editorial sites and feeds are looked at hourly at least (they cost nothing);
+    // Automatic targets: editorial sites and feeds hourly at least (they cost nothing);
     // editorial X and listings read through Jina stop at two hours (paid per call, within their budgets);
     // hot signals may wait longer.
     // Keep EveryInfra's operator-selected cadence; avoid increasing a paid feed's polling overnight.
-    if (String(r.config.adapter ?? "").startsWith("everyinfra_")) continue;
+    const mode = sourceIntervalMode(r);
+    if (mode === "manual") continue;
     const max = r.participation_mode === "hot_signal" ? 180 : r.kind === "x_search" || r.paid_listing ? 120 : 60;
     // Listings read through Jina are not looked at more than hourly: busy ones would outrun its daily budget.
     const min = r.paid_listing ? 60 : 15;
     // X accounts read by shard follow the shard's pace, whatever their own volume.
-    const target = shardHandle(r) ? shardMinutes(r.participation_mode) : perDay <= 0.15 ? max : Math.round(Math.min(max, Math.max(min, (24 * 60) / (perDay * 3))));
+    const automatic = perDay <= 0.15 ? max : Math.round(Math.min(max, Math.max(min, (24 * 60) / (perDay * 3))));
+    const target = mode === "shard" ? shardMinutes(r.participation_mode) : Math.max(automatic, r.min_interval_minutes ?? 0);
     const res = await sql`UPDATE sources SET interval_minutes = ${target} WHERE id = ${r.id} AND interval_minutes <> ${target}`;
     updated += res.count;
   }

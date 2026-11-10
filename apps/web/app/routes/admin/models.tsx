@@ -109,7 +109,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
                         u.actualCost !== null ? (
                           `${money(u.actualCost)}${u.currency && u.currency !== "CNY" ? ` ${u.currency}` : ""}`
                         ) : u.estimate ? (
-                          <span title="按用量 × 单价推算">≈ {money(u.estimate.amount)}{u.estimate.currency !== "CNY" ? ` ${u.estimate.currency}` : ""}</span>
+                          <span title="估算，不是账单：按每次调用当时（高峰 / 空闲）的单价记录；没有记录的旧调用按高峰价计，是上限">≈ {money(u.estimate.amount)}{u.estimate.currency !== "CNY" ? ` ${u.estimate.currency}` : ""}</span>
                         ) : (
                           <span className="whitespace-nowrap text-ink-4" title="服务商没有返回费用，按 token 数和你的模型单价自己估算">未定价</span>
                         ),

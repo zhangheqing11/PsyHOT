@@ -5,11 +5,13 @@
 import { sql } from "../db.ts";
 import { CAPABILITIES, invalidateModelCache, modelSources, type Capability, type CapabilityKey } from "../editorial/models.ts";
 import { MODELS } from "../providers/llm.ts";
+import { estimateCost, pickPrice } from "../providers/prices.ts";
 import { audit } from "./auth.ts";
 
 interface UsageRow {
   purpose: string;
   model: string | null;
+  service: string | null;
   prompt_version: string | null;
   calls: number;
   ok: number;
@@ -18,8 +20,14 @@ interface UsageRow {
   p50: number | null;
   p95: number | null;
   tokens_in: string | null;
+  tokens_cached: string | null;
   tokens_out: string | null;
   actual_cost: string | null;
+  estimated_cost: string | null;
+  unpriced_calls: number;
+  tokens_in_unpriced: string | null;
+  tokens_cached_unpriced: string | null;
+  tokens_out_unpriced: string | null;
   currency: string | null;
 }
 
@@ -28,19 +36,25 @@ export async function modelsOverview(days = 7) {
   const [sources, usage, prices, history, benches] = await Promise.all([
     modelSources(),
     sql<UsageRow[]>`
-      SELECT r.purpose, a.model, r.request->>'promptVersion' AS prompt_version, count(*)::int AS calls,
+      SELECT r.purpose, a.model, a.service, r.request->>'promptVersion' AS prompt_version, count(*)::int AS calls,
              count(*) FILTER (WHERE a.status = 'received')::int AS ok,
              count(*) FILTER (WHERE a.status = 'failed')::int AS failed,
              count(*) FILTER (WHERE a.status = 'unknown')::int AS unknown,
              percentile_disc(0.5) WITHIN GROUP (ORDER BY a.latency_ms) AS p50,
              percentile_disc(0.95) WITHIN GROUP (ORDER BY a.latency_ms) AS p95,
-             sum((a.usage->>'prompt_tokens')::bigint) AS tokens_in, sum((a.usage->>'completion_tokens')::bigint) AS tokens_out,
-             sum(a.cost) FILTER (WHERE a.cost_basis = 'actual') AS actual_cost, max(a.currency) AS currency
+             sum((a.usage->>'prompt_tokens')::bigint) AS tokens_in,
+             sum(coalesce(a.usage->>'prompt_cache_hit_tokens', a.usage->'prompt_tokens_details'->>'cached_tokens')::bigint) AS tokens_cached, sum((a.usage->>'completion_tokens')::bigint) AS tokens_out,
+             sum(a.cost) FILTER (WHERE a.cost_basis = 'actual') AS actual_cost,
+             sum(a.cost) FILTER (WHERE a.cost_basis = 'estimated') AS estimated_cost,
+             count(*) FILTER (WHERE a.status = 'received' AND a.cost IS NULL)::int AS unpriced_calls,
+             sum((a.usage->>'prompt_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_in_unpriced,
+             sum(coalesce(a.usage->>'prompt_cache_hit_tokens', a.usage->'prompt_tokens_details'->>'cached_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_cached_unpriced,
+             sum((a.usage->>'completion_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_out_unpriced, max(a.currency) AS currency
       FROM receipt_attempts a JOIN receipts r ON r.id = a.receipt_id
       WHERE a.started_at >= ${since} AND a.origin = 'live' AND a.model IS NOT NULL
-      GROUP BY 1, 2, 3 ORDER BY 1, 4 DESC`,
-    sql<{ service: string; model: string; currency: string; input_per_mtok: string | null; output_per_mtok: string | null }[]>`
-      SELECT service, model, currency, input_per_mtok, output_per_mtok FROM service_prices`,
+      GROUP BY 1, 2, 3, 4 ORDER BY 1, 5 DESC`,
+    sql<{ service: string; model: string; currency: string; input_per_mtok: string | null; cached_per_mtok: string | null; output_per_mtok: string | null; per_request: string | null }[]>`
+      SELECT service, model, currency, input_per_mtok, cached_per_mtok, output_per_mtok, per_request FROM service_prices`,
     sql<{ at: Date; actor: string; subject: string; reason: string | null; before: unknown; after: unknown }[]>`
       SELECT created_at AS at, actor, subject, reason, before, after FROM audit_log WHERE action = 'models.switch' ORDER BY created_at DESC LIMIT 30`,
     sql<{ id: string; label: string; sample_size: number; prompt_version: string | null; models: string[]; summary: unknown; created_at: Date }[]>`
@@ -48,12 +62,17 @@ export async function modelsOverview(days = 7) {
              (SELECT coalesce(jsonb_object_agg(key, value - 'sweep'), '{}'::jsonb) FROM jsonb_each(r.summary)) AS summary,
              created_at FROM selectbench_runs r ORDER BY created_at DESC LIMIT 8`,
   ]);
-  const serviceOf = (model: string) => Object.values(MODELS).find((m) => m.model === model || m.key === model)?.service ?? null;
+  // Stored estimates (priced at the time of each call) plus, for attempts without one (older ones), tokens
+  // at the base row, which is the peak price: an upper bound. The receipt's own service names the row (a
+  // deployment's default model is service "llm", not the vendor's name).
   const priced = (u: UsageRow) => {
-    const service = u.model ? serviceOf(u.model) : null;
-    const p = prices.find((x) => x.service === service && x.model === u.model) ?? prices.find((x) => x.service === service && x.model === "");
-    if (!p || (!p.input_per_mtok && !p.output_per_mtok)) return null;
-    return { amount: (Number(u.tokens_in ?? 0) / 1e6) * Number(p.input_per_mtok ?? 0) + (Number(u.tokens_out ?? 0) / 1e6) * Number(p.output_per_mtok ?? 0), currency: p.currency };
+    const stored = u.estimated_cost === null ? null : Number(u.estimated_cost);
+    const base = u.unpriced_calls
+      ? estimateCost(pickPrice(prices, u.service, u.model), { tokensIn: Number(u.tokens_in_unpriced ?? 0), tokensCached: Number(u.tokens_cached_unpriced ?? 0), tokensOut: Number(u.tokens_out_unpriced ?? 0), requests: u.unpriced_calls })
+      : null;
+    if (stored === null && !base) return null;
+    const currency = base?.currency ?? u.currency ?? "CNY";
+    return { amount: (stored ?? 0) + (base?.amount ?? 0), currency };
   };
   const capabilities = (Object.entries(CAPABILITIES) as Array<[CapabilityKey, Capability]>).map(([key, c]) => ({
     key,

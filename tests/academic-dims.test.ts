@@ -11,6 +11,7 @@ import { analyzeArticle, normalizeAnalysis, runAnalysis, type AnalyzeInputArticl
 import { CAPABILITIES, invalidateModelCache, modelFor } from "@aihot/backend/editorial/models";
 import { promptText } from "@aihot/backend/editorial/prompts";
 import { MODELS, ModelOutputError } from "@aihot/backend/providers/llm";
+import { ProviderRejectedError } from "@aihot/backend/providers/receipts";
 import { SELECTION } from "@aihot/industry/selection";
 
 const T = tag();
@@ -25,6 +26,7 @@ interface Case {
   refused: boolean;
   malformed: "missing" | "range" | "fraction" | "string" | null;
   failuresLeft: number;
+  dimsRejected?: boolean;
   why: string;
   calls: Array<{ step: Step; body: Record<string, any> }>;
   scoreIndex: number;
@@ -50,6 +52,7 @@ const provider = await stub((hit, req) => {
   if (step === "understand") return answer({ itemType: "research_finding", titleZh: "研究结果", summaryZh: "一项心理学研究报告了行为变化。", editorialJudgment: "值得关注", tags: [] });
   if (step === "summarize") return answer("title_zh: 研究摘要\nsummary_zh: 一项研究报告了行为变化。");
   const dims: Record<string, any> = { event: "研究报告行为变化", contentType: "research_finding" };
+  if (state.dimsRejected) return new Reply(400, { error: { code: "invalid_request", message: "bad request" } });
   AXES.forEach((axis, i) => { dims[axis] = { score: state.values[i], why: state.why }; });
   if (state.failuresLeft-- > 0) {
     if (state.malformed === "missing") delete dims.act;
@@ -81,7 +84,7 @@ after(async () => {
   await closeDb();
 });
 
-function makeCase(opts: Partial<Pick<Case, "legacy" | "values" | "category" | "promotion" | "refused" | "malformed" | "failuresLeft" | "why">> & { tier?: string; track?: string } = {}) {
+function makeCase(opts: Partial<Pick<Case, "legacy" | "values" | "category" | "promotion" | "refused" | "malformed" | "failuresLeft" | "dimsRejected" | "why">> & { tier?: string; track?: string } = {}) {
   const marker = `DIMS_${T}_${cases.size}_END`;
   const state: Case = { legacy: [40, 40], values: [3, 3, 3, 3, 2], category: "research", promotion: false, refused: false, malformed: null, failuresLeft: 0, why: "依据", calls: [], scoreIndex: 0, ...opts };
   cases.set(marker, state);
@@ -234,4 +237,10 @@ test("analyzeArticle stores the final score, dimensions, legacy scores and compl
   const again = await analyzeArticle(articleId);
   assert.equal(again!.reused, true);
   assert.equal(state.calls.length, count, "the dimensions receipt is reused with all other steps");
+});
+
+test("a non-retryable dimensions rejection is not retried", async () => {
+  const { article, state } = makeCase({ dimsRejected: true });
+  await assert.rejects(runAnalysis(article), ProviderRejectedError);
+  assert.equal(state.calls.filter((c) => c.step === "dims").length, 1);
 });

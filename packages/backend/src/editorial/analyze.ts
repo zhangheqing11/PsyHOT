@@ -375,6 +375,16 @@ export async function runSelectionScores(
   return threshold === null ? null : runScores(a, threshold, opts, onReceipt);
 }
 
+/** Retry once only when the model answered unusably; rejections, budget, unknown receipts and interrupts propagate. */
+async function retryOnBadOutput<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (error) {
+    if (!(error instanceof ModelOutputError)) throw error;
+    return call();
+  }
+}
+
 async function runDims(a: AnalyzeInputArticle, threshold: number, opts: StepOpts): Promise<NonNullable<AnalysisRun["dims"]>> {
   const model = await modelFor("scoreDims");
   const input = buildScoreInput(a).replace(
@@ -391,12 +401,8 @@ async function runDims(a: AnalyzeInputArticle, threshold: number, opts: StepOpts
       attemptTag: tagged(opts.attemptTag, "dims"),
     });
   };
-  let res: Awaited<ReturnType<typeof call>>;
-  try {
-    res = await call();
-  } catch {
-    res = await call(); // One retry; a second failure reaches the job queue, never a legacy fallback.
-  }
+  // One retry; a second failure reaches the job queue, never a legacy fallback.
+  const res = await retryOnBadOutput(call);
   const d = res.data;
   return {
     model: res.model, threshold, gate: SELECTION.academicDims.gate,
@@ -425,12 +431,7 @@ export async function runRoleScores(a: AnalyzeInputArticle, opts: StepOpts = {})
       attemptTag: tagged(opts.roleAttemptTag ?? opts.attemptTag, "roles"),
     });
   };
-  let res: Awaited<ReturnType<typeof call>>;
-  try {
-    res = await call();
-  } catch {
-    res = await call();
-  }
+  const res = await retryOnBadOutput(call);
   return { model: res.model, receiptId: res.receiptId, reused: res.reused, values: res.data, ...calculateRoleScores(res.data) };
 }
 

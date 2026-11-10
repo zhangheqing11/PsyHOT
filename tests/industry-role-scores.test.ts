@@ -7,6 +7,7 @@ import { upsertMaterial } from "@aihot/backend/content/materials";
 import { analyzeArticle, calculateRoleScores, normalizeAnalysis, PROMPT_VERSIONS, RolesSchema, runAnalysis, type AnalyzeInputArticle } from "@aihot/backend/editorial/analyze";
 import { CAPABILITIES, invalidateModelCache } from "@aihot/backend/editorial/models";
 import { ModelOutputError } from "@aihot/backend/providers/llm";
+import { ProviderRejectedError } from "@aihot/backend/providers/receipts";
 import { FEATURES } from "@aihot/industry/features";
 import { SELECTION } from "@aihot/industry/selection";
 import { ROLE_KEYS, industryRoleScoringOn } from "@aihot/contracts/taxonomy";
@@ -81,7 +82,7 @@ test("schema drops invalid and excess primary roles; rejects missing roles and i
 type Step = "prefilter" | "score" | "roles" | "dims" | "structure" | "understand" | "summarize";
 interface Case {
   legacy: number[]; category: string | null; promotion: boolean; blocked: boolean; refused: boolean;
-  roleValues: ReturnType<typeof values>; failuresLeft: number; calls: Array<{ step: Step; body: Record<string, any> }>; scoreIndex: number;
+  roleValues: ReturnType<typeof values>; failuresLeft: number; rolesRejected?: boolean; calls: Array<{ step: Step; body: Record<string, any> }>; scoreIndex: number;
 }
 const cases = new Map<string, Case>();
 const provider = await stub((hit, req) => {
@@ -101,6 +102,7 @@ const provider = await stub((hit, req) => {
   if (step === "understand") return answer({ itemType: "research_finding", titleZh: "执业规则更新", summaryZh: "正式文件公布了具体执业流程。", editorialJudgment: "值得关注", tags: [] });
   if (step === "summarize") return answer("title_zh: 规则摘要\nsummary_zh: 正式文件公布了具体执业流程。");
   if (step === "dims") return answer({ event: "研究", contentType: "research_finding", ...Object.fromEntries(["sig", "nov", "cred", "reson", "act"].map((k) => [k, { score: 3, why: "依据" }])) });
+  if (state.rolesRejected) return new Reply(400, { error: { code: "invalid_request", message: "bad request" } });
   const v = structuredClone(state.roleValues);
   if (state.failuresLeft-- > 0) delete v.roles.operator;
   return answer(v);
@@ -215,4 +217,10 @@ test("analyzeArticle saves the role result and completed receipt, and reuses all
   const count = state.calls.length;
   assert.equal((await analyzeArticle(articleId))!.reused, true);
   assert.equal(state.calls.length, count);
+});
+
+test("a non-retryable roles rejection is not retried", async () => {
+  const { article, state } = makeCase({ rolesRejected: true });
+  await assert.rejects(runAnalysis(article), ProviderRejectedError);
+  assert.equal(state.calls.filter((c) => c.step === "roles").length, 1);
 });

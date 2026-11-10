@@ -213,11 +213,15 @@ export async function registerExtractionJobs(boss: PgBoss) {
  */
 export async function sweepUnprocessed(): Promise<{ enqueued: number }> {
   const rows = await sql<{ id: string }[]>`
-    SELECT id FROM articles
-    WHERE processing_state = 'new' AND created_at < now() - interval '3 minutes'
-      AND (processing_retry_at IS NULL OR processing_retry_at <= now())
-      AND (processing_queued_at IS NULL OR processing_queued_at < now() - ${QUEUED_STALE}::interval)
-    ORDER BY discovered_at DESC LIMIT 500`;
+    SELECT a.id FROM articles a
+    WHERE a.processing_state = 'new' AND a.created_at < now() - interval '3 minutes'
+      AND (a.processing_retry_at IS NULL OR a.processing_retry_at <= now())
+      AND (a.processing_queued_at IS NULL OR a.processing_queued_at < now() - ${QUEUED_STALE}::interval)
+      AND NOT EXISTS (
+        SELECT 1 FROM pgboss.job j
+        WHERE j.singleton_key = a.id AND j.name IN (${QUEUES.analyze}, ${QUEUES.extractBody}, ${QUEUES.group})
+          AND j.state IN ('created', 'retry', 'active'))
+    ORDER BY a.discovered_at DESC LIMIT 500`;
   for (const r of rows) await queueProcessing(r.id);
   return { enqueued: rows.length };
 }

@@ -68,7 +68,7 @@ function rateLimit(ip: string, perHour = 5): void {
  * one is sent it again (not more than once in ten minutes) with the track chosen now; a confirmed one is
  * left as it is (its owner changes the track from the link in any email).
  */
-export async function subscribe(rawEmail: string, ip: string, rawTrack: unknown = "combined"): Promise<void> {
+export async function subscribe(rawEmail: string, ip: string, rawTrack: unknown = "combined", confirmationsPerDay = CONFIRMATIONS_PER_DAY): Promise<void> {
   if (!emailReady()) throw new SubscriptionRejected(503, "unavailable", "邮件订阅暂未开放。");
   const email = normalizeEmail(rawEmail);
   if (!email) throw new SubscriptionRejected(400, "invalid_email", "邮箱地址格式不对，请检查一下。");
@@ -77,27 +77,35 @@ export async function subscribe(rawEmail: string, ip: string, rawTrack: unknown 
   const track: SubscriptionTrack = FEATURES.tracks ? rawTrack : "combined";
   rateLimit(ip || "unknown");
 
-  const [existing] = await sql<{ id: number; token: string; status: string; resend: boolean }[]>`
-    SELECT id, token, status, coalesce(confirm_sent_at < now() - make_interval(mins => ${RESEND_AFTER_MINUTES}), true) AS resend
-    FROM email_subscribers WHERE lower(email) = lower(${email})`;
-  if (existing && (existing.status === "active" || !existing.resend)) return;
+  const sending = await sql.begin(async (tx) => {
+    await tx`SELECT pg_advisory_xact_lock(hashtext('subscription_confirmations'))`;
+    const [today] = await tx<{ n: number }[]>`SELECT count(*)::int AS n FROM subscription_confirm_sends WHERE sent_at > now() - interval '1 day'`;
+    const [existing] = await tx<{ id: number; token: string; status: string; resend: boolean }[]>`
+      SELECT id, token, status, coalesce(confirm_sent_at < now() - make_interval(mins => ${RESEND_AFTER_MINUTES}), true) AS resend
+      FROM email_subscribers WHERE lower(email) = lower(${email})`;
+    if (existing && (existing.status === "active" || !existing.resend)) return null;
+    if (today!.n >= confirmationsPerDay) throw new SubscriptionRejected(503, "busy", "今天的订阅人数较多，请明天再试。", 3600);
 
-  const [today] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM email_subscribers WHERE confirm_sent_at > now() - interval '1 day'`;
-  if (today!.n >= CONFIRMATIONS_PER_DAY) throw new SubscriptionRejected(503, "busy", "今天的订阅人数较多，请明天再试。", 3600);
-
-  const token = existing?.token ?? randomBytes(24).toString("base64url");
-  const [row] = existing
-    ? await sql<{ id: number }[]>`UPDATE email_subscribers SET confirm_sent_at = now(), track = ${track}, updated_at = now() WHERE id = ${existing.id} RETURNING id`
-    : await sql<{ id: number }[]>`
-        INSERT INTO email_subscribers (email, token, status, track, confirm_sent_at) VALUES (${email}, ${token}, 'pending', ${track}, now())
-        ON CONFLICT (lower(email)) DO NOTHING RETURNING id`;
-  if (!row) return; // the same address submitted twice at once: the other request sends
+    const token = existing?.token ?? randomBytes(24).toString("base64url");
+    const [row] = existing
+      ? await tx<{ id: number }[]>`
+          UPDATE email_subscribers SET confirm_sent_at = now(), track = ${track}, updated_at = now()
+          WHERE id = ${existing.id} AND status <> 'active'
+            AND (confirm_sent_at IS NULL OR confirm_sent_at < now() - make_interval(mins => ${RESEND_AFTER_MINUTES})) RETURNING id`
+      : await tx<{ id: number }[]>`
+          INSERT INTO email_subscribers (email, token, status, track, confirm_sent_at) VALUES (${email}, ${token}, 'pending', ${track}, now())
+          ON CONFLICT (lower(email)) DO NOTHING RETURNING id`;
+    if (!row) return null;
+    await tx`INSERT INTO subscription_confirm_sends (subscriber_id) VALUES (${row.id})`;
+    return { id: row.id, token, existing: !!existing };
+  });
+  if (!sending) return;
   try {
-    await sendMail({ to: email, ...confirmationEmail(token, track) });
+    await sendMail({ to: email, ...confirmationEmail(sending.token, track) });
   } catch (error) {
     // Nothing reached the reader: forget a new address, and let an old one be sent again at once.
-    if (existing) await sql`UPDATE email_subscribers SET confirm_sent_at = NULL WHERE id = ${row.id}`;
-    else await sql`DELETE FROM email_subscribers WHERE id = ${row.id}`;
+    if (sending.existing) await sql`UPDATE email_subscribers SET confirm_sent_at = NULL WHERE id = ${sending.id}`;
+    else await sql`DELETE FROM email_subscribers WHERE id = ${sending.id}`;
     console.error("[email] confirmation failed", (error as Error).message);
     throw new SubscriptionRejected(503, "send_failed", "确认邮件没有发出去，请稍后再试。", 60);
   }

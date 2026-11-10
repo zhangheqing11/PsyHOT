@@ -1,7 +1,7 @@
 // Daily report by email against a local SMTP server: double opt-in (one confirmation, nothing more
 // until confirmed), the same answer for any address, one copy of an issue per address with a one-click
 // unsubscribe, a refused address retried a bounded number of times, and unsubscribing deletes it.
-import { tag } from "./setup.ts";
+import { gate, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import net from "node:net";
 import { after, before, test } from "node:test";
@@ -10,7 +10,7 @@ import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { closeMailer } from "@aihot/backend/notify/email";
-import { maskEmail, normalizeEmail, sendDailyEmails } from "@aihot/backend/notify/subscriptions";
+import { maskEmail, normalizeEmail, sendDailyEmails, subscribe, SubscriptionRejected } from "@aihot/backend/notify/subscriptions";
 import { publishArticle } from "@aihot/backend/publication/publish";
 import { buildApp } from "../apps/api/src/app.ts";
 
@@ -18,6 +18,7 @@ const T = tag();
 const SOURCE = `test-subscriptions-${T}`;
 const REPORT_KEY = `2099-11-${String(10 + Math.floor(Math.random() * 19))}`;
 const REFUSED = `refused-${T}@example.com`;
+const CONFIRM_REFUSED = `confirm-refused-${T}@example.com`;
 const NOTICE_KEY = `2099-12-${String(10 + Math.floor(Math.random() * 19))}`;
 const TRACK_KEY = `2099-10-${String(10 + Math.floor(Math.random() * 19))}`;
 const ONE_SIDED_KEY = `2099-09-${String(10 + Math.floor(Math.random() * 19))}`;
@@ -55,7 +56,7 @@ const smtp = net.createServer((sock) => {
       if (cmd === "EHLO" || cmd === "HELO") sock.write("250-test\r\n250 8BITMIME\r\n");
       else if (cmd === "RCPT") {
         const addr = /<(.+)>/.exec(line)![1]!;
-        if (addr === REFUSED) sock.write("550 no such user\r\n");
+        if (addr === REFUSED || addr === CONFIRM_REFUSED) sock.write("550 no such user\r\n");
         else (cur.to.push(addr), sock.write("250 ok\r\n"));
       } else if (cmd === "DATA") (inData = true, sock.write("354 go ahead\r\n"));
       else if (cmd === "QUIT") sock.end("221 bye\r\n");
@@ -90,10 +91,13 @@ let ip = 0;
 const post = (url: string, payload: unknown) =>
   app.inject({ method: "POST", url, payload: payload as object, headers: { "x-real-ip": `10.9.${T.length}.${++ip}` } });
 
+let initialConfirmSendId = 0;
 before(async () => {
+  initialConfirmSendId = (await sql<{ id: number }[]>`SELECT coalesce(max(id), 0) AS id FROM subscription_confirm_sends`)[0]!.id;
   await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, next_fetch_at) VALUES (${SOURCE}, 'Test subscriptions', 'rss', 'T1', 'editorial', '2100-01-01')`;
 });
 after(async () => {
+  await sql`DELETE FROM subscription_confirm_sends WHERE id > ${initialConfirmSendId}`;
   await sql`DELETE FROM email_subscribers WHERE email LIKE ${`%${T}%`}`;
   await sql`DELETE FROM reports WHERE kind = 'daily' AND key IN (${REPORT_KEY}, ${NOTICE_KEY}, ${TRACK_KEY}, ${ONE_SIDED_KEY})`;
   closeMailer();
@@ -128,6 +132,90 @@ test("double opt-in: one confirmation, the same answer twice, active once confir
   assert.equal(JSON.parse(confirmed.body).email, maskEmail(addr));
   assert.equal((await post("/api/site/subscriptions", { email: addr })).statusCode, 202, "a confirmed address answers the same too");
   assert.equal(mailsTo(addr).length, 1);
+});
+
+const todayConfirmations = async () => (await sql<{ n: number }[]>`
+  SELECT count(*)::int AS n FROM subscription_confirm_sends WHERE sent_at > now() - interval '1 day'`)[0]!.n;
+const busy = (error: unknown) => error instanceof SubscriptionRejected && error.status === 503 && error.code === "busy";
+
+test("every resend consumes the daily allowance, including repeated sends to the same pending address", async () => {
+  const addr = `resend-${T}@example.com`;
+  const limit = await todayConfirmations() + 3;
+  for (let i = 0; i < 3; i++) {
+    await sql`UPDATE email_subscribers SET confirm_sent_at = now() - interval '11 minutes' WHERE email = ${addr}`;
+    await subscribe(addr, `resend-${T}-${i}`, "combined", limit);
+  }
+  assert.equal(mailsTo(addr).length, 3);
+  const [count] = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM subscription_confirm_sends c JOIN email_subscribers s ON s.id = c.subscriber_id WHERE s.email = ${addr}`;
+  assert.equal(count!.n, 3, "one row for each send, rather than one row for the address");
+  await sql`UPDATE email_subscribers SET confirm_sent_at = now() - interval '11 minutes' WHERE email = ${addr}`;
+  await assert.rejects(subscribe(addr, `resend-${T}-blocked`, "combined", limit), busy);
+  assert.equal(mailsTo(addr).length, 3);
+  assert.equal(await todayConfirmations(), limit);
+});
+
+test("five concurrent resends to one pending address send only one confirmation", async () => {
+  const addr = `concurrent-${T}@example.com`;
+  await sql`INSERT INTO email_subscribers (email, token, status, confirm_sent_at)
+    VALUES (${addr}, ${`concurrent-token-${T}`}, 'pending', now() - interval '11 minutes')`;
+  // Hold the row until all five requests are waiting: otherwise the first update can finish before
+  // the others read it, accidentally hiding the check-then-update race in the old implementation.
+  const locked = gate();
+  const release = gate();
+  const blocker = sql.begin(async (tx) => {
+    await tx`SELECT id FROM email_subscribers WHERE email = ${addr} FOR UPDATE`;
+    locked.open();
+    await release.promise;
+  });
+  await locked.promise;
+  const pending = Promise.all(Array.from({ length: 5 }, (_, i) => subscribe(addr, `concurrent-${T}-${i}`)));
+  try {
+    let waiting = 0;
+    for (let i = 0; i < 200; i++) {
+      waiting = (await sql<{ n: number }[]>`
+        SELECT count(*)::int AS n FROM pg_stat_activity
+        WHERE datname = current_database() AND wait_event_type = 'Lock' AND pid <> pg_backend_pid()`)[0]!.n;
+      if (waiting >= 5) break;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.equal(waiting, 5, "all five calls overlap before the sending right can be claimed");
+  } finally {
+    release.open();
+    await blocker;
+    await pending;
+  }
+  assert.equal(mailsTo(addr).length, 1);
+  const [count] = await sql<{ n: number }[]>`
+    SELECT count(*)::int AS n FROM subscription_confirm_sends c JOIN email_subscribers s ON s.id = c.subscriber_id WHERE s.email = ${addr}`;
+  assert.equal(count!.n, 1);
+});
+
+test("concurrent subscriptions to different addresses cannot overrun the daily allowance", async () => {
+  const before = await todayConfirmations();
+  const addresses = Array.from({ length: 5 }, (_, i) => `cap-${i}-${T}@example.com`);
+  const results = await Promise.allSettled(addresses.map((addr, i) => subscribe(addr, `cap-${T}-${i}`, "combined", before + 2)));
+  assert.equal(results.filter((r) => r.status === "fulfilled").length, 2);
+  assert.equal(results.filter((r) => r.status === "rejected" && busy(r.reason)).length, 3);
+  assert.equal(addresses.reduce((sum, addr) => sum + mailsTo(addr).length, 0), 2);
+  assert.equal(await todayConfirmations(), before + 2);
+});
+
+test("failed confirmation attempts keep their count while the new-address and resend rollbacks still apply", async () => {
+  const before = await todayConfirmations();
+  const failed = (error: unknown) => error instanceof SubscriptionRejected && error.code === "send_failed";
+  await assert.rejects(subscribe(CONFIRM_REFUSED, `failed-new-${T}`, "combined", before + 2), failed);
+  assert.equal((await sql`SELECT id FROM email_subscribers WHERE email = ${CONFIRM_REFUSED}`).length, 0);
+  assert.equal(await todayConfirmations(), before + 1, "deleting a failed new subscription does not restore the allowance");
+  const [orphan] = await sql`SELECT subscriber_id FROM subscription_confirm_sends WHERE id > ${initialConfirmSendId} ORDER BY id DESC LIMIT 1`;
+  assert.equal(orphan!.subscriber_id, null);
+
+  await sql`INSERT INTO email_subscribers (email, token, status) VALUES (${CONFIRM_REFUSED}, ${`failed-token-${T}`}, 'pending')`;
+  await assert.rejects(subscribe(CONFIRM_REFUSED, `failed-resend-${T}`, "combined", before + 2), failed);
+  const [row] = await sql`SELECT confirm_sent_at FROM email_subscribers WHERE email = ${CONFIRM_REFUSED}`;
+  assert.equal(row!.confirm_sent_at, null, "a failed resend can be tried again immediately");
+  assert.equal(await todayConfirmations(), before + 2);
+  await assert.rejects(subscribe(CONFIRM_REFUSED, `failed-capped-${T}`, "combined", before + 2), busy);
 });
 
 test("an issue goes once to each confirmed address; a refused one is retried, then given up", async () => {

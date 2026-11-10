@@ -1,13 +1,16 @@
 // Feedback: content, optional email, page URL, one optional screenshot. The screenshot
-// goes to the internal Feishu chat and only its image key is stored. Abuse control uses an unreadable
-// source identifier (HMAC of client IP + UA family), per-source bans and a per-minute limit.
+// is kept locally within a size and age limit until forwarded to the internal Feishu chat. Abuse control
+// uses an unreadable source identifier (HMAC of client IP + UA family), per-source bans and a per-minute limit.
 import { createHmac } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { config, credential } from "../config.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
 import { feishuInternalEnabled, forwardFeedbackToFeishu } from "../notify/feishu.ts";
+
+export const SCREENSHOT_DIR_MAX_BYTES = 512 * 1024 * 1024;
+export const SCREENSHOT_KEEP_DAYS = 30;
 
 export class FeedbackRejected extends Error {
   readonly status: number;
@@ -46,7 +49,43 @@ export interface FeedbackInput {
   userAgent: string;
 }
 
-export async function submitFeedback(input: FeedbackInput): Promise<{ id: number }> {
+/** Called under the directory's advisory lock, shared by submissions and retention. */
+async function saveScreenshot(screenshot: NonNullable<FeedbackInput["screenshot"]>, maxBytes: number): Promise<string> {
+  const name = `${sha256(screenshot.data).slice(0, 24)}.${screenshot.mime.split("/")[1]}`;
+  const dir = path.join(config.dataDir, "feedback-screenshots");
+  const file = path.join(dir, name);
+  let writing = false;
+  try {
+    const entries = await readdir(dir).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+    let bytes = 0;
+    for (const entry of entries) {
+      const info = await stat(path.join(dir, entry)).catch((error: NodeJS.ErrnoException) => {
+        if (error.code === "ENOENT") return null; // Feishu may have removed an uploaded file.
+        throw error;
+      });
+      if (info?.isFile()) bytes += info.size;
+    }
+    if (bytes + screenshot.data.length > maxBytes) {
+      console.warn("[feedback] screenshot not saved: storage quota exceeded");
+      return "gone:quota";
+    }
+    await mkdir(dir, { recursive: true });
+    writing = true;
+    await writeFile(file, screenshot.data);
+    return `local:${name}`;
+  } catch (error) {
+    // Disk and permission errors must not discard the text or leave a partial screenshot behind.
+    if (writing) await unlink(file).catch(() => {});
+    const code = (error as NodeJS.ErrnoException).code;
+    console.warn("[feedback] screenshot not saved", code ?? "io_error");
+    return code === "ENOSPC" || code === "EDQUOT" ? "gone:quota" : "gone:missing";
+  }
+}
+
+export async function submitFeedback(input: FeedbackInput, screenshotMaxBytes = SCREENSHOT_DIR_MAX_BYTES): Promise<{ id: number }> {
   const content = input.content.trim();
   if (content.length < 2) throw new FeedbackRejected(400, "invalid_request", "请写下反馈内容。");
   if (content.length > 5000) throw new FeedbackRejected(400, "invalid_request", "反馈内容最多 5000 字。");
@@ -58,20 +97,21 @@ export async function submitFeedback(input: FeedbackInput): Promise<{ id: number
   if (banned) throw new FeedbackRejected(403, "forbidden", "暂时无法提交反馈。");
   rateLimit(source);
 
-  let screenshotKey: string | null = null;
   if (input.screenshot) {
     if (!/^image\/(png|jpeg|webp|gif)$/.test(input.screenshot.mime)) throw new FeedbackRejected(400, "invalid_request", "截图需要是 PNG、JPG、WebP 或 GIF。");
     if (input.screenshot.data.length > 8 * 1024 * 1024) throw new FeedbackRejected(400, "invalid_request", "截图最大 8MB。");
-    // Stored locally only until it is forwarded (notify/feishu.ts); the database keeps only an identifier.
-    const name = `${sha256(input.screenshot.data).slice(0, 24)}.${input.screenshot.mime.split("/")[1]}`;
-    const dir = path.join(config.dataDir, "feedback-screenshots");
-    await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, name), input.screenshot.data);
-    screenshotKey = `local:${name}`;
   }
-  const [row] = await sql<{ id: number }[]>`
-    INSERT INTO feedback (content, email, page_url, screenshot_key, source_hash, forward_error)
-    VALUES (${content}, ${email}, ${pageUrl}, ${screenshotKey}, ${source}, 'pending') RETURNING id`;
+  const [row] = await sql.begin(async (tx) => {
+    let screenshotKey: string | null = null;
+    if (input.screenshot) {
+      // Check and write together, including across API processes that share the data volume.
+      await tx`SELECT pg_advisory_xact_lock(hashtext('feedback_screenshots'))`;
+      screenshotKey = await saveScreenshot(input.screenshot, screenshotMaxBytes);
+    }
+    return tx<{ id: number }[]>`
+      INSERT INTO feedback (content, email, page_url, screenshot_key, source_hash, forward_error)
+      VALUES (${content}, ${email}, ${pageUrl}, ${screenshotKey}, ${source}, 'pending') RETURNING id`;
+  });
   const id = row!.id;
   void forwardFeedbackToFeishu(id).catch(() => {});
   return { id };

@@ -17,7 +17,25 @@
 			roll_keep 30
 			roll_keep_for 720h
 		}
-		format json
+		format filter {
+			# Page-view beacons URL-encode the page and referrer into p/r; filter their t too.
+			# The outer filters pass URI/Referer values to this encoder by their leaf names.
+			wrap filter {
+				wrap json
+				fields {
+					uri regexp `(?i)(%3f|%26)t%3d[^%&]*` `${1}t%3DREDACTED`
+					Referer regexp `(?i)(%3f|%26)t%3d[^%&]*` `${1}t%3DREDACTED`
+				}
+			}
+			fields {
+				request>uri query {
+					replace t REDACTED
+				}
+				request>headers>Referer query {
+					replace t REDACTED
+				}
+			}
+		}
 	}
 }
 

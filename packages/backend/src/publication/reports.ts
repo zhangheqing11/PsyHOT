@@ -273,7 +273,7 @@ export async function loadReport(kind: ReportKind, key: string, trackFilter: Tra
     ? daily
       ? { totalEvents: sectionsShown.flatMap(itemsOf).length, sourcesCount: new Set(sectionsShown.flatMap(itemsOf).map((i) => i.sourceId).filter(Boolean)).size, firstPartyEvents: sectionsShown.flatMap(itemsOf).filter((i) => i.firstParty).length }
       : { totalStories: sectionsShown.flatMap(itemsOf).length, reportsCovered: c.metrics?.reportsCovered ?? 0 }
-    : (c.metrics ?? {});
+    : Object.fromEntries(Object.entries((c.metrics ?? {}) as Record<string, number>).filter(([k]) => k !== "modelsReleased")); // retired metric still present in old stored reports
   return {
     kind,
     key,

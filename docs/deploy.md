@@ -64,6 +64,10 @@ docker compose exec -T db pg_dump -U aihot aihot | gzip > myhot-$(date +%F).sql.
 
 数据都在三个 Docker 卷里：`db`（数据库）、`data`（上传的图片、图片缓存、本地备份）、`caddy`（证书）。`docker compose down` 不会删除它们；`docker compose down -v` 会。
 
+匿名反馈截图放在 `data` 卷的 `feedback-screenshots/`，单张最多 8 MiB，目录总量最多 512 MiB。超过总量上限时仍保存文字反馈，截图记为未保存；并发提交共用配额检查锁。飞书上传成功或放弃上传后删除本地截图；未转发的截图由 worker 每日清理，按文件修改时间删除超过 30 天的文件，即使内部飞书群未开启也一样。
+
+订阅确认邮件的上限是滚动 24 小时内 200 次发送尝试，重发和失败尝试都占额度，删除订阅地址也不会恢复额度。同一未确认地址的正常重发至少间隔 10 分钟，并发请求只允许一个取得发送权；发送失败沿用原有回退规则。发送计数保留 30 天，由每日清理任务删除更早的记录。
+
 ### 看访问量
 
 用 HTTPS 方式启动时，Caddy 会把访问日志写在 `caddy` 卷里（`/data/logs/`，满 20 MB 轮换，保留 30 天），隐私说明里要写明这一点。服务器上装好 `goaccess`（`sudo apt install goaccess`）后，生成一份网页报表：

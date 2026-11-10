@@ -132,6 +132,8 @@ async function screenshotFor(fb: { id: number; screenshot_key: string | null; cr
   if (key?.startsWith("feishu:")) return { imageKey: key.slice("feishu:".length), note: null };
   if (key === "gone:upload") return { imageKey: null, note: "（截图未能上传，已删除）" };
   if (key === "gone:missing") return { imageKey: null, note: "（截图文件已不存在）" };
+  if (key === "gone:quota") return { imageKey: null, note: "（截图因存储已满未保存）" };
+  if (key === "gone:expired") return { imageKey: null, note: "（截图已超过保留期删除）" };
   if (!key?.startsWith("local:")) return { imageKey: null, note: null };
   const file = path.join(config.dataDir, "feedback-screenshots", key.slice("local:".length));
   const data = await readFile(file).catch(() => null);

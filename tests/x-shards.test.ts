@@ -96,7 +96,12 @@ test("one search reads a shard; each account gets its own posts, run and waterma
   assert.equal(res.status, "ok");
   const asked = queries.slice(before);
   assert.equal(asked.length, 2, "one search for three accounts (two pages of posts)");
-  for (const q of asked) assert.match(q, new RegExp(`^\\(from:${HANDLES[0]} OR from:${HANDLES[1]} OR from:${HANDLES[2]}\\) -filter:replies since_id:${WATERMARK}$`));
+  for (const q of asked) {
+    const match = /^\((from:\w+(?: OR from:\w+)*)\) -filter:replies since_id:(\d+)$/.exec(q);
+    assert.ok(match, q);
+    assert.deepEqual(match[1]!.split(" OR ").sort(), HANDLES.map((h) => `from:${h}`).sort());
+    assert.equal(match[2], String(WATERMARK));
+  }
   const stored = await sql<{ source_id: string; n: number }[]>`SELECT source_id, count(*)::int AS n FROM articles WHERE source_id IN ${sql(IDS)} GROUP BY 1`;
   assert.deepEqual(Object.fromEntries(stored.map((r) => [r.source_id, r.n])), { [IDS[0]!]: 3, [IDS[1]!]: 1 });
   for (const id of IDS) assert.equal((await cursorOf(id)).lastTweetId, String(BASE + 104n), "every account is covered up to the newest post read");

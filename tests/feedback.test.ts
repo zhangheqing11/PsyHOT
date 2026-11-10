@@ -9,6 +9,7 @@ import path from "node:path";
 import { after, test } from "node:test";
 import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
+import { feedbackScreenshot, listFeedback } from "@aihot/backend/admin/feedback";
 import { forwardFeedbackToFeishu } from "@aihot/backend/notify/feishu";
 import { forwardPendingFeedback, submitFeedback } from "@aihot/backend/operations/feedback";
 
@@ -102,4 +103,24 @@ test("imported feedback that was never forwarded is not sent now", async () => {
   await forwardPendingFeedback();
   assert.equal((await state(row!.id)).forwarded, false);
   assert.equal(sentFor(row!.id), undefined);
+});
+
+test("quota and expired screenshots carry a reason to Feishu and are unavailable to the admin", async (t) => {
+  const forwarding = process.env.FEISHU_INTERNAL_ENABLED;
+  process.env.FEISHU_INTERNAL_ENABLED = "true";
+  t.after(() => {
+    if (forwarding === undefined) delete process.env.FEISHU_INTERNAL_ENABLED;
+    else process.env.FEISHU_INTERNAL_ENABLED = forwarding;
+  });
+  for (const [key, note] of [["gone:quota", "截图因存储已满未保存"], ["gone:expired", "截图已超过保留期删除"], ["gone:missing", "截图文件已不存在"]]) {
+    const [row] = await sql<{ id: number }[]>`
+      INSERT INTO feedback (content, source_hash, screenshot_key, forward_error)
+      VALUES (${`截图状态 ${T} ${key}`}, ${`state:${T}`}, ${key!}, 'pending') RETURNING id`;
+    assert.equal(await feedbackScreenshot(row!.id), null);
+    const listed = await listFeedback({ q: `截图状态 ${T} ${key}` });
+    assert.equal(listed.rows.find((r) => r.id === row!.id)?.screenshot, "gone");
+    assert.equal(await forwardFeedbackToFeishu(row!.id), "sent");
+    assert.ok(JSON.stringify(sentFor(row!.id)?.content).includes(note!), key);
+    assert.equal((await state(row!.id)).screenshot_key, key);
+  }
 });

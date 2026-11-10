@@ -37,10 +37,6 @@ async function withRoles<R>(on: boolean, fn: () => Promise<R>): Promise<R> {
   }
 }
 
-before(async () => {
-  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, track, region, next_fetch_at)
-            VALUES (${INDUSTRY}, 'Test role regulator', 'rss', 'T1', 'editorial', 'industry', 'domestic', '2100-01-01')`;
-});
 after(async () => {
   await app.close();
   await stopBoss();
@@ -68,6 +64,8 @@ const publication = async (id: string) =>
 
 const ids: Record<string, string> = {};
 before(async () => {
+  await sql`INSERT INTO sources (id, name, kind, tier, participation_mode, track, region, next_fetch_at)
+            VALUES (${INDUSTRY}, 'Test role regulator', 'rss', 'T1', 'editorial', 'industry', 'domestic', '2100-01-01')`;
   ids.both = await article("both", "policy", { roles: ["school", "counselor"], impact: "rule" });
   ids.counselor = await article("counselor", "profession", { roles: ["counselor"], impact: "risk" });
   ids.none = await article("none", "digital", { roles: [] });

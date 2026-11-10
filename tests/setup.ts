@@ -12,6 +12,17 @@ if (!/_(test|ci)$/.test(database)) {
 process.env.AIHOT_CREDENTIALS_DIR = "/nonexistent-test-credentials";
 process.env.SESSION_SECRET ??= "test-session-secret-0123456789";
 process.env.IMG_PROXY_SIGN_SECRET ??= "test-img-secret-0123456789";
+// Model calls in tests only ever reach local stubs, so the valve is forced on whatever the outer shell
+// says (an agent following "keep valves off" would otherwise fail every stub-based test). Tests that
+// check the valve set it to false themselves.
+process.env.MODEL_CALLS_ENABLED = "true";
+// A real provider key or endpoint from the shell must never leak in: clear them, tests set their own test values.
+for (const name of [
+  "LLM_API_KEY", "DEEPSEEK_API_KEY", "DASHSCOPE_API_KEY", "ZHIPU_API_KEY", "XIAOMI_MIMO_API_KEY", "EMBEDDING_API_KEY", "JINA_API_KEY",
+  "SOCIALDATA_API_KEY", "EVERYINFRA_API_KEY", "DAJIALA_KEY", "ARTIFICIAL_ANALYSIS_API_KEY",
+  "LLM_BASE_URL", "DEEPSEEK_BASE_URL", "DEEPSEEK_TOOLS_BASE_URL", "DASHSCOPE_BASE_URL", "ZHIPU_BASE_URL", "XIAOMI_MIMO_BASE_URL",
+  "EMBEDDING_BASE_URL", "JINA_BASE_URL", "SOCIALDATA_BASE_URL", "EVERYINFRA_BASE_URL", "DAJIALA_BASE_URL",
+]) delete process.env[name];
 process.env.FEISHU_CONTENT_PUSH_ENABLED = "false";
 process.env.INDEXNOW_SUBMIT_ENABLED = "false";
 process.env.LOG_LEVEL ??= "error";

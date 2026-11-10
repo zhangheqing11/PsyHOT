@@ -137,18 +137,17 @@ export function dateMark(kind: ReportKind, key: string): { figure: string; top: 
 /** When each kind comes out (F10), for the masthead. */
 export const EDITION: Record<ReportKind, string> = { daily: "每天 08:00 出刊", weekly: "每周一出刊", monthly: "每月 1 日出刊" };
 
-/** The masthead's figures, in the order a reader wants them; zero model releases is left out. */
+/** The masthead's figures, in the order a reader wants them; keys it does not list (e.g. the retired modelsReleased in old stored reports) are ignored. */
 const METRICS: Array<[key: string, unit: string]> = [
   ["totalEvents", "件大事"],
   ["totalStories", "件大事"],
   ["sourcesCount", "个来源"],
   ["firstPartyEvents", "件一手发布"],
-  ["modelsReleased", "个新模型"],
   ["selectedCount", "条精选"],
   ["reportsCovered", "期日报"],
 ];
 export function metricItems(metrics: Record<string, number>): Array<{ value: number; unit: string }> {
-  return METRICS.filter(([k]) => typeof metrics[k] === "number" && (k !== "modelsReleased" || metrics[k]! > 0)).map(([k, unit]) => ({ value: metrics[k]!, unit }));
+  return METRICS.filter(([k]) => typeof metrics[k] === "number").map(([k, unit]) => ({ value: metrics[k]!, unit }));
 }
 
 /** "前一日 · 9月25日", "上一期 · 第 37 周", "下一期 · 7 月". An issue of another year than `today`'s (Beijing) names it. */

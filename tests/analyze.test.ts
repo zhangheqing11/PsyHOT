@@ -10,6 +10,7 @@ import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { analyzeArticle, SCORE_SYSTEM, tierThreshold } from "@aihot/backend/editorial/analyze";
+import { ProviderRejectedError } from "@aihot/backend/providers/receipts";
 import { queueProcessing } from "@aihot/backend/jobs/content";
 import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
 import { compactAnswerFirstSummary, enforceIdentity, parseTranslateOutput, PREFILTER_SYSTEM, thinMaterial } from "@aihot/backend/editorial/writing";
@@ -28,8 +29,9 @@ const X_SOURCE = `test-analyze-x-${T}`;
 type Step = "prefilter" | "score" | "understand" | "summarize" | "structure";
 interface Req { step: Step; marker: string; system: string; user: string; body: Record<string, any> }
 const requests: Req[] = [];
-const MARKERS = ["CLEAR", "RESCUE", "LOW", "OFFTOPIC", "BARE", "VAGUE", "THIN", "SENSITIVE", "推文"];
-const scoreAnswers: Record<string, number[]> = { CLEAR: [78, 72], RESCUE: [56, 50], LOW: [45, 40], THIN: [70, 70], SENSITIVE: [80, 80], 推文: [40, 40], BARE: [30, 34], VAGUE: [60, 62] };
+const MARKERS = ["CLEAR", "RESCUE", "LOW", "OFFTOPIC", "BARE", "VAGUE", "THIN", "SENSITIVE", "推文", "RISK_PREFILTER", "RISK_SCORE", "RISK_UNDERSTAND", "BAD_REQUEST", "RISK_STATUS"];
+const scoreAnswers: Record<string, number[]> = { CLEAR: [78, 72], RESCUE: [56, 50], LOW: [45, 40], THIN: [70, 70], SENSITIVE: [80, 80], 推文: [40, 40], BARE: [30, 34], VAGUE: [60, 62], RISK_PREFILTER: [80, 80], RISK_UNDERSTAND: [80, 80] };
+const deepseekRefusal = { error: { message: "Content Exists Risk", type: "invalid_request_error" } };
 
 const stepOf = (system: string, user: string): Step =>
   system.includes("宽召回") ? "prefilter" : system.includes("事件注意力评分器") ? "score"
@@ -46,10 +48,19 @@ const provider = await stub((_hit, req) => {
   const marker = MARKERS.find((m) => user.includes(m)) ?? "";
   requests.push({ step, marker, system, user, body });
   const answer = (content: unknown) => ({ id: `stub-${requests.length}`, model: "stub", choices: [{ message: { content: typeof content === "string" ? content : JSON.stringify(content) } }], usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 } });
-  if (step === "prefilter") return answer({ label: marker === "OFFTOPIC" || marker === "BARE" ? "BLOCK" : marker === "VAGUE" ? "UNKNOWN" : "PASS", reason: "测试" });
-  if (step === "score") return answer({ attentionScore: scoreAnswers[marker]!.shift() });
+  if (step === "prefilter") {
+    if (marker === "RISK_PREFILTER") return new Reply(400, deepseekRefusal);
+    if (marker === "BAD_REQUEST") return new Reply(400, { error: { message: "Invalid request body", type: "invalid_request_error" } });
+    if (marker === "RISK_STATUS") return new Reply(403, deepseekRefusal);
+    return answer({ label: marker === "OFFTOPIC" || marker === "BARE" ? "BLOCK" : marker === "VAGUE" ? "UNKNOWN" : "PASS", reason: "测试" });
+  }
+  if (step === "score") {
+    if (marker === "RISK_SCORE") return new Reply(400, deepseekRefusal);
+    return answer({ attentionScore: scoreAnswers[marker]!.shift() });
+  }
   if (step === "understand") {
     if (marker === "SENSITIVE") return new Reply(400, { contentFilter: [{ level: 1, role: "user" }], error: { code: "1301", message: "系统检测到输入或生成内容可能包含不安全或敏感内容" } });
+    if (marker === "RISK_UNDERSTAND") return new Reply(400, { error: { message: "content exists risk", type: "invalid_request_error" } });
     return answer({ itemType: "research_finding", authorRole: "principal", tags: ["研究发现", "PTSD", "抑郁", "不存在的标签"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句补充一个关键数字。` });
   }
   if (step === "structure") return answer({ category: "research", tags: ["研究发现", "认知"], subjects: ["who", "unknown-co"], fact: { title: `事实 ${marker}`, subject: "某机构", action: "发表", object: "研究", occurredAt: null } });
@@ -146,6 +157,54 @@ test("the prefilter's BLOCK stops everything; UNKNOWN goes on like PASS", async 
   assert.deepEqual(calls("BARE"), ["prefilter"]);
 });
 
+test("a DeepSeek content-filter refusal in the prefilter becomes UNKNOWN and continues through scoring", async () => {
+  const id = await article("RISK_PREFILTER");
+  const result = await analyzeArticle(id);
+  assert.deepEqual([result!.output!.relevance, result!.output!.selected, result!.output!.score], ["pass", true, 80]);
+  const r = await row(id);
+  assert.deepEqual(r.output.prefilter, { label: "UNKNOWN", reason: "模型内容安全拒绝" });
+  assert.deepEqual(calls("RISK_PREFILTER").sort(), ["prefilter", "score", "score", "structure", "understand"]);
+  const [state] = await sql`SELECT processing_state, processing_error FROM articles WHERE id = ${id}`;
+  assert.deepEqual([state!.processing_state, state!.processing_error], ["analyzed", null]);
+  assert.equal(result!.reused, false);
+  assert.equal(result!.receiptIds.length, 4, "only the successful steps' receipts are linked and completed");
+  assert.ok(result!.receiptIds.every((id) => typeof id === "number"));
+  assert.deepEqual(r.receipt_ids, result!.receiptIds);
+  const [refusal] = await sql`SELECT status, error FROM receipts WHERE purpose = 'prefilter_article' AND subject = ${`article:${id}@1`}`;
+  assert.equal(refusal!.status, "failed", "the rejected request's receipt remains failed");
+  assert.match(refusal!.error, /HTTP 400:.*Content Exists Risk/);
+});
+
+test("a DeepSeek content-filter refusal in scoring is recorded as refused without failing the article", async () => {
+  const id = await article("RISK_SCORE");
+  const result = await analyzeArticle(id);
+  assert.deepEqual([result!.output!.scoreRefused, result!.output!.selected, result!.output!.score], [true, false, null]);
+  const r = await row(id);
+  assert.equal(r.output.scoreRefused, true);
+  assert.deepEqual(calls("RISK_SCORE").sort(), ["prefilter", "score", "structure", "summarize"]);
+  const [state] = await sql`SELECT processing_state, processing_error FROM articles WHERE id = ${id}`;
+  assert.deepEqual([state!.processing_state, state!.processing_error], ["analyzed", null]);
+});
+
+test("an ordinary HTTP 400 still rejects analysis instead of becoming UNKNOWN", async () => {
+  const id = await article("BAD_REQUEST");
+  await assert.rejects(analyzeArticle(id), (error: unknown) => {
+    assert.ok(error instanceof ProviderRejectedError);
+    assert.equal(error.status, 400);
+    assert.equal(error.retryable, false);
+    assert.match(error.message, /Invalid request body/);
+    return true;
+  });
+  assert.deepEqual(calls("BAD_REQUEST"), ["prefilter"]);
+  assert.equal(await row(id), undefined, "no analysis is committed");
+});
+
+test("DeepSeek's content-risk wording on a non-400 response is not a content-filter fallback", async () => {
+  const id = await article("RISK_STATUS");
+  await assert.rejects(analyzeArticle(id), (error: unknown) => error instanceof ProviderRejectedError && error.status === 403 && !error.retryable);
+  assert.deepEqual(calls("RISK_STATUS"), ["prefilter"]);
+});
+
 test("a journal feed's metadata is no abstract: only the prefilter runs and nothing is published", async () => {
   const meta = `Publication date: Available online 2 October 2026 Source: Clinical Psychology Review Author(s): A. Author, B. Author (${T} META)`;
   const res = await analyzeArticle(await article("CLEAR", { url: `https://example.com/meta-${T}`, title: `CLEAR meta only ${T}`, bodyText: null, excerpt: meta, bodyStatus: "unconfirmed" }));
@@ -194,6 +253,12 @@ test("a short post in Chinese is its own copy; a content-filter refusal is trans
   const sensitive = await analyzeArticle(await article("SENSITIVE"));
   assert.deepEqual([sensitive!.output!.selected, sensitive!.output!.titleZh], [true, "翻译标题 SENSITIVE"]);
   assert.deepEqual(calls("SENSITIVE").filter((s) => s === "understand" || s === "summarize"), ["understand", "summarize"]);
+});
+
+test("a DeepSeek content-filter refusal in understanding uses the existing translation fallback case-insensitively", async () => {
+  const result = await analyzeArticle(await article("RISK_UNDERSTAND"));
+  assert.deepEqual([result!.output!.selected, result!.output!.titleZh], [true, "翻译标题 RISK_UNDERSTAND"]);
+  assert.deepEqual(calls("RISK_UNDERSTAND").filter((s) => s === "understand" || s === "summarize"), ["understand", "summarize"]);
 });
 
 test("guards: a company the input does not name is not written in; long summaries are cut at sentences", () => {

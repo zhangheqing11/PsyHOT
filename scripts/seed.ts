@@ -44,9 +44,9 @@ let added = 0;
 for (const s of sources) {
   assertSupportedConfig(s.kind, s.config);
   const inserted = await sql`
-    INSERT INTO sources (id, name, kind, config, tier, first_party, owner_entity_id, participation_mode, signal_group_id, interval_minutes, tags, site_fulltext, syndicate_fulltext, enabled, track, region, next_fetch_at)
+    INSERT INTO sources (id, name, kind, config, tier, first_party, owner_entity_id, participation_mode, signal_group_id, interval_minutes, min_interval_minutes, tags, site_fulltext, syndicate_fulltext, enabled, track, region, next_fetch_at)
     VALUES (${s.id}, ${s.name}, ${s.kind}, ${sql.json(s.config as never)}, ${s.tier ?? "T2"}, ${s.first_party ?? false}, ${s.owner_entity_id ?? null},
-            ${s.participation_mode ?? "editorial"}, ${s.signal_group_id ?? null}, ${s.interval_minutes ?? 60}, ${s.tags ?? []}, ${s.site_fulltext ?? false}, ${s.syndicate_fulltext ?? false},
+            ${s.participation_mode ?? "editorial"}, ${s.signal_group_id ?? null}, ${s.interval_minutes ?? 60}, ${s.interval_minutes ?? 60}, ${s.tags ?? []}, ${s.site_fulltext ?? false}, ${s.syndicate_fulltext ?? false},
             ${s.enabled ?? true}, ${s.track ?? "mixed"}, ${s.region ?? null}, now())
     ON CONFLICT (id) DO NOTHING RETURNING id`;
   added += inserted.length;

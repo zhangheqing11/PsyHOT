@@ -12,6 +12,8 @@ import { rerunRoleScores } from "../scripts/rerun-role-scores.ts";
 
 const T = tag();
 const SOURCE = `test-rerun-scores-${T}`;
+// Candidate selection excludes future discoveries; host and database clocks may differ slightly.
+const DISCOVERED_AT = new Date(Date.now() - 60_000);
 const switches = FEATURES as unknown as { industryRoleScoring: boolean };
 const was = switches.industryRoleScoring;
 before(async () => {
@@ -33,7 +35,7 @@ test("dry-run validates arguments and leaves analysis, publication, receipts and
   const ids: string[] = [];
   for (const kind of ["industry", "academic", "promotion", "hidden", "old"]) {
     const { articleId: id } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.com/rerun-${T}-${kind}`, title: `Rerun ${T} ${kind}`,
-      bodyText: `${kind} ${T} `.repeat(40), bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
+      bodyText: `${kind} ${T} `.repeat(40), bodyStatus: "ok", via: "fetch", publishedAt: DISCOVERED_AT, discoveredAt: DISCOVERED_AT });
     ids.push(id);
     await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected, output)
       VALUES (${id}, 1, 'rule', 'pass', ${kind === "academic" ? "research" : "policy"}, '中文标题', '中文摘要', 90, true,
@@ -71,7 +73,7 @@ test("dry-run selects only missing or outdated prompt versions, regardless of re
   const checked: Array<{ id: string; name: string; rerun: boolean }> = [];
   for (const c of cases) {
     const { articleId: id } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.com/rerun-version-${T}-${c.name}`, title: `Version ${T} ${c.name}`,
-      bodyText: `${c.name} ${T} `.repeat(40), bodyStatus: "ok", via: "fetch", publishedAt: new Date() });
+      bodyText: `${c.name} ${T} `.repeat(40), bodyStatus: "ok", via: "fetch", publishedAt: DISCOVERED_AT, discoveredAt: DISCOVERED_AT });
     const roleScoring = c.name === "unscored" ? null : {
       ...(c.promptVersion ? { promptVersion: c.promptVersion } : {}), ...(c.rerunTag ? { rerunTag: c.rerunTag } : {}),
     };

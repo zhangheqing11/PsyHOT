@@ -18,6 +18,8 @@ interface SourceRow {
   health: string;
   fail_count: number;
   interval_minutes: number;
+  min_interval_minutes: number | null;
+  overflow_at: string | null;
   last_ok_at: string | null;
   last_fetch_at: string | null;
   last_error: string | null;
@@ -128,7 +130,17 @@ export default function Sources({ loaderData }: Route.ComponentProps) {
               ),
             },
             { key: "ok", label: "上次成功", render: (r) => <Time at={r.last_ok_at} /> },
-            { key: "interval", label: "频率", align: "right", render: (r) => `${r.interval_minutes} 分` },
+            {
+              key: "interval", label: "频率", align: "right", render: (r) => (
+                <div className="flex flex-col items-end gap-1">
+                  <span className="whitespace-nowrap">{r.min_interval_minutes === null || r.min_interval_minutes === r.interval_minutes
+                    ? `${r.interval_minutes} 分` : `实际 ${r.interval_minutes} 分 / 配置 ${r.min_interval_minutes} 分`}</span>
+                  {r.overflow_at && Date.parse(r.overflow_at) >= Date.now() - 7 * 86400_000 && (
+                    <Badge tone="warn" title="列表页整页都是新条目，建议调低配置间隔">可能漏抓</Badge>
+                  )}
+                </div>
+              ),
+            },
             { key: "items", label: "7 天条目", align: "right", render: (r) => num(r.items_7d) },
             { key: "sel", label: "30 天精选", align: "right", render: (r) => num(r.selected_30d) },
           ]}

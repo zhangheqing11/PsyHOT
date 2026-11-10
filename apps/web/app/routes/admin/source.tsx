@@ -22,6 +22,7 @@ interface Source {
   region: string | null;
   signal_group_id: string | null;
   interval_minutes: number;
+  min_interval_minutes: number | null;
   site_fulltext: boolean;
   syndicate_fulltext: boolean;
   enabled: boolean;
@@ -41,6 +42,7 @@ interface RunDetail {
   pages?: number;
   backlog?: number;
   dropped?: number;
+  overflow?: boolean;
 }
 
 interface Detail {
@@ -68,7 +70,7 @@ type Draft = Pick<Source, "name" | "interval_minutes" | "tier" | "participation_
 function draftOf(s: Source): Draft {
   return {
     name: s.name,
-    interval_minutes: s.interval_minutes,
+    interval_minutes: s.min_interval_minutes ?? s.interval_minutes,
     tier: s.tier,
     participation_mode: s.participation_mode,
     track: s.track,
@@ -85,6 +87,8 @@ function draftOf(s: Source): Draft {
 
 export default function SourceDetail({ loaderData }: Route.ComponentProps) {
   const { source: s, runs, items, stats, history } = loaderData;
+  const overflowAt = typeof s.cursor?.overflowAt === "string" ? s.cursor.overflowAt : null;
+  const recentOverflow = overflowAt !== null && Date.parse(overflowAt) >= Date.now() - 7 * 86400_000;
   const { run, pending } = useAdminAction();
   const [draft, setDraft] = useState<Draft>(() => draftOf(s));
   const [draftFor, setDraftFor] = useState(s.updated_at);
@@ -139,6 +143,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
           {s.name}
           <Badge>{KIND_LABEL[s.kind] ?? s.kind}</Badge>
           <Badge tone={s.participation_mode === "editorial" ? "accent" : "muted"}>{MODE_LABEL[s.participation_mode]}</Badge>
+          {recentOverflow && <Badge tone="warn" title="列表页整页都是新条目，建议调低配置间隔">可能漏抓</Badge>}
         </span>
       }
       subtitle={<span className="font-mono text-[12px]">{s.id}</span>}
@@ -204,7 +209,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
               <Field label="名称">
                 <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
               </Field>
-              <Field label="采集间隔（分钟）">
+              <Field label="配置最短间隔（分钟）" hint={`自动调频不会短于此值；当前实际间隔 ${s.interval_minutes} 分钟`}>
                 <Input type="number" min={1} max={10080} value={draft.interval_minutes} onChange={(e) => setDraft({ ...draft, interval_minutes: Number(e.target.value) })} />
               </Field>
               <Field label="参与方式" hint="氛围只作热点讨论证据，不单独成为内容">
@@ -287,6 +292,9 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
           <Card title="状态">
             <KV
               items={[
+                ["配置最短间隔", s.min_interval_minutes === null ? "未设置" : `${s.min_interval_minutes} 分`],
+                ["实际间隔", `${s.interval_minutes} 分`],
+                ["最近溢出", overflowAt ? bj(overflowAt, true) : null],
                 ["上次抓取", s.last_fetch_at ? bj(s.last_fetch_at, true) : null],
                 ["上次成功", s.last_ok_at ? bj(s.last_ok_at, true) : null],
                 ["下次抓取", s.next_fetch_at ? bj(s.next_fetch_at, true) : null],
@@ -309,6 +317,7 @@ export default function SourceDetail({ loaderData }: Route.ComponentProps) {
                   render: (r) => (
                     <span className="inline-flex gap-1">
                       <Badge tone={r.status === "ok" ? "ok" : r.status === "failed" ? "bad" : "muted"} title={r.error ?? undefined}>{r.status}</Badge>
+                      {r.detail?.overflow && <Badge tone="warn" title="列表页整页都是新条目，建议调低配置间隔">可能漏抓</Badge>}
                       {!!r.detail?.dropped && <Badge tone="bad" title="有一段更早的帖子没能读完，其中的内容可能漏采">可能漏采</Badge>}
                       {!r.detail?.dropped && !!r.detail?.backlog && <Badge tone="warn" title="帖子多于一轮能读的页数，余下的在后面几轮接着读">续读 {r.detail.backlog} 段</Badge>}
                     </span>

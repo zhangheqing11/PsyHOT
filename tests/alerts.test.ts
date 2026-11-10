@@ -9,6 +9,7 @@ import { getBoss, stopBoss } from "@aihot/backend/jobs/queue";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { checkAlerts, collectFindings } from "@aihot/backend/operations/alerts";
 import { beijingStamp } from "@aihot/backend/notify/feishu";
+import { addDays, beijingDate } from "@aihot/contracts/time";
 
 const T = tag();
 const SOURCE = `test-alerts-${T}`;
@@ -176,3 +177,45 @@ for (const { lists, failed, skipped, alerts } of [
     }
   });
 }
+
+test("articles that failed yesterday (Beijing) join the digest grouped by reason", async () => {
+  const day = beijingDate(Date.now());
+  const noon = (d: string) => new Date(Date.parse(`${d}T12:00:00+08:00`));
+  const yesterday = noon(addDays(day, -1));
+  const before = noon(addDays(day, -2));
+  const sourceId = `test-failed-${T}`;
+  const fail = async (n: number, error: string, at: Date, state = "failed") => {
+    for (let i = 0; i < n; i++) {
+      const { articleId } = await upsertMaterial({ sourceId, url: `https://example.com/${T}-f-${encodeURIComponent(error)}-${at.getTime()}-${i}`, title: `fail ${i}`, bodyStatus: "none", via: "fetch" } as never);
+      await sql`UPDATE articles SET processing_state = ${state}, processing_error = ${error}, updated_at = ${at}, discovered_at = ${at} WHERE id = ${articleId}`;
+    }
+  };
+  const baseline = async () => (await collectFindings()).find((f) => f.key === "articles.failed-yesterday");
+  await sql`INSERT INTO sources (id, name, kind, next_fetch_at) VALUES (${sourceId}, 'Test failed', 'rss', '2100-01-01')`;
+  try {
+    // Other test files share the database: judge by what this test adds.
+    const base = Number((await baseline())?.title.match(/^昨天失败 (\d+) 篇/)?.[1] ?? 0);
+    await fail(3, "model output invalid: abc", yesterday);
+    await fail(2, "receipt 12345678 outcome unknown", yesterday);
+    await fail(1, "receipt 99999999 outcome unknown", yesterday);
+    await fail(4, "old problem", before); // the day before yesterday
+    await fail(2, "still waiting", yesterday, "new"); // not failed
+    const finding = await baseline();
+    assert.ok(finding);
+    assert.equal(finding.level, "digest");
+    assert.match(finding.title, new RegExp(`^昨天失败 ${base + 6} 篇：`));
+    assert.ok(finding.title.includes("model output invalid: abc 3"));
+    assert.ok(finding.title.includes("receipt … outcome unknown 3"));
+    assert.ok(!finding.title.includes("old problem") && !finding.title.includes("still waiting"));
+    assert.ok(finding.detail?.includes("运行"));
+
+    // More than five groups: the rest is summed.
+    for (const e of ["a", "bb", "ccc", "dddd"]) await fail(1, `distinct ${e}`, yesterday);
+    const many = await baseline();
+    assert.match(many!.title, new RegExp(`^昨天失败 ${base + 10} 篇：`));
+    assert.ok(many!.title.split("、").length <= 6 && many!.title.includes("其他"), "at most five groups, the rest summed");
+  } finally {
+    await sql`DELETE FROM articles WHERE source_id = ${sourceId}`;
+    await sql`DELETE FROM sources WHERE id = ${sourceId}`;
+  }
+});

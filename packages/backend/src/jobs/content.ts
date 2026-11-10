@@ -123,7 +123,7 @@ export async function processArticle(articleId: string, opts: { attemptTag?: str
     if (error instanceof AnalysisInterruptedError || shutdownSignal.signal.aborted) throw error;
     if (error instanceof ReceiptUnknownError) {
       // The provider may have billed this request: stop; ops.recover releases it once and requeues the article.
-      await sql`UPDATE articles SET processing_state = 'failed', processing_error = ${`receipt ${error.receiptId} outcome unknown`} WHERE id = ${articleId}`;
+      await sql`UPDATE articles SET processing_state = 'failed', processing_error = ${`receipt ${error.receiptId} outcome unknown`}, updated_at = now() WHERE id = ${articleId}`;
       return { state: "unknown-receipt" };
     }
     throw error;
@@ -149,7 +149,7 @@ async function afterFailure(articleId: string, error: unknown): Promise<{ state:
   const exhausted = attempts > RETRY_MINUTES.length || (error instanceof ModelOutputError && attempts >= MAX_OUTPUT_FAILURES);
   if (refused || exhausted) {
     await sql`UPDATE articles SET processing_state = 'failed', processing_error = ${message}, processing_attempts = ${attempts},
-                processing_retry_at = NULL, processing_queued_at = NULL WHERE id = ${articleId}`;
+                processing_retry_at = NULL, processing_queued_at = NULL, updated_at = now() WHERE id = ${articleId}`;
     return { state: "failed" };
   }
   const retryAt = new Date(Date.now() + RETRY_MINUTES[attempts - 1]! * 60_000);

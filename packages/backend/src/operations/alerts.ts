@@ -4,8 +4,9 @@
 //   today  — money at risk or only the owner can act: sent at once, repeated at most daily, recovery reported.
 //   digest — follow-ups without reader impact: one 09:00 message a day, meant to be handed to the AI.
 // Delivery goes through sendAlert (ops chat, internal-chat fallback; off unless FEISHU_INTERNAL_ENABLED).
-import { beijingDate, beijingTime } from "@aihot/contracts/time";
+import { addDays, beijingDate, beijingMidnight, beijingTime } from "@aihot/contracts/time";
 import { sql } from "../db.ts";
+import { failureGroupSql } from "../jobs/content.ts";
 import { beijingDay, beijingStamp, duration, formatAlert, formatRecovery, sendAlert, type Finding, type Level } from "../notify/feishu.ts";
 import { BALANCE_REFUSAL } from "../providers/receipts.ts";
 import { backupConfigured } from "./backup.ts";
@@ -165,6 +166,8 @@ export async function collectFindings(now = Date.now()): Promise<Finding[]> {
   }
   if (r!.deliveries > 0) out.push({ key: "deliveries.unknown", level: "digest", title: `${r!.deliveries} 条飞书内容群推送不确定是否送达`, detail: "后台“运行”页核对群里有没有，再标记或重发" });
 
+  out.push(...(await yesterdayFailures(now)));
+
   // Runnable jobs (deferred ones excluded) that have waited more than two hours.
   const queues = await sql<{ name: string; n: number; oldest: Date }[]>`
     SELECT name, count(*)::int AS n, min(start_after) AS oldest FROM pgboss.job
@@ -188,6 +191,27 @@ export async function collectFindings(now = Date.now()): Promise<Finding[]> {
   }
 
   return out;
+}
+
+/**
+ * Articles that ended in "failed" during the previous Beijing day, by the same failure groups as the admin runs page.
+ * Chronic trickles never reach the burst alert. articles.updated_at is the failure time: the two places that mark an
+ * article failed set it, and a requeue leaves "failed".
+ */
+async function yesterdayFailures(now: number): Promise<Finding[]> {
+  const today = beijingDate(now);
+  const from = beijingMidnight(addDays(today, -1));
+  const to = beijingMidnight(today);
+  const groups = await sql<{ error: string; n: number }[]>`
+    SELECT ${failureGroupSql()} AS error, count(*)::int AS n FROM articles
+    WHERE processing_state = 'failed' AND updated_at >= ${from} AND updated_at < ${to}
+    GROUP BY 1 ORDER BY 2 DESC, 1`;
+  const total = groups.reduce((sum, g) => sum + g.n, 0);
+  if (!total) return [];
+  const shown = groups.slice(0, 5);
+  const rest = groups.slice(5).reduce((sum, g) => sum + g.n, 0);
+  const parts = [...shown.map((g) => `${g.error} ${g.n}`), ...(rest ? [`其他 ${rest}`] : [])];
+  return [{ key: "articles.failed-yesterday", level: "digest", title: `昨天失败 ${total} 篇：${parts.join("、")}`, detail: "后台“运行”页可以按原因查看，修好后一键重新处理" }];
 }
 
 /** Paid source checks that may miss updates, and WeChat quota spent without a useful listing. */

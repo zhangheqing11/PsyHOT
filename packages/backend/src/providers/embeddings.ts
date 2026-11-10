@@ -5,6 +5,7 @@
 import { config, credential } from "../config.ts";
 import { sql } from "../db.ts";
 import { sha256 } from "../lib/ids.ts";
+import { estimateCallCost } from "./prices.ts";
 import { paidRequest, ProviderRejectedError } from "./receipts.ts";
 
 const own = !!credential("models", "EMBEDDING_API_KEY");
@@ -48,7 +49,7 @@ async function embedBatch(texts: string[], subject: string): Promise<number[][]>
       const text = await res.text();
       if (!res.ok) throw new ProviderRejectedError(`embeddings HTTP ${res.status}: ${text.slice(0, 200)}`, res.status, res.status === 429 || res.status >= 500);
       const json = JSON.parse(text) as { data: Array<{ embedding: number[]; index: number }>; usage?: Record<string, unknown> };
-      return { response: json, usage: json.usage ?? null, cost: null };
+      return { response: json, usage: json.usage ?? null, cost: await estimateCallCost(SERVICE, EMBEDDING_MODEL, json.usage) };
     },
   );
   const data = (receipt.response as { data: Array<{ embedding: number[]; index: number }> }).data;

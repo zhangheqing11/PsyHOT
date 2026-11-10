@@ -1,0 +1,74 @@
+[
+  {
+    "service": "deepseek",
+    "model": "deepseek-flash",
+    "currency": "CNY",
+    "input_per_mtok": 2,
+    "cached_per_mtok": 0.04,
+    "output_per_mtok": 8,
+    "per_request": null,
+    "source_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+    "verified_on": "2026-11-10",
+    "note": "DeepSeek-V4.1-Flash-1017 高峰价，元/百万 tokens（输入未命中 2、缓存命中 0.04、输出 8），适用于周一至周五（法定节假日除外）北京时间 9-12、14-18 点；按调用时刻选档（无 @offpeak 后缀的行是高峰价）。思考与非思考同价，思考 token 已含在 completion_tokens 内。deepseek-flash 与 deepseek-flash-think 两个预设都发 deepseek-flash。"
+  },
+  {
+    "service": "deepseek",
+    "model": "deepseek-flash@offpeak",
+    "currency": "CNY",
+    "input_per_mtok": 1,
+    "cached_per_mtok": 0.02,
+    "output_per_mtok": 4,
+    "per_request": null,
+    "source_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+    "verified_on": "2026-11-10",
+    "note": "DeepSeek-V4.1-Flash-1017 空闲价（高峰价的一半），元/百万 tokens（输入未命中 1、缓存命中 0.02、输出 4），适用于其余时段，含周末和法定节假日；按调用时刻选档（无 @offpeak 后缀的行是高峰价）。思考与非思考同价，思考 token 已含在 completion_tokens 内。deepseek-flash 与 deepseek-flash-think 两个预设都发 deepseek-flash。"
+  },
+  {
+    "service": "llm",
+    "model": "deepseek-flash",
+    "currency": "CNY",
+    "input_per_mtok": 2,
+    "cached_per_mtok": 0.04,
+    "output_per_mtok": 8,
+    "per_request": null,
+    "source_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+    "verified_on": "2026-11-10",
+    "note": "DeepSeek-V4.1-Flash-1017 高峰价，元/百万 tokens（输入未命中 2、缓存命中 0.04、输出 8），适用于周一至周五（法定节假日除外）北京时间 9-12、14-18 点；按调用时刻选档（无 @offpeak 后缀的行是高峰价）。思考与非思考同价，思考 token 已含在 completion_tokens 内。default / default-think 预设（LLM_MODEL=deepseek-flash）走 service=llm。"
+  },
+  {
+    "service": "llm",
+    "model": "deepseek-flash@offpeak",
+    "currency": "CNY",
+    "input_per_mtok": 1,
+    "cached_per_mtok": 0.02,
+    "output_per_mtok": 4,
+    "per_request": null,
+    "source_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+    "verified_on": "2026-11-10",
+    "note": "DeepSeek-V4.1-Flash-1017 空闲价（高峰价的一半），元/百万 tokens（输入未命中 1、缓存命中 0.02、输出 4），适用于其余时段，含周末和法定节假日；按调用时刻选档（无 @offpeak 后缀的行是高峰价）。思考与非思考同价，思考 token 已含在 completion_tokens 内。default / default-think 预设（LLM_MODEL=deepseek-flash）走 service=llm。"
+  },
+  {
+    "service": "deepseek-tools",
+    "model": "",
+    "currency": "CNY",
+    "input_per_mtok": null,
+    "cached_per_mtok": null,
+    "output_per_mtok": null,
+    "per_request": 0.005,
+    "source_url": "https://api-docs.deepseek.com/zh-cn/quick_start/pricing",
+    "verified_on": "2026-11-10",
+    "note": "Search 与 Fetch 各每 1,000 次成功请求 5 元，即每次 0.005 元；空结果、404、超时不计费（代码只对成功请求记费）。"
+  },
+  {
+    "service": "dashscope",
+    "model": "text-embedding-v4",
+    "currency": "CNY",
+    "input_per_mtok": 0.5,
+    "cached_per_mtok": null,
+    "output_per_mtok": null,
+    "per_request": null,
+    "source_url": "https://help.aliyun.com/zh/model-studio/model-pricing",
+    "verified_on": "2026-11-10",
+    "note": "华北2（北京）实时调用 0.5 元/百万 input tokens，输出不计费；Batch 调用半价，本站不用。默认 DASHSCOPE_BASE_URL 为北京地域；新加坡 0.514、中国香港 0.51 元，若改用国际地域请调整。"
+  }
+]

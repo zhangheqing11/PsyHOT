@@ -1,11 +1,10 @@
 // DeepSeek Search and Fetch (api.deepseek.com/v1/tools/*): web search results and a page as Markdown.
-// Paid per successful request ($0.75 per 1000 each; an empty result, a 404 or a timeout is not
+// Paid per successful request (the service_prices row for deepseek-tools, 5 CNY per 1000 each; an empty result, a 404 or a timeout is not
 // billed), always behind receipts and the deepseek-tools budget, with one pool per endpoint.
 import { credential } from "../config.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
+import { estimateCallCost } from "./prices.ts";
 import { paidRequest, ProviderRejectedError } from "./receipts.ts";
-
-const PRICE_USD = 0.75 / 1000;
 
 export interface WebSearchResult {
   title: string;
@@ -63,7 +62,7 @@ async function toolCall(endpoint: "search" | "fetch", body: Record<string, unkno
         throw new Error("deepseek-tools returned invalid JSON");
       }
       const billed = endpoint === "search" ? Array.isArray(json.results) && json.results.length > 0 : typeof json.content === "string" && json.content.trim() !== "";
-      return { response: json, requestId: res.headers.get("x-request-id"), cost: { amount: billed ? PRICE_USD : 0, currency: "USD", basis: "estimated" } };
+      return { response: json, requestId: res.headers.get("x-request-id"), cost: billed ? await estimateCallCost("deepseek-tools", null, null) : { amount: 0, currency: "CNY", basis: "estimated" } };
     },
   );
   return receipt;

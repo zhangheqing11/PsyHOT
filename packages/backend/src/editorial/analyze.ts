@@ -212,7 +212,7 @@ export const STRUCTURE_SYSTEM = promptText("structure", {
 });
 
 export interface AnalysisRun {
-  prefilter: { label: "PASS" | "BLOCK" | "UNKNOWN"; reason: string; model: string; receiptId: number; reused: boolean };
+  prefilter: { label: "PASS" | "BLOCK" | "UNKNOWN"; reason: string; model: string; receiptId: number | null; reused: boolean };
   /**
    * The independent score calls and the tier threshold they are held against; absent when the material
    * is not scored. `refused`: the model's content filter declined it, so it is not selected.
@@ -254,7 +254,11 @@ export interface AnalysisRun {
   } | null;
 }
 
-const isContentFilter = (error: unknown) => error instanceof ProviderRejectedError && !error.retryable && /contentFilter|"1301"/.test(error.message);
+// Zhipu: legacy contentFilter responses and code 1301 (https://docs.bigmodel.cn/cn/api/api-code).
+// DeepSeek: HTTP 400 + "Content Exists Risk" from the B2 refusal sample; its general HTTP codes are
+// documented at https://api-docs.deepseek.com/zh-cn/quick_start/error_codes.
+const isContentFilter = (error: unknown) => error instanceof ProviderRejectedError && !error.retryable
+  && (/contentFilter|"1301"/.test(error.message) || (error.status === 400 && /Content Exists Risk/i.test(error.message)));
 
 /** Only a title or a feed summary, and a page to fetch: the article is judged on the page. */
 export function waitsForPage(a: AnalyzeInputArticle): boolean {
@@ -284,21 +288,27 @@ const tagged = (attemptTag: string | undefined, step: string) => [attemptTag, st
 async function runPrefilter(a: AnalyzeInputArticle, opts: StepOpts): Promise<AnalysisRun["prefilter"]> {
   const model = await modelFor("prefilter");
   checkAnalysisRunning();
-  const res = await chatJson({
-    model,
-    purpose: "prefilter_article",
-    subject: subjectOf(a),
-    promptVersion: PROMPT_VERSIONS.prefilter,
-    system: PREFILTER_SYSTEM,
-    user: prefilterUser(a),
-    schema: PrefilterSchema,
-    temperature: 0,
-    maxTokens: 512,
-    attemptTag: opts.attemptTag,
-  });
-  // A BLOCK without material to back it counts as UNKNOWN (which goes on).
-  const label = res.data.label === "BLOCK" && missingEvidence(a) ? "UNKNOWN" : res.data.label;
-  return { label, reason: res.data.reason, model: res.model, receiptId: res.receiptId, reused: res.reused };
+  try {
+    const res = await chatJson({
+      model,
+      purpose: "prefilter_article",
+      subject: subjectOf(a),
+      promptVersion: PROMPT_VERSIONS.prefilter,
+      system: PREFILTER_SYSTEM,
+      user: prefilterUser(a),
+      schema: PrefilterSchema,
+      temperature: 0,
+      maxTokens: 512,
+      attemptTag: opts.attemptTag,
+    });
+    // A BLOCK without material to back it counts as UNKNOWN (which goes on).
+    const label = res.data.label === "BLOCK" && missingEvidence(a) ? "UNKNOWN" : res.data.label;
+    return { label, reason: res.data.reason, model: res.model, receiptId: res.receiptId, reused: res.reused };
+  } catch (error) {
+    if (!isContentFilter(error)) throw error;
+    // ProviderRejectedError does not expose the failed receipt's id.
+    return { label: "UNKNOWN", reason: "模型内容安全拒绝", model, receiptId: null, reused: false };
+  }
 }
 
 /** The production prefilter step, exposed separately so SelectBench can preserve partial receipt evidence. */
@@ -309,7 +319,7 @@ export async function runSelectionPrefilter(
 ): Promise<AnalysisRun["prefilter"]> {
   try {
     const result = await runPrefilter(a, opts);
-    onReceipt?.(result.receiptId);
+    if (result.receiptId !== null) onReceipt?.(result.receiptId);
     return result;
   } catch (error) {
     const receiptId = observableReceiptId(error);
@@ -347,7 +357,7 @@ async function runScores(
     } catch (error) {
       const receiptId = observableReceiptId(error);
       if (receiptId !== null) onReceipt?.(receiptId);
-      // The model's content filter declines the material (Zhipu 1301): not scored, so not selected.
+      // The model's content filter declines the material: not scored, so not selected.
       if (isContentFilter(error)) return { model, threshold, values, receiptIds, reused: false, refused: true };
       throw error;
     }
@@ -652,7 +662,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     run.prefilter.receiptId, ...(run.scores?.receiptIds ?? []), ...(run.dims ? [run.dims.receiptId] : []),
     ...(run.roleScoring ? [run.roleScoring.receiptId] : []),
     ...(run.writing?.receiptIds ?? []), ...(run.structure ? [run.structure.receiptId] : []),
-  ];
+  ].filter((id): id is number => id !== null);
   const w = run.writing;
   const detail = {
     prefilter: { label: run.prefilter.label, reason: run.prefilter.reason },

@@ -3,6 +3,7 @@
 // anything, and a body that failed for a passing reason is fetched on the next check.
 import { Reply, stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
 import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
@@ -119,6 +120,23 @@ test("a listing of another account stops the source for a week without buying a 
   assert.equal(row!.health, "failing");
   assert.match(row!.last_error, /身份不符/);
   assert.ok(Date.parse(row!.retry) > Date.now() + 6 * 86400_000);
+});
+
+test("心榜 skips enrollment and sale listings before requesting article bodies", async () => {
+  const pack = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8"));
+  const psytop = pack.sources.find((s: { id: string }) => s.id === "wechat-psytop");
+  assert.ok(psytop, "心榜 is configured");
+  const id = await source(`mp-psytop-${T}`, { lastCheckedAt: hoursAgo(25) }, psytop.config.ingestNoiseFilter);
+  const titles = [
+    "招生通知 | 新一期埃瑞克森催眠连续培训重磅回归！",
+    "咨询实务问答\n全年课程首发2折",
+    "心理行业的新坐标，为什么是县城？",
+    "调查：心理咨询师如何选择培训课程？",
+  ];
+  listing = titles.map((title, i) => ({ title, url: link(BIZ, 401 + i), posted_at: hoursAgo(1 + i) }));
+  const before = bodies.length;
+  assert.equal((await checkMpAccount(id, "schedule")).status, "ok");
+  assert.deepEqual(bodies.slice(before), [link(BIZ, 403), link(BIZ, 404)]);
 });
 
 test("a scheduled body budget pause saves the paid listing and resumes only its two remaining bodies", async () => {

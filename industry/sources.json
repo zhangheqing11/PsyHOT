@@ -8442,6 +8442,43 @@
    "syndicate_fulltext": false
   },
   {
+   "id": "wechat-psytop",
+   "name": "心榜",
+   "kind": "mp_account",
+   "config": {
+    "ghid": "gh_87b01e1e7571",
+    "nickname": "心榜",
+    "wechatBiz": "MzI3NjE3Njg4NA==",
+    "ingestNoiseFilter": {
+     "dropMarkersTitleOnly": [
+      "招生通知",
+      "封班倒计时",
+      "好课合集",
+      "热门好课",
+      "首发2折",
+      "优惠倒计时",
+      "全年最低价",
+      "仅需9元",
+      "限时9元"
+     ]
+    }
+   },
+   "tier": "T2",
+   "first_party": false,
+   "owner_entity_id": null,
+   "participation_mode": "editorial",
+   "track": "industry",
+   "region": "domestic",
+   "interval_minutes": 1440,
+   "tags": [
+    "公众号",
+    "行业",
+    "心理咨询"
+   ],
+   "site_fulltext": false,
+   "syndicate_fulltext": false
+  },
+  {
    "id": "x-everyinfra-ai-mental-health",
    "enabled": false,
    "name": "X · AI 心理健康",

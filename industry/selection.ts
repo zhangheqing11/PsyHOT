@@ -26,6 +26,21 @@ export const SELECTION = {
     thresholds: { T1: 60, T1_5: 65, T2: 67 },
   } as { enabled: boolean; gate: number; thresholds: Record<string, number> },
   /**
+   * 主题页“领域精选”= 全站精选 + 领域补选。补选：没进全站精选、但五维和达到全站最低精选线（T1 的 14）、
+   * 可信度至少 2、且一阶段粗分均值不低于该主题门槛的学界资料。门槛由 2026-11-16 用线上近 6 周数据校准：
+   * 每个主题每周比全站精选多 1–2 条（站长定的目标）。没写门槛的主题不补选。
+   * 以后请各领域专家标注后逐个主题重新校准（docs/selection.md）。
+   */
+  topicPicks: {
+    minSum: 14,
+    minCred: 2,
+    floors: {
+      "cognition-neuro": 65, "social-personality": 62, "development-education": 67, "mood-trauma": 72,
+      "disorders-addiction": 58, psychotherapy: 67, "medication-neuromodulation": 42, "digital-ai": 67,
+      applied: 56, "methods-integrity": 65,
+    },
+  } as { minSum: number; minCred: number; floors: Record<string, number> },
+  /**
    * 业界角色门槛来自 2026-11-08 导师标注与近四周离线测试，每个角色每周约 1–2 条。
    * 由 features.ts 的 industryRoleScoring 统一控制角色精选、热点通道与网站评分展示。
    */

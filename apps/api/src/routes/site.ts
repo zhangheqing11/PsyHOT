@@ -190,7 +190,8 @@ export function registerSite(app: FastifyInstance) {
   }));
 
   app.get("/api/site/topics", siteHandler(async (req, reply) => {
-    return sendJsonWithEtag(req, reply, { topics: await listTopicSummaries() }, { etagPrefix: "topics", cacheControl: "public, max-age=300, s-maxage=300" });
+    const track = trackOf(req);
+    return sendJsonWithEtag(req, reply, { topics: await listTopicSummaries(track) }, { etagPrefix: `topics-${track ?? "all"}`, cacheControl: "public, max-age=300, s-maxage=300" });
   }));
 
   app.get("/api/site/topics/:slug", siteHandler(async (req, reply) => {
@@ -198,7 +199,7 @@ export function registerSite(app: FastifyInstance) {
     const q = looseQuery(req);
     const page = Number(q.page ?? 1);
     const filters = await parseFilters(q);
-    const data = Number.isInteger(page) ? await loadTopicPage(slug, page, { track: filters.track, region: filters.region, role: filters.role }) : null;
+    const data = Number.isInteger(page) ? await loadTopicPage(slug, page, { track: filters.track, region: filters.region, role: filters.role, tag: filters.tag }) : null;
     if (!data) return sendProblem(req, reply, { status: 404, code: "not_found", detail: "topic page not found", cacheControl: "public, max-age=60" });
     return sendJsonWithEtag(req, reply, data, { etagPrefix: "topic", cacheControl: "public, max-age=60, s-maxage=60" });
   }));

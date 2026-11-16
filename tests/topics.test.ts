@@ -259,25 +259,28 @@ test("indexability and sitemap pagination always use all tracks", async () => {
   assert.equal(count.latest?.toISOString(), all.latestAt);
 });
 
+/** Tests pin behaviour to the configured floors, so a recalibration only changes the snapshot below. */
+const floor = (slug: string) => SELECTION.topicPicks.floors[slug]!;
+
 test("topic pick thresholds use the approved per-topic calibration", () => {
   assert.deepEqual(SELECTION.topicPicks, {
     minSum: 14, minCred: 2,
-    floors: { "cognition-neuro": 65, "social-personality": 62, "development-education": 67, "mood-trauma": 72,
-      "disorders-addiction": 58, psychotherapy: 67, "medication-neuromodulation": 42, "digital-ai": 67,
-      applied: 56, "methods-integrity": 65 },
+    floors: { "cognition-neuro": 71, "social-personality": 71, "development-education": 75, "mood-trauma": 75,
+      "disorders-addiction": 62, psychotherapy: 72, "medication-neuromodulation": 71, "digital-ai": 71,
+      applied: 66, "methods-integrity": 74 },
   });
 });
 
 test("topic picks require sum 14, cred 2 and a coarse-score mean at or above the topic floor", async () => {
   const before = (await loadTopicPage("mood-trauma", 1, {}, NOW))!;
   const good = [
-    await item({ dims: { sig: 3, nov: 3, act: 3, cred: 2, reson: 3 }, scores: [70, 74] }),
-    await item({ scores: [73, 75] }),
+    await item({ dims: { sig: 3, nov: 3, act: 3, cred: 2, reson: 3 }, scores: [floor("mood-trauma") - 2, floor("mood-trauma") + 2] }),
+    await item({ scores: [floor("mood-trauma") + 1, floor("mood-trauma") + 3] }),
   ];
   const excluded = [
     await item({ dims: { sig: 3, nov: 3, act: 3, cred: 2, reson: 2 }, scores: [100] }),
     await item({ dims: { sig: 4, nov: 4, act: 3, cred: 1, reson: 3 }, scores: [100] }),
-    await item({ scores: [71, 72] }),
+    await item({ scores: [floor("mood-trauma") - 1, floor("mood-trauma")] }),
     await item({ scores: [0, 100] }), // The average counts, not the highest coarse score.
     await item(), await item({ scores: [] }), await item({ scores: null }), await item({ scores: { mean: 90 } }),
     await item({ scores: [90], scoringPath: "roles" }),
@@ -292,11 +295,11 @@ test("topic picks require sum 14, cred 2 and a coarse-score mean at or above the
 });
 
 test("only configured topics add picks and the same article uses each topic's own floor", async () => {
-  const id = await item({ scores: [55], tags: ["精神药物", "AI与心理", "研究发现", "entity:who"] });
-  const methods = await item({ scores: [65], tags: ["方法/统计"] });
-  const medication = (await loadTopicPage("medication-neuromodulation", 1, {}, NOW))!;
-  assert.equal(medication.topic.hasPicks, true);
-  assert.ok(medication.fieldPickIds.includes(id));
+  const id = await item({ scores: [floor("disorders-addiction")], tags: ["成瘾", "AI与心理", "研究发现", "entity:who"] });
+  const methods = await item({ scores: [floor("methods-integrity")], tags: ["方法/统计"] });
+  const disorders = (await loadTopicPage("disorders-addiction", 1, {}, NOW))!;
+  assert.equal(disorders.topic.hasPicks, true);
+  assert.ok(disorders.fieldPickIds.includes(id));
   const digital = (await loadTopicPage("digital-ai", 1, {}, NOW))!;
   assert.equal(digital.topic.hasPicks, true);
   assert.ok(!digital.items.some((it) => it.id === id));
@@ -345,10 +348,10 @@ test("selected items and picks share chronological paging without story, source 
 
 test("subtopics use their parent's floor and include picks in both subtag and whole-topic counts", async () => {
   const previous = (await loadTopicPage("mood-trauma", 1, { tag: "抑郁" }, NOW))!;
-  const depression = await item({ scores: [72] });
-  const anxiety = await item({ scores: [72], tags: ["焦虑"] });
+  const depression = await item({ scores: [floor("mood-trauma")] });
+  const anxiety = await item({ scores: [floor("mood-trauma")], tags: ["焦虑"] });
   const selected = await item({ selected: true, tags: ["焦虑"] });
-  const low = await item({ scores: [71], tags: ["焦虑"] });
+  const low = await item({ scores: [floor("mood-trauma") - 1], tags: ["焦虑"] });
   const page = (await loadTopicPage("mood-trauma", 1, { tag: "抑郁" }, NOW))!;
   assert.equal(page.topic.total, previous.topic.total + 1);
   assert.equal(page.topic.allTotal, previous.topic.allTotal + 3);
@@ -374,10 +377,10 @@ test("academic views include picks while industry and role views retain only glo
 
 test("directory counts, latest titles and sitemap pages agree with topic lists for every topic and track", async () => {
   const previous = new Map((await listTopicSummaries()).map((t) => [t.slug, t]));
-  await item({ scores: [68], tags: ["认知", "AI与心理"] });
-  await item({ scores: [72], tags: ["抑郁"] });
-  await item({ scores: [65], tags: ["方法/统计"] });
-  await item({ scores: [42], tags: ["精神药物"], source: 1, age: (NOW.getTime() - Date.now()) / DAY + 35 });
+  await item({ scores: [floor("cognition-neuro")], tags: ["认知", "AI与心理"] });
+  await item({ scores: [floor("mood-trauma")], tags: ["抑郁"] });
+  await item({ scores: [floor("methods-integrity")], tags: ["方法/统计"] });
+  await item({ scores: [floor("medication-neuromodulation")], tags: ["精神药物"], source: 1, age: (NOW.getTime() - Date.now()) / DAY + 35 });
   await item({ scores: [100], tags: ["认知"], backfill: true });
   await item({ scores: [100], tags: ["认知"], promotion: true });
   await item({ scores: [100], tags: ["认知"], visibility: "withdrawn" });

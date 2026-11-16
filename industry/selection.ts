@@ -27,17 +27,18 @@ export const SELECTION = {
   } as { enabled: boolean; gate: number; thresholds: Record<string, number> },
   /**
    * 主题页“领域精选”= 全站精选 + 领域补选。补选：没进全站精选、但五维和达到全站最低精选线（T1 的 14）、
-   * 可信度至少 2、且一阶段粗分均值不低于该主题门槛的学界资料。门槛由 2026-11-16 用线上近 6 周数据校准：
-   * 每个主题每周比全站精选多 1–2 条（站长定的目标）。没写门槛的主题不补选。
+   * 可信度至少 2、且一阶段粗分均值不低于该主题门槛的学界资料。门槛由 2026-11-16 用五维打分上线（10-29）以来约 2.6 周
+   * 的线上数据校准：每个主题每周比全站精选多 1–2 条（站长定的目标）。样本小（每个主题 8–43 条候选），
+   * 攒够数据后要复查。没写门槛的主题不补选。
    * 以后请各领域专家标注后逐个主题重新校准（docs/selection.md）。
    */
   topicPicks: {
     minSum: 14,
     minCred: 2,
     floors: {
-      "cognition-neuro": 65, "social-personality": 62, "development-education": 67, "mood-trauma": 72,
-      "disorders-addiction": 58, psychotherapy: 67, "medication-neuromodulation": 42, "digital-ai": 67,
-      applied: 56, "methods-integrity": 65,
+      "cognition-neuro": 71, "social-personality": 71, "development-education": 75, "mood-trauma": 75,
+      "disorders-addiction": 62, psychotherapy: 72, "medication-neuromodulation": 71, "digital-ai": 71,
+      applied: 66, "methods-integrity": 74,
     },
   } as { minSum: number; minCred: number; floors: Record<string, number> },
   /**

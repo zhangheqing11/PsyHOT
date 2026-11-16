@@ -178,7 +178,7 @@ export default function ContentItem({ loaderData }: Route.ComponentProps) {
                         <div className="mt-2 flex flex-wrap gap-1.5 text-[12px]">
                           {ROLE_KEYS.map((role) => (
                             <Badge key={role} tone={an.output.roleScoring.selectedRoles?.includes(role) ? "accent" : "muted"}>
-                              {ROLE_LABELS[role]} {an.output.roleScoring.roleScores[role]}{an.output.roleScoring.selectedRoles?.includes(role) ? " · 入选" : ""}
+                              {ROLE_LABELS[role]} {Number(an.output.roleScoring.roleScores[role]).toFixed(2)}{an.output.roleScoring.selectedRoles?.includes(role) ? " · 入选" : ""}
                             </Badge>
                           ))}
                         </div>

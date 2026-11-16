@@ -258,6 +258,7 @@ async function paidSourceFindings(now: number): Promise<Finding[]> {
 
 const MODEL_STOPS = "用到这家模型的步骤停了（看后台“模型与评测”），新内容可能进不了精选";
 const PROVIDERS: Record<string, { name: string; stops: string; where: string }> = {
+  typesafe: { name: "TypeSafe Jev", stops: "业界角色评分暂停，新条目暂时无法完成分析", where: "console.typesafe.ai" },
   llm: { name: "默认模型服务", stops: "新文章的精选、摘要、归组和日报停了", where: "模型服务商的控制台" },
   zhipu: { name: "智谱", stops: MODEL_STOPS, where: "智谱开放平台" },
   dashscope: { name: "阿里云百炼", stops: MODEL_STOPS, where: "阿里云百炼控制台" },

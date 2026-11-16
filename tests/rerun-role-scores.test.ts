@@ -1,7 +1,12 @@
 // Exercise only the read-only dry-run path. No role model or real rerun is invoked.
-import { tag } from "./setup.ts";
+import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { config } from "@aihot/backend/config";
+import { SELECTION } from "@aihot/industry/selection";
+import { ROLE_KEYS } from "@aihot/contracts/taxonomy";
+import { invalidateModelCache } from "@aihot/backend/editorial/models";
+import { jevAnswers } from "./jev-fixture.ts";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { publishArticle } from "@aihot/backend/publication/publish";
@@ -85,4 +90,39 @@ test("dry-run selects only missing or outdated prompt versions, regardless of re
   const report = await rerunRoleScores(["--dry-run"]);
   assert.ok("ids" in report);
   for (const c of checked) assert.equal(report.ids.includes(c.id), c.rerun, c.name);
+});
+
+
+test("apply reruns the configured engine, stores model/receipt and republishes selected roles", async () => {
+  switches.industryRoleScoring = true;
+  config.allowPrivateNetworkFetch = true;
+  const local = await stub((_hit, req) => {
+    const body = JSON.parse(req.body);
+    if (body.questions) return { model: "jev-1.14.0", answers: jevAnswers(), usage: { input_tokens: 1000, output_tokens: 0 } };
+    const values = { event: "规则", nov: { score: 3, why: "新规则" }, cred: { score: 3, why: "文件" }, primary: [],
+      roles: Object.fromEntries(ROLE_KEYS.map((role) => [role, { rel: 3, act: 3, verdict: "must", why: "依据" }])) };
+    return { choices: [{ message: { content: JSON.stringify(values) } }], usage: { prompt_tokens: 1000, completion_tokens: 10 } };
+  });
+  Object.assign(process.env, { TYPESAFE_BASE_URL: local.url, TYPESAFE_API_KEY: "test-key",
+    LLM_BASE_URL: local.url, LLM_API_KEY: "test-key", LLM_MODEL: "rerun-test", SCORE_ROLES_MODEL: "default-think" });
+  invalidateModelCache();
+  try {
+    const at = new Date(Date.now() - 1000);
+    const { articleId: id } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.com/rerun-apply-${T}`, title: `Rerun apply ${T}`,
+      bodyText: "A professional body published new practice rules. ".repeat(20), bodyStatus: "ok", via: "fetch", publishedAt: at, discoveredAt: at });
+    await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, score, selected, output)
+      VALUES (${id}, 1, 'rule', 'pass', 'policy', '规则', '新规则', 40, false, '{}')`;
+    await publishArticle(id);
+    const report = await rerunRoleScores(["--limit", "1", "--concurrency", "1", "--tag", `apply-${T}`]);
+    assert.ok("processed" in report && report.processed === 1 && report.failed === 0);
+    const [row] = await sql`SELECT an.output, p.selected_roles, r.model, r.service, r.status
+      FROM analyses an JOIN publications p ON p.analysis_id=an.id
+      JOIN receipts r ON r.id=ANY(an.receipt_ids) AND r.purpose='score_roles' WHERE an.article_id=${id}`;
+    assert.ok(row, "the intended candidate was rerun");
+    assert.deepEqual(row.selected_roles, [...ROLE_KEYS]);
+    assert.equal(row.status, "completed");
+    assert.equal(row.output.roleScoring.promptVersion, PROMPT_VERSIONS.roles);
+    assert.equal(row.output.roleScoring.model, SELECTION.industryRoles.engine === "jev" ? "jev-1.14.0" : "default-think");
+    assert.equal(row.service, SELECTION.industryRoles.engine === "jev" ? "typesafe" : "llm");
+  } finally { await local.close(); }
 });

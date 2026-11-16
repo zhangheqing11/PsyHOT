@@ -3,6 +3,8 @@
 // cached for a minute, so a switch applies to the next call without a restart; a changed model only
 // affects work done from then on (history is not re-judged).
 import { sql } from "../db.ts";
+import { SELECTION } from "@aihot/industry/selection";
+import { typesafeModel } from "../providers/typesafe.ts";
 import { MODELS } from "../providers/llm.ts";
 
 export interface Capability {
@@ -18,7 +20,12 @@ export const CAPABILITIES = {
   prefilter: { label: "精选预筛（是否属于这个行业，宽召回）", env: "PREFILTER_MODEL", default: "default", purposes: ["prefilter_article"] },
   score: { label: "精选评分（两次独立评分，按信源分级门槛）", env: "SCORE_MODEL", default: "default", purposes: ["score_article"] },
   scoreDims: { label: "学界五维评分（粗筛后，思考模型评估五个维度）", env: "SCORE_DIMS_MODEL", default: "default-think", purposes: ["score_dims"] },
-  scoreRoles: { label: "业界角色评分（五个从业者角色各打相关度、执业影响和结论，思考模型）", env: "SCORE_ROLES_MODEL", default: "default-think", purposes: ["score_roles"] },
+  scoreRoles: {
+    label: "业界角色评分（engine=jev 时用 TYPESAFE_MODEL；engine=llm 时用思考模型）",
+    get env() { return SELECTION.industryRoles.engine === "jev" ? "TYPESAFE_MODEL" : "SCORE_ROLES_MODEL"; },
+    get default() { return SELECTION.industryRoles.engine === "jev" ? "jev-1.14.0" : "default-think"; },
+    purposes: ["score_roles"],
+  },
   understand: { label: "内容理解（入选和接近入选的标题、摘要、推荐理由、标签，能看图时看首图）", env: "UNDERSTAND_MODEL", default: "default", purposes: ["understand_article"] },
   summarize: { label: "标题摘要（其余文章的中文标题与摘要）", env: "SUMMARIZE_MODEL", default: "default", purposes: ["summarize_article"] },
   structure: { label: "结构抽取（分类、标签、主体公司、事件事实，不写读者文字）", env: "STRUCTURE_MODEL", default: "default", purposes: ["structure_article"] },
@@ -54,6 +61,7 @@ export function invalidateModelCache() {
 
 /** The model a capability uses now: admin switch, else environment, else the code default. */
 export async function modelFor(capability: CapabilityKey): Promise<string> {
+  if (capability === "scoreRoles" && SELECTION.industryRoles.engine === "jev") return typesafeModel();
   const c: Capability = CAPABILITIES[capability];
   const chosen = (await overrides())[capability] ?? process.env[c.env] ?? c.default;
   return MODELS[chosen] ? chosen : c.default;
@@ -64,7 +72,8 @@ export async function modelSources(): Promise<Record<string, { model: string; so
   const o = await overrides();
   const out: Record<string, { model: string; source: "admin" | "env" | "default" }> = {};
   for (const [key, c] of Object.entries(CAPABILITIES) as Array<[string, Capability]>) {
-    if (o[key]) out[key] = { model: o[key]!, source: "admin" };
+    if (key === "scoreRoles" && SELECTION.industryRoles.engine === "jev") out[key] = { model: typesafeModel(), source: process.env.TYPESAFE_MODEL ? "env" : "default" };
+    else if (o[key]) out[key] = { model: o[key]!, source: "admin" };
     else if (process.env[c.env] && MODELS[process.env[c.env]!]) out[key] = { model: process.env[c.env]!, source: "env" };
     else out[key] = { model: c.default, source: "default" };
   }

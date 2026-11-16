@@ -45,6 +45,9 @@ export const SELECTION = {
    * 由 features.ts 的 industryRoleScoring 统一控制角色精选、热点通道与网站评分展示。
    */
   industryRoles: {
+    engine: "jev" as "jev" | "llm",
+    // 2026-11-16 离线测试：导师标注验证集 AUC 0.84，近 4 周 214 条模拟，每角色每周约 1.5 条。
+    jevThresholds: { counselor: 1.1, psychiatry: 1.5, school: 1.2, community: 1.15, operator: 1.3 },
     thresholds: { counselor: 11, psychiatry: 12, school: 10, community: 10, operator: 11 },
     browseMinRel: 2,
     maxBrowseRoles: 3,

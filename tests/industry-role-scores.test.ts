@@ -16,6 +16,7 @@ const T = tag();
 const SOURCE = `test-role-scores-${T}`;
 const switches = FEATURES as unknown as { industryRoleScoring: boolean };
 const originalSwitch = switches.industryRoleScoring;
+const originalEngine = SELECTION.industryRoles.engine;
 const values = () => ({
   event: "正式规则改变执业流程", nov: { why: "新规则", score: 3 }, cred: { why: "正式文件", score: 3 },
   roles: Object.fromEntries(ROLE_KEYS.map((r) => [r, { why: "依据", rel: 1, act: 1, verdict: "skip" }])), primary: [] as unknown[],
@@ -115,6 +116,7 @@ Object.assign(process.env, {
 delete process.env.SCORE_ROLES_MODEL;
 let budget: Array<{ per_minute: number; per_hour: number; per_day: number }> = [];
 before(async () => {
+  (SELECTION.industryRoles as { engine: "jev" | "llm" }).engine = "llm"; // This suite locks down the unchanged rollback path.
   switches.industryRoleScoring = true;
   budget = await sql`SELECT per_minute, per_hour, per_day FROM budgets WHERE service='llm'`;
   await sql`UPDATE budgets SET per_minute=100000, per_hour=100000, per_day=100000 WHERE service='llm'`;
@@ -124,6 +126,7 @@ before(async () => {
 });
 after(async () => {
   switches.industryRoleScoring = originalSwitch;
+  (SELECTION.industryRoles as { engine: "jev" | "llm" }).engine = originalEngine;
   if (budget[0]) await sql`UPDATE budgets SET per_minute=${budget[0].per_minute}, per_hour=${budget[0].per_hour}, per_day=${budget[0].per_day} WHERE service='llm'`;
   await provider.close();
   await closeDb();

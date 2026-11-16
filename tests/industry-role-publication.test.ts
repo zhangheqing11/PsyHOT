@@ -14,6 +14,9 @@ import { v1Items } from "@aihot/backend/publication/v1";
 import { itemFeed } from "@aihot/backend/publication/feeds";
 import { FEATURES } from "@aihot/industry/features";
 import { ROLE_KEYS } from "@aihot/contracts/taxonomy";
+import { jevRoleValues } from "@aihot/backend/editorial/roles-jev";
+import { calculateRoleScores } from "@aihot/backend/editorial/analyze";
+import { jevAnswers } from "./jev-fixture.ts";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const T = tag();
@@ -273,4 +276,15 @@ test("every selected exit uses selected_roles; all-dynamics uses roles; only sit
     for (const c of legacy.cards) assert.ok(!("hotPick" in c.item) && !("selectedRoles" in c.item));
     assert.deepEqual(own((await v1Items({ ...base, mode: "selected" }, AT)).items), [...mine].sort());
   } finally { switches.industryRoleScoring = true; }
+});
+
+
+test("Jev integer rel/nov survive industry-hot SQL casts and publication", async () => {
+  const s = await story();
+  const values = jevRoleValues(jevAnswers());
+  const roleScoring = { values, ...calculateRoleScores(values), model: "jev-1.14.0" };
+  await sql`UPDATE analyses SET output=jsonb_set(output, '{roleScoring}', ${sql.json(roleScoring as never)}) WHERE article_id=${s.id}`;
+  await pickIndustryHot(AT);
+  assert.equal((await publication(s.id)).hot_pick, true);
+  assert.deepEqual((await publication(s.id)).selected_roles, [...ROLE_KEYS]);
 });

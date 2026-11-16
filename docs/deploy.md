@@ -21,7 +21,7 @@ docker compose up -d --build
 
 - 构建时 npm 走国内镜像：`docker compose build --build-arg NPM_REGISTRY=https://registry.npmmirror.com`，然后 `docker compose up -d`。
 - 拉取 Docker 镜像慢，先给 Docker 配置镜像加速。
-- 海外信源抓不到时，在 `.env` 里设置 `EGRESS_PROXY_URL`：抓信源、图片和模型榜数据时走这个代理，调用模型接口不走。
+- 海外信源抓不到时，在 `.env` 里设置 `EGRESS_PROXY_URL`：抓信源、图片和模型榜数据时走这个代理，TypeSafe 角色评分也走此代理，其他模型接口沿用各自的路由。
 - 对外提供网站服务需要先完成 ICP 备案，备案号填在 `industry/site.ts` 的 `icp`。
 
 ### 配域名和 HTTPS
@@ -148,3 +148,17 @@ cd apps/web && NODE_ENV=production node --env-file=../../.env server.ts   # 网�
 三个进程要一直运行，生产环境用 systemd 或 pm2 守护。
 
 开发时用带热更新的方式：`npm run dev:api`、`npm run dev:worker`、`npm run dev:web`。开发时想免登录进后台，在 `.env` 里设 `DEV_AUTH_ROLE=admin`（生产环境会拒绝启动）。
+
+### 业界角色评分环境变量
+
+`industry/selection.ts` 的 `industryRoles.engine` 默认 `jev`；改为 `llm` 恢复原来的 DeepSeek 路径。Jev 失败时任务失败，不自动切换模型。后台的角色评分模型由环境变量决定。
+
+| 环境变量 | 默认值 | 用途 |
+|---|---|---|
+| `TYPESAFE_API_KEY` | 空 | TypeSafe API 密钥，只在后端使用 |
+| `TYPESAFE_MODEL` | `jev-1.14.0` | 固定版本号，拒绝 `jev-latest` 等别名 |
+| `EGRESS_PROXY_URL` | 空 | TypeSafe 出站代理；本机可设 `http://127.0.0.1:33210` |
+| `MODEL_CALLS_ENABLED` | `true` | 设为 `false` 同时关闭 Jev 与其他模型调用 |
+| `SCORE_ROLES_MODEL` | `default-think` | 仅 `engine=llm` 时生效 |
+
+TypeSafe 输入 US$0.042 / 百万 token，输出免费，回执按返回 usage 记录费用。0063 迁移只补充预算配置（100 次/分钟、2000 次/小时、20000 次/天），已有配置不覆盖。429、529 和其他 5xx 最多共尝试 3 次，每次 30 秒。发送后超时保持 `unknown`，由现有回执恢复流程处理，避免不明扣费时立即重发。一小时内 3 次 HTTP 402 后暂停，复用现有 provider 拒绝服务飞书告警；不会自动降级到另一种评分尺度。

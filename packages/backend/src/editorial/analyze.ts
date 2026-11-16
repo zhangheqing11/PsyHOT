@@ -31,6 +31,8 @@ import {
   CATEGORY_BY_ITEM_TYPE, CATEGORY_TAGS, categoryForSource, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS,
   trackGuide, trackOfCategory,
 } from "./vocabulary.ts";
+import { systemOne } from "../providers/typesafe.ts";
+import { JEV_ROLE_QUESTIONS, jevRoleValues, calculateJevRoleScores, type JevRoleScoringValues } from "./roles-jev.ts";
 import { promptText, promptVersion } from "./prompts.ts";
 
 export { buildMaterial, loadAnalyzeInput, type AnalyzeInputArticle };
@@ -43,7 +45,9 @@ export const PROMPT_VERSIONS = {
   prefilter: promptVersion("prefilter"),
   score: promptVersion("selection-score"),
   dims: promptVersion("selection-dims"),
-  roles: promptVersion("selection-roles"),
+  roles: SELECTION.industryRoles.engine === "jev"
+    ? `jev@${createHash("sha256").update(JSON.stringify(JEV_ROLE_QUESTIONS)).digest("hex").slice(0, 10)}`
+    : promptVersion("selection-roles"),
   understand: promptVersion("understand"),
   summarize: promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context"),
   structure: `${promptVersion("structure")}+roles@${STRUCTURE_VOCABULARY_VERSION}`,
@@ -108,11 +112,12 @@ export const RolesSchema = z.object({
   roles: z.object({ counselor: RoleScoreSchema, psychiatry: RoleScoreSchema, school: RoleScoreSchema, community: RoleScoreSchema, operator: RoleScoreSchema }),
   primary: z.array(z.unknown()).transform((v) => [...new Set(v.filter(isRoleKey))].slice(0, 2)),
 });
-export type RoleScoringValues = z.infer<typeof RolesSchema>;
+export type RoleScoringValues = (z.infer<typeof RolesSchema> & { engine?: "llm" }) | JevRoleScoringValues;
 const ROLES_SYSTEM = promptText("selection-roles");
 
 /** Frozen offline rule: role selection and browse labels do not change the legacy quality score. */
 export function calculateRoleScores(values: RoleScoringValues) {
+  if (values.engine === "jev") return calculateJevRoleScores(values);
   const conclusion = { must: 2, maybe: 1, skip: 0 };
   const roleScores = Object.fromEntries(ROLE_KEYS.map((key) => {
     const r = values.roles[key];
@@ -417,6 +422,18 @@ async function runDims(a: AnalyzeInputArticle, threshold: number, opts: StepOpts
 
 /** One reasoning call for all five roles; retry uses the same logical receipt, never legacy fallback. */
 export async function runRoleScores(a: AnalyzeInputArticle, opts: StepOpts = {}): Promise<NonNullable<AnalysisRun["roleScoring"]>> {
+  if (SELECTION.industryRoles.engine === "jev") {
+    checkAnalysisRunning();
+    const at = a.publishedAt ?? a.discoveredAt;
+    const body = a.bodyText && a.bodyText !== "None" ? [...a.bodyText].slice(0, 4000).join("") : "";
+    const res = await systemOne({
+      state: { "标题": a.title, "发布时间": at ? scoreInputTime(at) : null, "正文": body || a.excerpt },
+      questions: JEV_ROLE_QUESTIONS, subject: subjectOf(a), promptVersion: PROMPT_VERSIONS.roles,
+      attemptTag: tagged(opts.roleAttemptTag ?? opts.attemptTag, "roles"),
+    });
+    const values = jevRoleValues(res.answers);
+    return { model: res.model, receiptId: res.receiptId, reused: res.reused, values, ...calculateRoleScores(values) };
+  }
   const model = await modelFor("scoreRoles");
   const input = buildScoreInput(a).replace(
     "请按系统规则评估以下单篇材料所代表的事件。只输出 attentionScore。",

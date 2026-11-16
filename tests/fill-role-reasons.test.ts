@@ -2,6 +2,7 @@
 import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { analyzeArticle, loadAnalyzeInput, PROMPT_VERSIONS, runRoleScores } from "@aihot/backend/editorial/analyze";
@@ -27,6 +28,15 @@ const roleValues = {
 };
 const provider = await stub((hit, req) => {
   const body = JSON.parse(req.body);
+  if (body.questions) {
+    const state = [...cases].find(([marker]) => JSON.stringify(body.state).includes(marker))?.[1];
+    assert.ok(state);
+    state.calls.push("roles");
+    return { model: "jev-1.14.0", usage: { input_tokens: 100, output_tokens: 0 }, answers: Object.fromEntries(Object.entries(body.questions).map(([name, q]: [string, any]) => [name,
+      q.type === "choice" ? { choice: name.startsWith("counselor") ? "must" : "skip", probabilities: name.startsWith("counselor") ? { must: 0.6, maybe: 0.3, skip: 0.1 } : { must: 0, maybe: 0, skip: 1 } }
+        : { probabilities: name === "nov" || name.startsWith("counselor") ? { 0: 0, 1: 0, 2: 1, 3: 0 } : { 0: 1, 1: 0, 2: 0, 3: 0 } },
+    ])) };
+  }
   const system = String(body.messages[0]?.content ?? "");
   const user = JSON.stringify(body.messages.at(-1)?.content);
   const state = [...cases].find(([marker]) => user.includes(marker))?.[1];
@@ -44,6 +54,7 @@ const provider = await stub((hit, req) => {
   return { id: `fill-stub-${hit}`, choices: [{ message: { content: typeof answers[step] === "string" ? answers[step] : JSON.stringify(answers[step]) } }], usage: { prompt_tokens: 10, completion_tokens: 5 } };
 });
 Object.assign(process.env, {
+  TYPESAFE_BASE_URL: provider.url, TYPESAFE_API_KEY: "test-key",
   LLM_BASE_URL: `${provider.url}/v1`, LLM_API_KEY: "test-key", LLM_MODEL: "fill-test-model", MODEL_CALLS_ENABLED: "true",
   LLM_JSON_MODE: "false", LLM_EXTRA_JSON: '{"thinking":{"type":"disabled"}}',
   PREFILTER_MODEL: "default", SCORE_MODEL: "default", STRUCTURE_MODEL: "default", SCORE_ROLES_MODEL: "default-think",
@@ -51,6 +62,7 @@ Object.assign(process.env, {
 });
 let budget: Array<{ per_minute: number; per_hour: number; per_day: number }> = [];
 before(async () => {
+  config.allowPrivateNetworkFetch = true;
   switches.industryRoleScoring = true;
   budget = await sql`SELECT per_minute, per_hour, per_day FROM budgets WHERE service='llm'`;
   await sql`UPDATE budgets SET per_minute=100000, per_hour=100000, per_day=100000 WHERE service='llm'`;

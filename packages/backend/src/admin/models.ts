@@ -42,14 +42,14 @@ export async function modelsOverview(days = 7) {
              count(*) FILTER (WHERE a.status = 'unknown')::int AS unknown,
              percentile_disc(0.5) WITHIN GROUP (ORDER BY a.latency_ms) AS p50,
              percentile_disc(0.95) WITHIN GROUP (ORDER BY a.latency_ms) AS p95,
-             sum((a.usage->>'prompt_tokens')::bigint) AS tokens_in,
-             sum(coalesce(a.usage->>'prompt_cache_hit_tokens', a.usage->'prompt_tokens_details'->>'cached_tokens')::bigint) AS tokens_cached, sum((a.usage->>'completion_tokens')::bigint) AS tokens_out,
+             sum(coalesce(a.usage->>'input_tokens', a.usage->>'prompt_tokens')::bigint) AS tokens_in,
+             sum(coalesce(a.usage->>'prompt_cache_hit_tokens', a.usage->'prompt_tokens_details'->>'cached_tokens')::bigint) AS tokens_cached, sum(coalesce(a.usage->>'output_tokens', a.usage->>'completion_tokens')::bigint) AS tokens_out,
              sum(a.cost) FILTER (WHERE a.cost_basis = 'actual') AS actual_cost,
              sum(a.cost) FILTER (WHERE a.cost_basis = 'estimated') AS estimated_cost,
              count(*) FILTER (WHERE a.status = 'received' AND a.cost IS NULL)::int AS unpriced_calls,
-             sum((a.usage->>'prompt_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_in_unpriced,
+             sum(coalesce(a.usage->>'input_tokens', a.usage->>'prompt_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_in_unpriced,
              sum(coalesce(a.usage->>'prompt_cache_hit_tokens', a.usage->'prompt_tokens_details'->>'cached_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_cached_unpriced,
-             sum((a.usage->>'completion_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_out_unpriced, max(a.currency) AS currency
+             sum(coalesce(a.usage->>'output_tokens', a.usage->>'completion_tokens')::bigint) FILTER (WHERE a.cost IS NULL) AS tokens_out_unpriced, max(a.currency) AS currency
       FROM receipt_attempts a JOIN receipts r ON r.id = a.receipt_id
       WHERE a.started_at >= ${since} AND a.origin = 'live' AND a.model IS NOT NULL
       GROUP BY 1, 2, 3, 4 ORDER BY 1, 5 DESC`,

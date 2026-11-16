@@ -70,6 +70,7 @@ export default function ModelsAdmin({ loaderData: m }: Route.ComponentProps) {
               right={
                 <Button
                   size="sm"
+                  disabled={c.env === "TYPESAFE_MODEL"}
                   onClick={() => {
                     setTarget(c);
                     setChoice(c.current.model);

@@ -71,7 +71,7 @@ export async function fillRoleReasons(args = process.argv.slice(2)) {
     WHERE article_id = ANY(${ids}::text[]) AND selected AND nullif(btrim(reason), '') IS NULL`;
   const [usage] = await sql<{ attempts: number; cost: number | null; tokens_in: number | null; tokens_out: number | null }[]>`
     SELECT count(*)::int AS attempts, sum(ra.cost) AS cost,
-      sum(coalesce((ra.usage->>'prompt_tokens')::int, 0)) AS tokens_in, sum(coalesce((ra.usage->>'completion_tokens')::int, 0)) AS tokens_out
+      sum(coalesce((ra.usage->>'input_tokens')::int, (ra.usage->>'prompt_tokens')::int, 0)) AS tokens_in, sum(coalesce((ra.usage->>'output_tokens')::int, (ra.usage->>'completion_tokens')::int, 0)) AS tokens_out
     FROM receipt_attempts ra JOIN receipts r ON r.id = ra.receipt_id
     WHERE split_part(r.subject, '@', 1) = ANY(${ids.map((id) => `article:${id}`)}::text[])
       AND ra.started_at >= ${started!.at}::timestamptz`;

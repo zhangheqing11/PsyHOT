@@ -87,3 +87,10 @@ export async function estimateCallCost(
     return null;
   }
 }
+
+/** TypeSafe's fixed usage tariff: US$0.042 / million input tokens; output is free. */
+export function typesafeCost(usage: Record<string, unknown> | null | undefined): { amount: number; currency: string; basis: "actual" } | null {
+  const input = usage?.input_tokens;
+  if (typeof input !== "number" || !Number.isSafeInteger(input) || input < 0) return null;
+  return { amount: input * 0.042 / 1e6, currency: "USD", basis: "actual" };
+}

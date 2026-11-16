@@ -82,7 +82,7 @@ export async function rerunRoleScores(args = process.argv.slice(2)) {
   const hotPicks = await pickIndustryHot();
   const [usage] = await sql`
     SELECT count(*)::int AS attempts, sum(cost) AS cost,
-      sum(coalesce((usage->>'prompt_tokens')::int, 0)) AS tokens_in, sum(coalesce((usage->>'completion_tokens')::int, 0)) AS tokens_out
+      sum(coalesce((usage->>'input_tokens')::int, (usage->>'prompt_tokens')::int, 0)) AS tokens_in, sum(coalesce((usage->>'output_tokens')::int, (usage->>'completion_tokens')::int, 0)) AS tokens_out
     FROM receipt_attempts WHERE receipt_id = ANY(${[...new Set(receiptIds)]}::bigint[])`;
   const report = { total: set.length, processed: items.length - failed, failed, hotPicks, selectedWithoutUnderstand: await missingCopy(), usage };
   console.log(JSON.stringify(report));

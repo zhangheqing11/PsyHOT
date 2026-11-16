@@ -1,4 +1,4 @@
-import { SITE, withSubject } from "@aihot/industry/site";
+import { SITE } from "@aihot/industry/site";
 import { Link, redirect, useLoaderData, useSearchParams } from "react-router";
 import type { Route } from "./+types/topic";
 import type { FeedItemSummary } from "@aihot/contracts/site";
@@ -7,25 +7,32 @@ import { loadOr404, queryString } from "../lib/api.server";
 import { breadcrumbLd, pageMeta, titled } from "../lib/seo";
 import { DayList, Pagination } from "../features/feed/DayList";
 import { EmptyState, MoreLink } from "../components/ui/Page";
+import { PillTabs } from "../components/ui/Tabs";
+import { hrefWith, TrackTabs } from "../features/feed/Filters";
+import { topicAliasRedirect } from "../lib/topic-alias";
 
-/** Selected items of a topic: shared caches keep the page as long as its api answer (one minute). */
+/** Topic selections: shared caches keep the page as long as its api answer (one minute). */
 export function headers() {
   return { "Cache-Control": "public, max-age=0, s-maxage=60" };
 }
 
 interface TopicPageData {
-  topic: { slug: string; name: string; group: string; definition: string; total: number; indexable: boolean; related: Array<{ slug: string; name: string }> };
+  topic: { slug: string; name: string; group: string; definition: string; total: number; allTotal: number; indexable: boolean; hasPicks: boolean;
+    subtags: Array<{ tag: string; total: number }>; related: Array<{ slug: string; name: string }> };
   items: FeedItemSummary[];
+  fieldPickIds: string[];
   page: number;
   pageCount: number;
 }
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const page = params.page ? Number(params.page) : 1;
+  const url = new URL(request.url);
+  const alias = topicAliasRedirect(params.slug, page, url.searchParams);
+  if (alias) throw redirect(alias, 308);
   if (params.page !== undefined && (!/^\d+$/.test(params.page) || page < 1)) throw new Response("Not found", { status: 404 });
   // Page 1 lives at the topic's own address (308).
-  if (params.page === "1") throw redirect(`/topics/${params.slug}`, 308);
-  const url = new URL(request.url);
+  if (params.page === "1") throw redirect(`/topics/${params.slug}${url.search}`, 308);
   const trackParam = url.searchParams.get("track");
   const regionParam = url.searchParams.get("region");
   const region = regionParam && isRegionKey(regionParam) ? regionParam : null;
@@ -33,8 +40,9 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const roleParam = industryRolesOn() ? url.searchParams.get("role") : null;
   const role = roleParam && isRoleKey(roleParam) ? roleParam : null;
   const track = trackParam && isTrackKey(trackParam) ? trackParam : role ? "industry" : null;
-  const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}${queryString({ page, track, region, role })}`, { signal: request.signal });
-  return { data };
+  const tag = url.searchParams.get("tag")?.trim() || null;
+  const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}${queryString({ page, track, region, role, tag })}`, { signal: request.signal });
+  return { data, track, tag };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -46,15 +54,16 @@ export function meta({ loaderData }: Route.MetaArgs) {
     description: topic.definition,
     path,
     image: `/og/topics/${topic.slug}.png`,
-    noindex: !topic.indexable,
+    noindex: !topic.indexable || !!loaderData.tag,
     jsonLd: breadcrumbLd([{ name: SITE.name, path: "/" }, { name: "主题", path: "/topics" }, { name: topic.name, path: `/topics/${topic.slug}` }]),
   });
 }
 
 export default function TopicPage() {
-  const { data } = useLoaderData<typeof loader>();
-  const { topic, items, page, pageCount } = data;
+  const { data, track, tag } = useLoaderData<typeof loader>();
+  const { topic, items, fieldPickIds, page, pageCount } = data;
   const [params] = useSearchParams();
+  const base = `/topics/${topic.slug}`;
   const href = (p: number) => {
     const base = p <= 1 ? `/topics/${topic.slug}` : `/topics/${topic.slug}/page/${p}`;
     const query = params.toString();
@@ -68,29 +77,51 @@ export default function TopicPage() {
         <div className="flex items-start justify-between gap-4">
           <h1 className="text-[22px] font-bold leading-[1.35] text-ink">{topic.name}</h1>
           <span className="hidden pt-2 lg:block">
-            <MoreLink to="/topics">全部主题</MoreLink>
+            <MoreLink to={track ? `/topics?track=${track}` : "/topics"}>全部主题</MoreLink>
           </span>
         </div>
         <p className="mt-1 max-w-[640px] text-[13px] leading-relaxed text-ink-3">{topic.definition}</p>
         <div className="mt-3 flex flex-wrap items-baseline gap-x-5 gap-y-1">
           <span className="text-[12.5px] text-ink-4">
-            <span className="num mr-1 text-[20px] font-bold text-ink">{topic.total.toLocaleString("zh-CN")}</span>条精选
+            <span className="num mr-1 text-[20px] font-bold text-ink">{topic.total.toLocaleString("zh-CN")}</span>条{topic.hasPicks ? "领域精选" : "精选"}
           </span>
           {topic.related.length > 0 && (
             <span className="flex flex-wrap items-center gap-1.5 text-[12.5px]">
               <span className="text-ink-4">相关主题</span>
               {topic.related.map((r) => (
-                <Link key={r.slug} to={`/topics/${r.slug}`} className="chip">
+                <Link key={r.slug} to={hrefWith(`/topics/${r.slug}`, params, { tag: null })} className="chip">
                   {r.name}
                 </Link>
               ))}
             </span>
           )}
         </div>
+        <div className="mt-4 hidden lg:block">
+          <TrackTabs base={base} track={track} layoutId="topic-track-desk" />
+        </div>
+        <div className="mt-3 lg:hidden">
+          <TrackTabs base={base} track={track} layoutId="topic-track-mobile" size="sm" />
+        </div>
+        {topic.subtags.length > 0 && (
+          <PillTabs
+            className="mt-3"
+            size="sm"
+            layoutId="topic-subtags"
+            label="子议题"
+            active={tag ?? "all"}
+            items={[
+              { key: "all", label: "全部", count: topic.allTotal, to: hrefWith(base, params, { tag: null }) },
+              ...topic.subtags.map((s) => ({ key: s.tag, label: s.tag, count: s.total, to: hrefWith(base, params, { tag: s.tag }) })),
+            ]}
+          />
+        )}
       </header>
 
-      <div className="mb-1 mt-2 flex items-baseline justify-between">
-        <h2 className="text-[18px] font-bold text-ink">最新精选</h2>
+      <div className="mb-1 mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <h2 className="text-[18px] font-bold text-ink">{topic.hasPicks ? "领域精选" : "最新精选"}</h2>
+          {topic.hasPicks && <p className="text-[12px] text-ink-4">全站精选，加上本领域评分靠前的内容</p>}
+        </div>
         {items.length > 0 && (
           <span className="num text-[12px] text-ink-4">
             第 {first}–{last} 条 · 共 {topic.total.toLocaleString("zh-CN")} 条
@@ -102,7 +133,7 @@ export default function TopicPage() {
           <EmptyState title="这个主题暂时还没有精选内容" />
         </div>
       ) : (
-        <DayList items={items} />
+        <DayList items={items} fieldPickIds={new Set(fieldPickIds)} />
       )}
       <Pagination page={page} pageCount={pageCount} href={href} />
     </div>

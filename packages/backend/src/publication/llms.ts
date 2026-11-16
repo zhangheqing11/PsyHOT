@@ -66,7 +66,7 @@ export function llmsTxt(opts: { hasDailies: boolean; hasWeekly: boolean; hasMont
   }
   if (opts.hasWeekly) lines.push(`- [${withSubject("周报")}](${u("/weekly")}): 每周综合回顾`);
   if (opts.hasMonthly) lines.push(`- [${withSubject("月报")}](${u("/monthly")}): 每月盘点`);
-  lines.push(`- [主题](${u("/topics")}): 按公司、方向、内容形态聚合的主题页`);
+  lines.push(`- [主题](${u("/topics")}): 按领域与议题、内容形态、机构与学会聚合的主题页`);
   if (FEATURES.leaderboard && opts.hasLeaderboard) {
     lines.push(`- [模型榜](${u("/leaderboard")}): 汇总多家公开模型评测榜单的共识排名`);
     lines.push(`- [模型榜算法规则](${u("/leaderboard/rules")}): 模型身份统一、共同参评比较、缺失评测处理和共识指数计算方式`);

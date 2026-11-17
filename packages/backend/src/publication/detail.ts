@@ -12,6 +12,7 @@ import { doiFromUrl } from "../content/abstracts.ts";
 import { looksZh, thinText } from "../editorial/writing.ts";
 import { journalAbstractIssue } from "../content/journal-abstract.ts";
 import { sha256 } from "../lib/ids.ts";
+import { loadPaperLinks } from "./paper-links.ts";
 
 interface DetailRow extends ItemRow {
   body_html: string | null;
@@ -179,6 +180,7 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
     body,
     outline,
     relatedStories: related,
+    paperLinks: await loadPaperLinks(id, now),
     indexable: row.indexable,
     markdownAvailable: markdownAvailable(row),
     group,

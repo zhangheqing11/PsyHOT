@@ -5,6 +5,7 @@ import { credential } from "@aihot/backend/config";
 import { ensureQueue, recordRun } from "@aihot/backend/jobs/queue";
 import { sweepUnprocessed } from "@aihot/backend/jobs/content";
 import { enrichThinAbstracts } from "@aihot/backend/content/abstracts";
+import { backfillReferencedPapers } from "@aihot/backend/content/paper-backfill";
 import { translatePending } from "@aihot/backend/editorial/translate";
 import { translateAbstracts } from "@aihot/backend/editorial/abstract-translate";
 import { adaptIntervals, scheduleDueSources } from "@aihot/backend/sources/collect";
@@ -106,6 +107,7 @@ export const SCHEDULES: Scheduled[] = [
         { name: "sources.mp-reconcile", cron: "*/15 * * * *", run: () => scheduleMpReconcile() },
         // Abstracts for journal items that have only a title, from open scholarly metadata (free).
         { name: "content.abstracts", cron: "*/20 * * * *", run: () => enrichThinAbstracts() },
+        { name: "content.paper-backfill", cron: "3,13,23,33,43,53 * * * *", run: () => backfillReferencedPapers() },
         // Web coverage of hot stories (DeepSeek Search, paid per call; off with WEB_STORY_LOOKUP_ENABLED=false).
         { name: "hot.web-lookup", cron: "25 */6 * * *", run: () => lookupStoryCoverage() },
         // X discussion of hot stories (EveryInfra, paid per call, at most 3 searches per run; off with X_STORY_LOOKUP_ENABLED=false).

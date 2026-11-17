@@ -164,6 +164,8 @@ export interface AbstractView {
   translationStatus: "pending" | "translated" | "failed" | "skipped" | null;
 }
 
+export interface PaperLink { id: string; title: string; source: string; relation: "paper" | "report" }
+
 export interface ItemDetail extends ItemSummary {
   readingMode: "full" | "summary-only";
   author: string | null;
@@ -173,6 +175,8 @@ export interface ItemDetail extends ItemSummary {
   body: { zh: string | null; original: string | null; zhKind: "translation" | "original" | null; complete: boolean } | null;
   outline: OutlineEntry[];
   relatedStories: StoryRef[];
+  /** Identified citation links, distinct from a claim that two reports describe the same event. */
+  paperLinks?: PaperLink[];
   indexable: boolean;
   markdownAvailable: boolean;
   group: GroupInfo | null;

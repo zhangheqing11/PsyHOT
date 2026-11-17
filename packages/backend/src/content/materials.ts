@@ -5,6 +5,7 @@ import { newArticleId, sha256 } from "../lib/ids.ts";
 import { identityKeyForUrl, xhsNoteIdFromUrl } from "../lib/url.ts";
 import { collapseWhitespace } from "../lib/text.ts";
 import { journalAbstractIssue } from "./journal-abstract.ts";
+import { paperDoiFromUrl, paperPiiFromUrl } from "./paper-references.ts";
 
 export interface MediaItem {
   kind: "image" | "video";
@@ -150,7 +151,20 @@ export async function upsertMaterial(m: MaterialInput, db: Db = sql): Promise<Ma
 }
 
 async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
-  const identityKey = identityKeyFor(m);
+  let identityKey = identityKeyFor(m);
+  const doi = paperDoiFromUrl(m.url);
+  const pii = paperPiiFromUrl(m.url);
+  if (doi || pii) {
+    const [journal] = await db`SELECT id FROM sources WHERE id=${m.sourceId} AND first_party AND kind<>'mp_account' AND tags @> ARRAY['期刊']::text[]`;
+    if (journal) {
+      if (doi) await db`SELECT pg_advisory_xact_lock(hashtextextended(${'paper-doi:'+doi},0))`;
+      if (pii) await db`SELECT pg_advisory_xact_lock(hashtextextended(${'paper-pii:'+pii},0))`;
+      const known = await db`SELECT DISTINCT a.identity_key FROM paper_doi_registry r
+        JOIN articles original ON original.id=r.article_id JOIN articles a ON a.id=coalesce(original.duplicate_of,original.id)
+        WHERE r.doi=${doi} OR (${doi}::text IS NULL AND ${pii}::text IS NOT NULL AND r.publisher_ids @> ARRAY[${pii}]::text[]) LIMIT 2`;
+      if (known.length===1) identityKey=known[0]!.identity_key;
+    }
+  }
   const discoveredAt = m.discoveredAt ?? new Date();
   const title = collapseWhitespace(m.title).slice(0, 1000) || m.url;
 

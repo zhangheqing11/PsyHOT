@@ -377,6 +377,22 @@ export default function ItemPage() {
 
           {item.story && <StoryFollowups story={item.story} currentId={item.id} />}
 
+          {(["paper", "report"] as const).map((relation) => {
+            const links = item.paperLinks?.filter((p) => p.relation === relation) ?? [];
+            return links.length > 0 && (
+              <section key={relation} className="mt-8" aria-label={relation === "paper" ? "报道引用的论文" : "相关报道"}>
+                <h2 className="mb-2 text-[14px] font-semibold text-ink">{relation === "paper" ? "报道引用的论文" : "相关报道"}</h2>
+                <ul className="divide-y divide-line-soft">
+                  {links.map((p) => <li key={p.id}>
+                    <Link to={`/items/${p.id}`} className="block py-2.5 text-[14px] leading-relaxed text-ink-2 hover:text-accent">
+                      {p.title}<span className="mt-1 block text-[12px] text-ink-4">{p.source}</span>
+                    </Link>
+                  </li>)}
+                </ul>
+              </section>
+            );
+          })}
+
           {related.length > 0 && (
             <section className="mt-8">
               <h2 className="mb-2 text-[14px] font-semibold text-ink">相关事件</h2>

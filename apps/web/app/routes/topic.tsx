@@ -7,8 +7,8 @@ import { loadOr404, queryString } from "../lib/api.server";
 import { breadcrumbLd, pageMeta, titled } from "../lib/seo";
 import { DayList, Pagination } from "../features/feed/DayList";
 import { EmptyState, MoreLink } from "../components/ui/Page";
-import { PillTabs } from "../components/ui/Tabs";
-import { hrefWith, TrackTabs } from "../features/feed/Filters";
+import { PillTabs, PlainTabs } from "../components/ui/Tabs";
+import { hrefWith, MobileFilters, TrackTabs } from "../features/feed/Filters";
 import { topicAliasRedirect } from "../lib/topic-alias";
 
 /** Topic selections: shared caches keep the page as long as its api answer (one minute). */
@@ -42,7 +42,7 @@ export async function loader({ params, request }: Route.LoaderArgs) {
   const track = trackParam && isTrackKey(trackParam) ? trackParam : role ? "industry" : null;
   const tag = url.searchParams.get("tag")?.trim() || null;
   const data = await loadOr404<TopicPageData>(`/api/site/topics/${encodeURIComponent(params.slug)}${queryString({ page, track, region, role, tag })}`, { signal: request.signal });
-  return { data, track, tag };
+  return { data, track, region, tag };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -60,7 +60,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
 }
 
 export default function TopicPage() {
-  const { data, track, tag } = useLoaderData<typeof loader>();
+  const { data, track, region, tag } = useLoaderData<typeof loader>();
   const { topic, items, fieldPickIds, page, pageCount } = data;
   const [params] = useSearchParams();
   const base = `/topics/${topic.slug}`;
@@ -71,6 +71,10 @@ export default function TopicPage() {
   };
   const first = (page - 1) * 20 + 1;
   const last = first + items.length - 1;
+  const subtags = [
+    { key: "all", label: "全部", count: topic.allTotal, to: hrefWith(base, params, { tag: null }) },
+    ...topic.subtags.map((s) => ({ key: s.tag, label: s.tag, count: s.total, to: hrefWith(base, params, { tag: s.tag }) })),
+  ];
   return (
     <div className="pb-6">
       <header className="pb-4 pt-5 lg:pt-1">
@@ -99,20 +103,17 @@ export default function TopicPage() {
         <div className="mt-4 hidden lg:block">
           <TrackTabs base={base} track={track} layoutId="topic-track-desk" />
         </div>
-        <div className="mt-3 lg:hidden">
-          <TrackTabs base={base} track={track} layoutId="topic-track-mobile" size="sm" />
-        </div>
+        <MobileFilters base={base} track={track} region={region} layoutId="topic-track-mobile" className="mt-3">
+          {topic.subtags.length > 0 && <PlainTabs items={subtags} active={tag ?? "all"} label="子议题" />}
+        </MobileFilters>
         {topic.subtags.length > 0 && (
           <PillTabs
-            className="mt-3"
+            className="mt-3 hidden lg:block"
             size="sm"
             layoutId="topic-subtags"
             label="子议题"
             active={tag ?? "all"}
-            items={[
-              { key: "all", label: "全部", count: topic.allTotal, to: hrefWith(base, params, { tag: null }) },
-              ...topic.subtags.map((s) => ({ key: s.tag, label: s.tag, count: s.total, to: hrefWith(base, params, { tag: s.tag }) })),
-            ]}
+            items={subtags}
           />
         )}
       </header>

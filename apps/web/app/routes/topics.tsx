@@ -5,7 +5,7 @@ import { Link, useLoaderData } from "react-router";
 import { apiGet, queryString } from "../lib/api.server";
 import { relativeTime } from "../lib/format";
 import { pageMeta } from "../lib/seo";
-import { TrackTabs } from "../features/feed/Filters";
+import { MobileFilters, TrackTabs } from "../features/feed/Filters";
 
 interface TopicSummary {
   slug: string;
@@ -60,9 +60,7 @@ export default function TopicsPage() {
         <div className="mt-4 hidden lg:block">
           <TrackTabs base="/topics" track={track} layoutId="topics-track-desk" />
         </div>
-        <div className="mt-3 lg:hidden">
-          <TrackTabs base="/topics" track={track} layoutId="topics-track-mobile" size="sm" />
-        </div>
+        <MobileFilters base="/topics" track={track} layoutId="topics-track-mobile" showRegion={false} className="mt-3" />
       </header>
       {GROUPS.map((g) => {
         const visible = topics.filter((t) => t.group === g.key && t.total > 0);

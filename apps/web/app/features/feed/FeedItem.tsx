@@ -1,6 +1,6 @@
 // One report in a feed. Desktop (≥ 961px): a white card beside the time rail. Mobile: a compact row
 // with a divider, the reason in a grey box. One markup, two presentations, as on the original site.
-import { memo } from "react";
+import { memo, useEffect, useId, useState } from "react";
 import { Link } from "react-router";
 import { IntentLink } from "../../components/ui/IntentLink";
 import type { GroupInfo, FeedItemSummary, TimelineFilters } from "@aihot/contracts/site";
@@ -10,6 +10,9 @@ import { ScoreLabel } from "../../components/ui/Score";
 import { MediaThumbs, SourceLine, StarButton } from "./parts";
 import { GroupDevelopments, GroupSources, LatestDevelopment } from "./ReadingGroup";
 import { QuotedLine } from "../item/QuotedPost";
+import { IconChevronDown } from "../../components/icons";
+import { countExpand, getExpandedIds, setExpanded } from "../../lib/expanded-state";
+import { MOBILE_COPY } from "../../lib/mobile-copy";
 
 export interface FeedItemProps {
   item: FeedItemSummary;
@@ -25,6 +28,14 @@ export interface FeedItemProps {
 
 export const FeedItem = memo(function FeedItem({ item, group, filters, read = false, onOpen, showTags = false, fieldPick = false }: FeedItemProps) {
   const isX = item.channel === "x" && !!item.x;
+  const [expanded, setExpandedState] = useState(false);
+  const foldId = useId();
+  const summaryId = `${foldId}-summary`;
+  const reasonId = `${foldId}-reason`;
+  useEffect(() => {
+    if (!isX) setExpandedState(getExpandedIds().includes(item.id));
+  }, [item.id, isX]);
+  const foldLabel = item.summary && item.reason ? MOBILE_COPY.FOLD_SUMMARY_REASON : item.summary ? MOBILE_COPY.FOLD_SUMMARY : MOBILE_COPY.FOLD_REASON;
   const open = () => onOpen?.(item.id);
   const showSources = !!group && (group.additionalSourceCount > 0 || (group.developmentCount <= 1 && group.reportCount > 1));
   const showDevelopments = !!group?.story && group.developmentCount > 1;
@@ -77,7 +88,23 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
               {item.title}
             </IntentLink>
           </h3>
-          {item.summary && <p className="mt-1.5 line-clamp-2 text-[14.5px] leading-[1.75] text-ink-3 lg:mt-2 lg:line-clamp-3 lg:text-[15px]">{item.summary}</p>}
+          {(item.summary || item.reason) && (
+            <button type="button" aria-expanded={expanded} aria-controls={[item.summary ? summaryId : null, item.reason ? reasonId : null].filter(Boolean).join(" ")}
+              aria-label={expanded ? MOBILE_COPY.FOLD_COLLAPSE_ARIA : MOBILE_COPY.FOLD_EXPAND_ARIA}
+              className="relative z-10 mt-1 inline-flex min-h-9 items-center gap-1 text-[12px] text-ink-3 lg:hidden"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const next = !expanded;
+                setExpandedState(next);
+                setExpanded(item.id, next);
+                if (next) countExpand();
+              }}>
+              <span>{foldLabel}</span>
+              <IconChevronDown size={13} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+            </button>
+          )}
+          {item.summary && <p id={summaryId} className={`mt-1.5 text-[14.5px] leading-[1.75] text-ink-3 ${expanded ? "block" : "hidden"} lg:mt-2 lg:line-clamp-3 lg:text-[15px]`}>{item.summary}</p>}
         </>
       )}
 
@@ -110,8 +137,8 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
       )}
 
       {item.reason && (
-        <div className="mt-2.5 rounded-control bg-bg-sunk px-3 py-2 dark:bg-bg-muted/60 lg:mt-3 lg:rounded-none lg:border-t lg:border-line-soft lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-3 lg:dark:bg-transparent">
-          <p className="line-clamp-2 text-[13px] leading-[1.65] text-ink-3 lg:line-clamp-none lg:leading-[1.75] lg:text-note">推荐理由：{item.reason}</p>
+        <div id={isX ? undefined : reasonId} className={`mt-2.5 rounded-control bg-bg-sunk px-3 py-2 dark:bg-bg-muted/60 lg:mt-3 lg:rounded-none lg:border-t lg:border-line-soft lg:bg-transparent lg:px-0 lg:pb-0 lg:pt-3 lg:dark:bg-transparent ${isX || expanded ? "block" : "hidden lg:block"}`}>
+          <p className={`${isX ? "line-clamp-2" : ""} text-[13px] leading-[1.65] text-ink-3 lg:line-clamp-none lg:leading-[1.75] lg:text-note`}>推荐理由：{item.reason}</p>
         </div>
       )}
     </article>

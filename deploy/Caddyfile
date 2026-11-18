@@ -6,6 +6,9 @@
 	handle /_pv {
 		respond 204
 	}
+	handle /_ev {
+		respond 204
+	}
 	handle {
 		reverse_proxy web:3000
 	}

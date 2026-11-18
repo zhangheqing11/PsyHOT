@@ -21,5 +21,9 @@ export function setExpanded(id: string, expanded: boolean) {
   try { window.sessionStorage.setItem(EXPANDED_KEY, JSON.stringify(next)); } catch { /* the card's local state still works */ }
 }
 
-/** Section 6 will attach its expansion counter here. Restoring saved state does not call it. */
-export function countExpand() {}
+export const EXPAND_EVENT = "psyhot:feed-expand";
+
+/** Only explicit expansions notify the active page counter; restoring saved state does not. */
+export function countExpand() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(EXPAND_EVENT));
+}

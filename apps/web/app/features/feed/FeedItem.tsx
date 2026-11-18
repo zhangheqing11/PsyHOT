@@ -13,9 +13,12 @@ import { QuotedLine } from "../item/QuotedPost";
 import { IconChevronDown } from "../../components/icons";
 import { countExpand, getExpandedIds, setExpanded } from "../../lib/expanded-state";
 import { MOBILE_COPY } from "../../lib/mobile-copy";
+import { beijingTime } from "../../lib/format";
 
 export interface FeedItemProps {
   item: FeedItemSummary;
+  /** Original timestamp from the surrounding slot; standalone cards have no header time. */
+  time?: string;
   group?: GroupInfo | null;
   filters?: TimelineFilters;
   read?: boolean;
@@ -26,7 +29,7 @@ export interface FeedItemProps {
   fieldPick?: boolean;
 }
 
-export const FeedItem = memo(function FeedItem({ item, group, filters, read = false, onOpen, showTags = false, fieldPick = false }: FeedItemProps) {
+export const FeedItem = memo(function FeedItem({ item, time, group, filters, read = false, onOpen, showTags = false, fieldPick = false }: FeedItemProps) {
   const isX = item.channel === "x" && !!item.x;
   const [expanded, setExpandedState] = useState(false);
   const foldId = useId();
@@ -50,6 +53,10 @@ export const FeedItem = memo(function FeedItem({ item, group, filters, read = fa
   return (
     <article className="relative min-w-0 lg:card lg:card-hover lg:px-[18px] lg:pb-[14px] lg:pt-[15px]" data-item-id={item.id}>
       <header className="flex min-h-[18px] items-center gap-2 text-[12.5px] leading-[18px] text-ink-4">
+        {time && <>
+          <time dateTime={time} className="mono shrink-0 whitespace-nowrap lg:hidden">{beijingTime(time)}</time>
+          <span aria-hidden="true" className="shrink-0 lg:hidden">·</span>
+        </>}
         <SourceLine item={item} className="text-ink-4" />
         {fieldPick ? (
           <span className="shrink-0 rounded border border-line px-1 text-[11px] leading-[16px] text-ink-4">领域精选</span>

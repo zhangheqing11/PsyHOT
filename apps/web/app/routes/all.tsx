@@ -5,7 +5,7 @@ import type { PoolResponse } from "@aihot/contracts/site";
 import { industryRolesOn, isCategoryKey, isChannelKey, isRegionKey, isRoleKey, isTrackKey } from "@aihot/contracts/taxonomy";
 import { loadOr404, queryString } from "../lib/api.server";
 import { listPath, pageMeta } from "../lib/seo";
-import { CategoryTabs, RegionTabs, SearchField, TrackTabs } from "../features/feed/Filters";
+import { CategoryTabs, MobileFilters, RegionTabs, SearchField, TrackTabs } from "../features/feed/Filters";
 import { PillTabs } from "../components/ui/Tabs";
 import { DayList, Pagination } from "../features/feed/DayList";
 import { EmptyState } from "../components/ui/Page";
@@ -107,11 +107,9 @@ export default function AllPage() {
         </div>
         <SearchField variant="bar" defaultValue={f.q ?? ""} keep={keep} autoFocus={params.get("search") === "1"} />
         <div className="-mx-4 mt-3 border-b border-line-soft px-4 pb-3">
-          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-            <TrackTabs base="/all" track={f.track} layoutId="all-track-mobile" size="sm" />
-            <RegionTabs base="/all" track={f.track} region={f.region} layoutId="all-region-mobile" size="sm" />
-            <CategoryTabs base="/all" category={f.category} channel={f.channel} track={f.track} role={f.role} layoutId="all-cat-mobile" size="sm" className="min-w-0" />
-          </div>
+          <MobileFilters base="/all" track={f.track} region={f.region} layoutId="all-track-mobile" showSearch={false}>
+            <CategoryTabs base="/all" category={f.category} channel={f.channel} track={f.track} role={f.role} layoutId="all-cat-mobile" variant="plain" />
+          </MobileFilters>
         </div>
       </div>
 

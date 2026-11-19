@@ -1,12 +1,14 @@
 // Feed filters: the channel and category row, and search.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Form, Link, useNavigation, useSearchParams } from "react-router";
 import { useNavigate } from "react-router";
 import { FEATURES } from "@aihot/industry/features";
 import { CATEGORY_LABELS, CATEGORY_TRACK, CHANNEL_LABELS, industryRolesOn, PUBLIC_API_CATEGORY_KEYS, ROLE_KEYS, ROLE_LABELS, TRACK_LABELS, type CategoryKey, type ChannelKey, type RegionKey, type RoleKey, type TrackKey } from "@aihot/contracts/taxonomy";
-import { IconClose, IconSearch } from "../../components/icons";
-import { PillTabs } from "../../components/ui/Tabs";
+import { IconCheck, IconChevronDown, IconClose, IconSearch } from "../../components/icons";
+import { Menu, MenuItem } from "../../components/ui/Menu";
+import { PillTabs, PlainTabs } from "../../components/ui/Tabs";
 import { setTrackPreference } from "../../lib/local-state";
+import { MOBILE_COPY } from "../../lib/mobile-copy";
 
 /** Same page with some query parameters changed (paging state dropped). */
 export function hrefWith(base: string, params: URLSearchParams, patch: Record<string, string | null>) {
@@ -48,7 +50,51 @@ export function RegionTabs({ base, track, region, layoutId, size = "sm", classNa
   return <PillTabs items={[{ key: "all", label: "全部地区" }, { key: "domestic", label: "国内" }, { key: "international", label: "国际" }]} active={active} onSelect={go} layoutId={layoutId} label="地区" size={size} className={className} />;
 }
 
-export function CategoryTabs({ base, category, channel = "all", track, role, layoutId, size = "md", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; role?: RoleKey | null; layoutId: string; size?: "md" | "sm"; className?: string }) {
+export function RegionMenu({ base, track, region }: { base: string; track?: TrackKey | null; region?: RegionKey | null }) {
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  if (!FEATURES.tracks || track !== "industry") return null;
+  const options = [
+    { key: "all", label: MOBILE_COPY.REGION_ALL },
+    { key: "domestic", label: MOBILE_COPY.REGION_DOMESTIC },
+    { key: "international", label: MOBILE_COPY.REGION_INTERNATIONAL },
+  ];
+  const active = region ?? "all";
+  const current = options.find((option) => option.key === active) ?? options[0];
+  return (
+    <Menu label={`${MOBILE_COPY.REGION_MENU_LABEL}: ${current.label}`} triggerClassName="h-9 gap-1 whitespace-nowrap px-2 text-[13px]"
+      trigger={<>{current.label}<IconChevronDown size={13} /></>}>
+      {(close) => options.map((option) => (
+        <MenuItem key={option.key} icon={<IconCheck size={14} className={option.key === active ? "" : "opacity-0"} />} onSelect={() => {
+          close();
+          navigate(hrefWith(base, params, { region: option.key === "all" ? null : option.key, track: "industry" }));
+        }}>{option.label}</MenuItem>
+      ))}
+    </Menu>
+  );
+}
+
+/** Phone-only shell shared by every mobile filter entry point. */
+export function MobileFilters({ base, track, region, layoutId, showRegion = true, showSearch = true, children, className = "" }: {
+  base: string; track?: TrackKey | null; region?: RegionKey | null; layoutId: string; showRegion?: boolean;
+  /** Off where the page already shows a full search bar (全部动态). */
+  showSearch?: boolean; children?: ReactNode; className?: string;
+}) {
+  return (
+    <div className={`space-y-2 lg:hidden ${className}`}>
+      <div className="flex items-center gap-1.5">
+        <TrackTabs base={base} track={track} layoutId={layoutId} size="sm" className="shrink-0" />
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {showRegion && <RegionMenu base={base} track={track} region={region} />}
+          {showSearch && <SearchIconLink />}
+        </div>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function CategoryTabs({ base, category, channel = "all", track, role, layoutId, size = "md", variant = "pill", className = "" }: { base: string; category: CategoryKey | null; channel?: ChannelKey; track?: TrackKey | null; role?: RoleKey | null; layoutId: string; size?: "md" | "sm"; variant?: "pill" | "plain"; className?: string }) {
   const [params] = useSearchParams();
   // With FEATURES.industryRoles on, the industry view is browsed by practitioner role instead of by category.
   // An old ?category= link there still filters; the row then shows 全部.
@@ -58,6 +104,7 @@ export function CategoryTabs({ base, category, channel = "all", track, role, lay
       ...ROLE_KEYS.map((k) => ({ key: k, label: ROLE_LABELS[k], to: hrefWith(base, params, { role: k, category: null, channel: null }) })),
     ];
     const active = role ?? "all";
+    if (variant === "plain") return <PlainTabs items={items} active={active} label="角色" className={className} />;
     return <PillTabs items={items} active={active} layoutId={layoutId} label="角色" size={size} className={className} />;
   }
   const categoryKeys = FEATURES.tracks
@@ -69,6 +116,7 @@ export function CategoryTabs({ base, category, channel = "all", track, role, lay
     ...categoryKeys.map((k) => ({ key: k, label: CATEGORY_LABELS[k], to: hrefWith(base, params, { category: k, channel: null }) })),
   ];
   const active = channel === "firstParty" ? "firstParty" : (category ?? "all");
+  if (variant === "plain") return <PlainTabs items={items} active={active} label="筛选" className={className} />;
   return <PillTabs items={items} active={active} layoutId={layoutId} label="筛选" size={size} className={className} />;
 }
 
@@ -169,7 +217,7 @@ export function SearchField({ action = "/all", defaultValue = "", keep = {}, var
   );
 }
 
-/** Mobile home: the search icon at the end of the category row opens search on 全部动态. */
+/** The mobile filter row opens search on 全部动态. */
 export function SearchIconLink() {
   return (
     <Link to="/all?search=1" aria-label="搜索" className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-3 transition-colors hover:bg-bg-sunk hover:text-ink">

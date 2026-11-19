@@ -17,6 +17,7 @@ import { THEME_BOOT_SCRIPT, useTrackPreference } from "./lib/local-state";
 import { apiGet } from "./lib/api.server";
 import { useHydratedFlag } from "./lib/hydration";
 import { usePageViews } from "./lib/page-views";
+import { useListDepth } from "./lib/list-depth";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/favicon.ico", sizes: "any" },
@@ -111,6 +112,7 @@ export default function App() {
   const meta = useLoaderData<typeof loader>();
   useHydratedFlag();
   usePageViews();
+  useListDepth();
   const { pathname } = useLocation();
   // The admin has its own chrome.
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return <Outlet />;

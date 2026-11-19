@@ -8,7 +8,7 @@ import { listPath, organizationLd, pageMeta } from "../lib/seo";
 import { Wordmark } from "../components/Logo";
 import { Timeline } from "../features/feed/Timeline";
 import { HotTopics } from "../features/feed/HotTopics";
-import { CategoryTabs, RegionTabs, SearchField, SearchIconLink, TrackTabs } from "../features/feed/Filters";
+import { CategoryTabs, MobileFilters, RegionTabs, SearchField, TrackTabs } from "../features/feed/Filters";
 import { beijingDate, beijingWeekday } from "../lib/format";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -78,14 +78,9 @@ export default function Home() {
       {data.hot && <HotTopics entries={data.hot} />}
 
       <h2 className="mt-6 text-[20px] font-bold text-ink lg:hidden">{filters.tag ? title : "最新精选"}</h2>
-      <div className="-mx-4 mt-3 flex items-center gap-2 pl-4 pr-2 lg:hidden">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          <TrackTabs base="/" track={filters.track} layoutId="home-track-mobile" size="sm" />
-          <RegionTabs base="/" track={filters.track} region={filters.region} layoutId="home-region-mobile" size="sm" />
-          <CategoryTabs base="/" category={filters.category} channel={filters.channel} track={filters.track} role={filters.role} layoutId="home-cat-mobile" size="sm" className="min-w-0" />
-        </div>
-        <SearchIconLink />
-      </div>
+      <MobileFilters base="/" track={filters.track} region={filters.region} layoutId="home-track-mobile" className="mt-3">
+        <CategoryTabs base="/" category={filters.category} channel={filters.channel} track={filters.track} role={filters.role} layoutId="home-cat-mobile" variant="plain" />
+      </MobileFilters>
 
       <Timeline initial={data} filters={data.filters} />
     </div>

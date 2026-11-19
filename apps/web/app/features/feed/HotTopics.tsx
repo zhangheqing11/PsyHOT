@@ -45,13 +45,13 @@ export function HotTopics({ entries }: { entries: HotStripEntry[] }) {
       </div>
       <ol>
         {entries.slice(0, 5).map((e, i) => (
-          <li key={e.rank}>
+          <li key={e.rank} className={i >= 3 ? "hidden lg:list-item" : undefined}>
             <Link
               to={hrefOf(e)}
               className="group -mx-2 grid grid-cols-[20px_minmax(0,1fr)_auto] items-center gap-x-3 rounded-tile px-2 py-2 transition-colors hover:bg-bg-sunk/70 sm:grid-cols-[20px_minmax(0,1fr)_120px_64px_20px] sm:gap-x-4 dark:hover:bg-bg-muted/40"
             >
               <span className={`num text-center leading-none ${RANK_COLOR[i] ?? "text-[14px] font-bold text-rank-rest"}`}>{e.rank}</span>
-              <span className="line-clamp-2 min-w-0 text-[14px] font-semibold leading-[1.5] text-ink transition-colors group-hover:text-accent lg:line-clamp-1">{e.title}</span>
+              <span className="line-clamp-1 min-w-0 text-[14px] font-semibold leading-[1.5] text-ink transition-colors group-hover:text-accent">{e.title}</span>
               <span className="hidden justify-end sm:flex">
                 <Faces interactive={false} participants={e.participants} total={e.participantCount} size={20} />
               </span>

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { IntentLink } from "./IntentLink";
 import { useEntrance } from "../../lib/hydration";
@@ -115,6 +115,52 @@ export function PillTabs({
           );
         })}
       </Track>
+    </div>
+  );
+}
+
+/** Mobile filter links: no track, right-edge bleed, and only the row itself scrolls. */
+export function PlainTabs({ items, active, label, className = "" }: { items: Array<TabItem & { to: string }>; active: string; label: string; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [atEnd, setAtEnd] = useState(false);
+  useLayoutEffect(() => {
+    const row = ref.current;
+    if (!row) return;
+    const updateFade = () => setAtEnd(row.scrollWidth - row.clientWidth - row.scrollLeft <= 1);
+    const reveal = () => {
+      const selected = row.querySelector<HTMLElement>('[aria-current="page"]');
+      if (selected) {
+        const bounds = row.getBoundingClientRect();
+        const tab = selected.getBoundingClientRect();
+        if (tab.left < bounds.left) row.scrollLeft -= bounds.left - tab.left;
+        else if (tab.right > bounds.right - 32) row.scrollLeft += tab.right - (bounds.right - 32);
+      }
+      updateFade();
+    };
+    reveal();
+    row.addEventListener("scroll", updateFade, { passive: true });
+    const observer = new ResizeObserver(reveal);
+    observer.observe(row);
+    if (row.firstElementChild) observer.observe(row.firstElementChild);
+    return () => { row.removeEventListener("scroll", updateFade); observer.disconnect(); };
+  }, [active, items]);
+  const mask = atEnd ? undefined : "linear-gradient(to right, black calc(100% - 32px), transparent)";
+  return (
+    <div className={`-mr-4 min-w-0 ${className}`}>
+      <div ref={ref} className="scrollbar-none overflow-x-auto" style={{ maskImage: mask, WebkitMaskImage: mask }}>
+        <nav aria-label={label} className="flex w-max gap-1 py-0.5 pr-4">
+          {items.map((item) => {
+            const on = item.key === active;
+            return (
+              <Link key={item.key} to={item.to} preventScrollReset aria-current={on ? "page" : undefined}
+                className={`inline-flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 text-[13px] font-medium transition-colors ${on ? "bg-accent-soft text-accent" : "text-ink-3 hover:text-ink"}`}>
+                {item.label}
+                {item.count !== undefined && item.count !== null && <span className="num text-[0.86em] font-normal text-ink-4">{item.count}</span>}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
     </div>
   );
 }

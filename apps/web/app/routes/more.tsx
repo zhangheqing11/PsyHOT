@@ -17,13 +17,13 @@ export function meta() {
   return pageMeta({ title: "更多", path: "/more", noindex: true });
 }
 
-type Row = { to: string; label: string; icon: ReactNode };
+type Row = { to: string; label: string; icon: ReactNode; desktopOnly?: boolean };
 
 const GROUPS: Array<{ title: string; rows: Row[] }> = [
   {
     title: "内容",
     rows: [
-      { to: "/topics", label: "主题索引", icon: <IconGrid size={18} /> },
+      { to: "/topics", label: "主题索引", icon: <IconGrid size={18} />, desktopOnly: true },
       ...(FEATURES.leaderboard ? [{ to: "/leaderboard", label: "模型榜", icon: <IconChart size={18} /> }] : []),
       ...(FEATURES.codexResetMonitor ? [{ to: "/codex-reset", label: "Tibo重置监控", icon: <IconHistory size={18} /> }] : []),
       { to: "/agent", label: "Agent 接入", icon: <IconPlug size={18} /> },
@@ -65,7 +65,7 @@ export default function MorePage() {
         {GROUPS.map((g) => (
           <Group key={g.title} title={g.title}>
             {g.rows.map((r) => (
-              <li key={r.to}>
+              <li key={r.to} className={r.desktopOnly ? "hidden lg:list-item" : undefined}>
                 <Link to={r.to} className="flex h-[50px] items-center gap-3 px-4 text-[15px] font-medium text-ink transition-colors active:bg-bg-sunk lg:hover:bg-bg-sunk">
                   <span className="text-ink-3">{r.icon}</span>
                   <span className="flex flex-1 items-center gap-2">{r.label}{r.to === "/changelog" && changelogDot && <span className="size-1.5 rounded-full bg-hot" aria-label="有新的更新" />}</span>

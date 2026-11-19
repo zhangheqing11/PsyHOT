@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Presence } from "./Presence";
 
 /** A small dropdown anchored to a trigger; closes on outside click, Escape or choosing an entry. */
-export function Menu({ trigger, label, children, align = "right" }: { trigger: ReactNode; label: string; children: (close: () => void) => ReactNode; align?: "left" | "right" }) {
+export function Menu({ trigger, label, children, align = "right", triggerClassName = "size-8" }: { trigger: ReactNode; label: string; children: (close: () => void) => ReactNode; align?: "left" | "right"; triggerClassName?: string }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -27,7 +27,7 @@ export function Menu({ trigger, label, children, align = "right" }: { trigger: R
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen(!open)}
-        className={`inline-flex size-8 items-center justify-center rounded-control transition-colors ${open ? "bg-bg-sunk text-ink" : "text-ink-3 hover:bg-bg-sunk hover:text-ink"}`}
+        className={`inline-flex ${triggerClassName} items-center justify-center rounded-control transition-colors ${open ? "bg-bg-sunk text-ink" : "text-ink-3 hover:bg-bg-sunk hover:text-ink"}`}
       >
         {trigger}
       </button>
